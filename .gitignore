@@ -1,5 +1,9 @@
-pom.xml
-*jar
+/docs/
 /lib/
+/logs/
 /classes/
-.lein-deps-sum
+/target/
+*.jar
+*.sh
+.lein*
+pom.xml
