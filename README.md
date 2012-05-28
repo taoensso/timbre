@@ -35,7 +35,7 @@ Depend on `[timbre "0.5.1-SNAPSHOT"]` in your `project.clj` and `use` the librar
 By default, Timbre gives you basic print output to `*out*`/`*err*` at a `debug` logging level:
 
 ```clojure
-(info  "This will print")
+(info "This will print")
 => 2012-May-28 17:26:11:444 +0700 INFO [nusoup.logtests] - This will print
 
 (trace "This won't print due to insufficient logging level")
@@ -52,7 +52,7 @@ There's little overhead for checking logging levels:
 => "Elapsed time: 0.051 msecs"
 ```
 
-Exceptions generate a stack trace:
+First-argument exceptions generate a stack trace:
 
 ```clojure
 (info (Exception. "Oh noes") "arg1" "arg2")
@@ -71,7 +71,7 @@ Easily adjust the current logging level:
 (swap! timbre/config assoc :current-level :warn)
 ```
 
-Enable the standard [postal](https://github.com/drewr/postal)-based email appender:
+Enable the standard [Postal](https://github.com/drewr/postal)-based email appender:
 
 ```clojure
 (swap! timbre/config assoc-in [:shared-appender-config :postal]
@@ -112,7 +112,9 @@ See `(doc timbre/config)` for more information on appenders.
 
 ## Contact & Contribution
 
-Reach me (Peter Taoussanis) at *p.taoussanis at gmail.com* for questions/comments/suggestions/whatever. I'm very open to ideas if you have any! Seriously: try me ;)
+Reach me (Peter Taoussanis) at *p.taoussanis at gmail.com* for questions/comments/suggestions/whatever. I'm very open to ideas if you have any!
+
+I'm also on Twitter: [@ptaoussanis](https://twitter.com/#!/ptaoussanis).
 
 ## License
 
