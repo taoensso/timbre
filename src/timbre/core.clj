@@ -69,6 +69,9 @@
          ;; {:from "me@draines.com" :to "foo@example.com"}
          :shared-appender-config {:postal nil}}))
 
+(defn set-config! [ks val] (swap! config assoc-in ks val))
+(defn set-level!  [level]  (set-config! [:current-level] level))
+
 ;;;; Define and sort logging levels
 
 (def ^:private ordered-levels [:trace :debug :info :warn :error :fatal])

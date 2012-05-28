@@ -68,29 +68,29 @@ java.lang.Exception: Oh noes
 Easily adjust the current logging level:
 
 ```clojure
-(swap! timbre/config assoc :current-level :warn)
+(timbre/set-level! :warn)
 ```
 
 Enable the standard [Postal](https://github.com/drewr/postal)-based email appender:
 
 ```clojure
-(swap! timbre/config assoc-in [:shared-appender-config :postal]
-        ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
-        {:from "me@draines.com" :to "foo@example.com"})
+(timbre/set-config! [:shared-appender-config :postal]
+                    ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
+                    {:from "me@draines.com" :to "foo@example.com"})
 
-(swap! timbre/config assoc-in [:appenders :postal :enabled?] true)
+(timbre/set-config! [:appenders :postal :enabled?] true)
 ```
 
 Rate-limit to one email per message per minute:
 
 ```clojure
-(swap! timbre/config assoc-in [:appenders :postal :max-message-per-msecs 60000])
+(timbre/set-config! [:appenders :postal :max-message-per-msecs 60000])
 ```
 
 And make sure emails are sent asynchronously:
 
 ```clojure
-(swap! timbre/config assoc-in [:appenders :postal :async?] true)
+(timbre/set-config! [:appenders :postal :async?] true)
 ```
 
 ### Custom Appenders
@@ -98,14 +98,15 @@ And make sure emails are sent asynchronously:
 Writing a custom appender is easy:
 
 ```clojure
-(swap! timbre/config assoc-in [:appenders :my-appender]
-       {:doc       "Hello-world appender"
-        :min-level :debug
-        :enabled?  true
-        :async?    false
-        :max-message-per-msecs nil ; No rate limiting
-        :fn (fn [{:keys [message] :as appender-args}]
-              (println "Hello world!" message))})
+(timbre/set-config!
+ [:appenders :my-appender]
+ {:doc       "Hello-world appender"
+  :min-level :debug
+  :enabled?  true
+  :async?    false
+  :max-message-per-msecs nil ; No rate limiting
+  :fn (fn [{:keys [message] :as appender-args}]
+         (println "Hello world!" message))})
 ```
 
 See `(doc timbre/config)` for more information on appenders.
