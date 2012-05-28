@@ -17,13 +17,13 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
 
 ## Status
 
-Timbre was built in a day after I finally lost my patience trying to configure Log4j. I tried to keep the design simple and sensible, but I didn't spend much time thinking about it so there may still be room for improvement. In particular, **the configuration and appender formats are still subject to change**.
+Timbre was built in a day after I finally lost my patience trying to configure Log4j. I tried to keep the design simple and sensible but I didn't spend much time thinking about it so there may still be room for improvement. In particular **the configuration and appender formats are still subject to change**.
 
 ## Getting Started
 
 ### Leiningen
 
-Depend on `[timbre "0.5.0-SNAPSHOT"]` in your `project.clj` and `use` the library:
+Depend on `[timbre "0.5.1-SNAPSHOT"]` in your `project.clj` and `use` the library:
 
 ```clojure
 (ns my-app
@@ -32,11 +32,83 @@ Depend on `[timbre "0.5.0-SNAPSHOT"]` in your `project.clj` and `use` the librar
 
 ### Start Logging
 
-TODO: Out-the-box std-out examples
+By default, Timbre gives you basic print output to `*out*`/`*err*` at a `debug` logging level:
+
+```clojure
+(info  "This will print")
+=> 2012-May-28 17:26:11:444 +0700 INFO [nusoup.logtests] - This will print
+
+(trace "This won't print due to insufficient logging level")
+=> nil
+```
+
+There's little overhead for checking logging levels:
+
+```clojure
+(time (trace (Thread/sleep 5000)))
+=> "Elapsed time: 0.054 msecs"
+
+(time (when true))
+=> "Elapsed time: 0.051 msecs"
+```
+
+Exceptions generate a stack trace:
+
+```clojure
+(info (Exception. "Oh noes") "arg1" "arg2")
+=> 2012-May-28 17:35:16:132 +0700 INFO [nusoup.logtests] - arg1 arg2
+java.lang.Exception: Oh noes
+            NO_SOURCE_FILE:1 nusoup.logtests/eval6409
+          Compiler.java:6511 clojure.lang.Compiler.eval
+          [...]
+```
 
 ### Configuration
 
-TODO: Config format (assoc) & appenders. Recommend just viewing source for now.
+Easily adjust the current logging level:
+
+```clojure
+(swap! timbre/config assoc :current-level :warn)
+```
+
+Enable the standard [postal](https://github.com/drewr/postal)-based email appender:
+
+```clojure
+(swap! timbre/config assoc-in [:shared-appender-config :postal]
+        ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
+        {:from "me@draines.com" :to "foo@example.com"})
+
+(swap! timbre/config assoc-in [:appenders :postal :enabled?] true)
+```
+
+Rate-limit to one email per minute:
+
+```clojure
+(swap! timbre/config assoc-in [:appenders :postal :max-message-per-msecs 60000])
+```
+
+And make sure emails are sent asynchronously:
+
+```clojure
+(swap! timbre/config assoc-in [:appenders :postal :async?] true)
+```
+
+### Custom Appenders
+
+Writing a custom appender is easy:
+
+```clojure
+(swap! timbre/config assoc-in [:appenders :my-appender]
+       {:doc       "Hello-world appender"
+        :min-level :debug
+        :enabled?  true
+        :async?    false
+        :max-message-per-msecs nil ; No rate limiting
+        :fn (fn [{:keys [message]}]
+              (println "Hello world!" message))})
+```
+
+See `(doc timbre/config)` for more information on appenders.
 
 ## Contact & Contribution
 
