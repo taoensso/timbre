@@ -84,7 +84,7 @@ Enable the standard [Postal](https://github.com/drewr/postal)-based email append
 Rate-limit to one email per message per minute:
 
 ```clojure
-(timbre/set-config! [:appenders :postal :max-message-per-msecs 60000])
+(timbre/set-config! [:appenders :postal :max-message-per-msecs] 60000)
 ```
 
 And make sure emails are sent asynchronously:
