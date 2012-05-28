@@ -1,4 +1,4 @@
-# Timbre, a logging library for Clojure
+# Timbre, a (sane) logging library for Clojure
 
 Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out the box*.
 
@@ -36,7 +36,7 @@ By default, Timbre gives you basic print output to `*out*`/`*err*` at a `debug` 
 
 ```clojure
 (info "This will print")
-=> 2012-May-28 17:26:11:444 +0700 INFO [nusoup.logtests] - This will print
+=> 2012-May-28 17:26:11:444 +0700 INFO [timbre.tests] - This will print
 
 (trace "This won't print due to insufficient logging level")
 => nil
@@ -56,9 +56,9 @@ First-argument exceptions generate a stack trace:
 
 ```clojure
 (info (Exception. "Oh noes") "arg1" "arg2")
-=> 2012-May-28 17:35:16:132 +0700 INFO [nusoup.logtests] - arg1 arg2
+=> 2012-May-28 17:35:16:132 +0700 INFO [timbre.tests] - arg1 arg2
 java.lang.Exception: Oh noes
-            NO_SOURCE_FILE:1 nusoup.logtests/eval6409
+            NO_SOURCE_FILE:1 timbre.tests/eval6409
           Compiler.java:6511 clojure.lang.Compiler.eval
           [...]
 ```
@@ -81,7 +81,7 @@ Enable the standard [Postal](https://github.com/drewr/postal)-based email append
 (swap! timbre/config assoc-in [:appenders :postal :enabled?] true)
 ```
 
-Rate-limit to one email per minute:
+Rate-limit to one email per message per minute:
 
 ```clojure
 (swap! timbre/config assoc-in [:appenders :postal :max-message-per-msecs 60000])
@@ -104,7 +104,7 @@ Writing a custom appender is easy:
         :enabled?  true
         :async?    false
         :max-message-per-msecs nil ; No rate limiting
-        :fn (fn [{:keys [message]}]
+        :fn (fn [{:keys [message] :as appender-args}]
               (println "Hello world!" message))})
 ```
 
