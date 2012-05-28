@@ -74,10 +74,10 @@
 (def ^:private ordered-levels [:trace :debug :info :warn :error :fatal])
 (def ^:private scored-levels  (zipmap ordered-levels (range)))
 
-(def ^:private compare-levels
+(def compare-levels
   (memoize (fn [x y] (- (scored-levels x) (scored-levels y)))))
 
-(defn- sufficient-level?
+(defn sufficient-level?
   [level] (>= (compare-levels level (:current-level @config)) 0))
 
 ;;;; Appender-fn decoration: flood control, async, etc.
@@ -171,7 +171,7 @@
 
 ;;;; Define logging macros
 
-(defmacro ^:private log
+(defmacro log
   "Dispatches given arguments to relevant appender-fns iff logging level is
   sufficient."
   {:arglists '([message & more] [throwable message & more])}
