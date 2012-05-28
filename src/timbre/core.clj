@@ -84,22 +84,21 @@
 
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional capabilities controlled by
-  compile-time config:
-    * Asynchronicity.
-    * Runtime flood-safety control."
+  compile-time config."
   [appender-id {apfn :fn :keys [async? max-message-per-msecs] :as appender}]
   (->
-   apfn
+   ;; Wrap to add shared appender config to args
+   (fn [apfn-args]
+     (apfn (assoc apfn-args :ap-config (@config :shared-appender-config))))
 
-   ;; Wrap async
+   ;; Wrap for asynchronicity support
    ((fn [apfn]
       (if-not async?
         apfn
         (let [agent (agent nil :error-mode :continue)]
           (fn [apfn-args] (send-off agent (fn [_] (apfn apfn-args))))))))
 
-
-   ;; Wrap flood-control
+   ;; Wrap for runtime flood-safety support
    ((fn [apfn]
       (if-not max-message-per-msecs
         apfn
@@ -184,9 +183,7 @@
 
                has-throwable?# (instance? Throwable x1#)
                appender-args#
-               {;; TODO Too much overhead for this?
-                :ap-config (@config :shared-appender-config)
-                :level     level#
+               {:level     level#
                 :error?    (>= (compare-levels level# :error) 0)
                 :instant   (java.util.Date.)
                 :ns        (str ~*ns*)
@@ -234,7 +231,7 @@
 (comment
   (info "foo" "bar")
   (trace (Thread/sleep 5000))
-  (time (dotimes [n 10000] (trace "foo" "bar"))) ; Minimum overhead +/- 17ms
+  (time (dotimes [n 10000] (trace "This won't log"))) ; Minimum overhead +/- 17ms
   (time (dotimes [n 5] (info "foo" "bar")))
   (spy (* 6 5 4 3 2 1))
   (info (Exception. "noes!") "bar")
