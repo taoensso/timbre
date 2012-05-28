@@ -190,7 +190,7 @@
                 :error?    (>= (compare-levels level# :error) 0)
                 :instant   (java.util.Date.)
                 :ns        (str ~*ns*)
-                :message   (if has-throwable?# (first xs#) x1#)
+                :message   (if has-throwable?# (or (first xs#) x1#) x1#)
                 :more      (if has-throwable?#
                              (conj (vec (rest xs#))
                                    (str "\n" (stacktrace/pst-str x1#)))
@@ -202,6 +202,7 @@
 (comment (log :fatal "arg1")
          (log :debug "arg1" "arg2")
          (log :debug (Exception.) "arg1" "arg2")
+         (log :debug (Exception.))
          (log :trace "arg1"))
 
 (defmacro spy
