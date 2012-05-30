@@ -113,7 +113,7 @@ See `(doc timbre/config)` for more information on appenders.
 
 ## Contact & Contribution
 
-Reach me (Peter Taoussanis) at *p.taoussanis at gmail.com* for questions/comments/suggestions/whatever. I'm very open to ideas if you have any!
+Reach me (Peter Taoussanis) at *ptaoussanis at gmail.com* for questions/comments/suggestions/whatever. I'm very open to ideas if you have any!
 
 I'm also on Twitter: [@ptaoussanis](https://twitter.com/#!/ptaoussanis).
 
