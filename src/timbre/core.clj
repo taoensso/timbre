@@ -169,7 +169,8 @@
 (add-watch
  config "appender-watch"
  (fn [key ref old new]
-   (when-not (= (:appenders old) (:appenders new))
+   (when (not= (dissoc old :current-level)
+               (dissoc new :current-level))
      (cache-appenders!))))
 
 ;;;; Define logging macros
