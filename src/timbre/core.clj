@@ -11,8 +11,8 @@
 
 (defn prefixed-message
   "timestamp LEVEL [ns] - message"
-  [{:keys [level instant timestamp-fn ns message]}]
-  (str (timestamp-fn instant) " " (-> level name str/upper-case)
+  [{:keys [level timestamp ns message]}]
+  (str timestamp " " (-> level name str/upper-case)
        " [" ns "] - " message))
 
 (def config
@@ -23,8 +23,7 @@
     :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
 
   An appender's fn takes a single map argument with keys:
-    :ap-config, :level, :error?, :instant, :timestamp-fn, :ns,
-    :message, :more
+    :ap-config, :level, :error?, :instant, :timestamp, :ns, :message, :more
 
   See source code for examples."
   (atom {:current-level :debug
@@ -99,13 +98,14 @@
   [appender-id {apfn :fn :keys [async? max-message-per-msecs] :as appender}]
   (->
    ;; Wrap to add compile-time stuff to runtime appender arguments
-   (fn [apfn-args]
-     (let [{:keys [timestamp-pattern locale] :as ap-config}
-           (@config :shared-appender-config)]
+   (let [{:keys [timestamp-pattern locale] :as ap-config}
+         (@config :shared-appender-config)
+         timestamp-fn (make-timestamp-fn timestamp-pattern locale)]
+
+     (fn [{:keys [instant] :as apfn-args}]
        (apfn (assoc apfn-args
-               :ap-config ap-config ; Shared appender config map
-               :timestamp-fn
-               (make-timestamp-fn timestamp-pattern locale)))))
+               :ap-config ap-config
+               :timestamp (timestamp-fn instant)))))
 
    ;; Wrap for asynchronicity support
    ((fn [apfn]

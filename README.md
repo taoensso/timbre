@@ -114,10 +114,10 @@ Writing a custom appender is easy:
   :enabled?  true
   :async?    false
   :max-message-per-msecs nil ; No rate limiting
-  :fn (fn [{:keys [ap-config level error? instant timestamp-fn
+  :fn (fn [{:keys [ap-config level error? instant timestamp
                   ns message more] :as args}]
         (when-not (:production-mode? ap-config)
-          (apply println instant "Hello world!" message more)))
+          (apply println timestamp "Hello world!" message more)))
 ```
 
 And because appender fns are just regular Clojure fns, you have *unlimited power*: write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
