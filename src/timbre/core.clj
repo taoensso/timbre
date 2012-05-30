@@ -10,9 +10,9 @@
 ;;;; Default configuration and appenders
 
 (defn prefixed-message
-  "<formatted-instant> LEVEL [ns] - message"
-  [{:keys [level instant instant-formatter ns message]}]
-  (str (instant-formatter instant) " " (-> level name str/upper-case)
+  "timestamp LEVEL [ns] - message"
+  [{:keys [level instant timestamp-fn ns message]}]
+  (str (timestamp-fn instant) " " (-> level name str/upper-case)
        " [" ns "] - " message))
 
 (def config
@@ -23,7 +23,7 @@
     :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
 
   An appender's fn takes a single map argument with keys:
-    :ap-config, :level, :error?, :instant, :instant-formatter, :ns,
+    :ap-config, :level, :error?, :instant, :timestamp-fn, :ns,
     :message, :more
 
   See source code for examples."
@@ -34,14 +34,14 @@
           {:doc "Prints everything to *out*."
            :min-level :debug :enabled? false :async? false
            :max-message-per-msecs nil
-           :fn (fn [{:keys [level instant ns message more] :as args}]
+           :fn (fn [{:keys [more] :as args}]
                  (apply println (prefixed-message args) more))}
 
           :standard-out-or-err
           {:doc "Prints to *out* or *err* as appropriate. Enabled by default."
            :min-level :debug :enabled? true :async? false
            :max-message-per-msecs nil
-           :fn (fn [{:keys [level error? instant ns message more] :as args}]
+           :fn (fn [{:keys [error? more] :as args}]
                  (binding [*out* (if error? *err* *out*)]
                    (apply println (prefixed-message args) more)))}
 
@@ -50,7 +50,7 @@
                      "Needs :postal config map in :shared-appender-config.")
            :min-level :error :enabled? false :async? true
            :max-message-per-msecs (* 60 60 2)
-           :fn (fn [{:keys [ap-config level instant ns message more] :as args}]
+           :fn (fn [{:keys [ap-config more] :as args}]
                  (when-let [postal-config (:postal ap-config)]
                    (postal/send-message
                     (assoc postal-config
@@ -59,7 +59,7 @@
                                    "<no additional arguments>")))))}}
 
          :shared-appender-config
-         {:instant-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
+         {:timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
           :locale nil ; A Locale object, or nil
           ;; A Postal message map, or nil.
           ;; ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
@@ -82,16 +82,16 @@
 
 ;;;; Appender-fn decoration
 
-(defn- make-instant-formatter
-  "Returns unary fn to format an instant using given pattern string and optional
-  locale."
+(defn- make-timestamp-fn
+  "Returns a unary fn that formats instants using given pattern string and an
+  optional locale."
   [^String pattern ^Locale locale]
   (let [format (if locale
                  (SimpleDateFormat. pattern locale)
                  (SimpleDateFormat. pattern))]
     (fn [^Date instant] (.format ^SimpleDateFormat format instant))))
 
-(comment ((make-instant-formatter "yyyy-MMM-dd" nil) (Date.)))
+(comment ((make-timestamp-fn "yyyy-MMM-dd" nil) (Date.)))
 
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional capabilities controlled by
@@ -100,12 +100,12 @@
   (->
    ;; Wrap to add compile-time stuff to runtime appender arguments
    (fn [apfn-args]
-     (let [{:keys [instant-pattern locale] :as ap-config}
+     (let [{:keys [timestamp-pattern locale] :as ap-config}
            (@config :shared-appender-config)]
        (apfn (assoc apfn-args
                :ap-config ap-config ; Shared appender config map
-               :instant-formatter
-               (make-instant-formatter instant-pattern locale)))))
+               :timestamp-fn
+               (make-timestamp-fn timestamp-pattern locale)))))
 
    ;; Wrap for asynchronicity support
    ((fn [apfn]
@@ -200,15 +200,15 @@
 
                has-throwable?# (instance? Throwable x1#)
                appender-args#
-               {:level     level#
-                :error?    (>= (compare-levels level# :error) 0)
-                :instant   (Date.)
-                :ns        (str ~*ns*)
-                :message   (if has-throwable?# (or (first xs#) x1#) x1#)
-                :more      (if has-throwable?#
-                             (conj (vec (rest xs#))
-                                   (str "\n" (stacktrace/pst-str x1#)))
-                             (vec xs#))}]
+               {:level   level#
+                :error?  (>= (compare-levels level# :error) 0)
+                :instant (Date.)
+                :ns      (str ~*ns*)
+                :message (if has-throwable?# (or (first xs#) x1#) x1#)
+                :more    (if has-throwable?#
+                           (conj (vec (rest xs#))
+                                 (str "\n" (stacktrace/pst-str x1#)))
+                           (vec xs#))}]
 
            (juxt-fn# appender-args#)
            nil)))))

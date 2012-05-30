@@ -71,10 +71,10 @@ Easily adjust the current logging level:
 (timbre/set-level! :warn)
 ```
 
-And the default instant formatting for log messages:
+And the default timestamp formatting for log messages:
 
 ```clojure
-(timbre/set-config! [:shared-appender-config :instant-pattern]
+(timbre/set-config! [:shared-appender-config :timestamp-pattern]
                     "yyyy-MMM-dd HH:mm:ss ZZ")
 (timbre/set-config! [:shared-appender-config :locale]
                     (java.util.Locale/GERMAN))
@@ -114,7 +114,7 @@ Writing a custom appender is easy:
   :enabled?  true
   :async?    false
   :max-message-per-msecs nil ; No rate limiting
-  :fn (fn [{:keys [ap-config level error? instant instant-formatter
+  :fn (fn [{:keys [ap-config level error? instant timestamp-fn
                   ns message more] :as args}]
         (when-not (:production-mode? ap-config)
           (apply println instant "Hello world!" message more)))
