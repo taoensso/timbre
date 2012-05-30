@@ -3,22 +3,17 @@
   {:author "Peter Taoussanis"}
   (:require [clojure.string :as str]
             [clj-stacktrace.repl :as stacktrace]
-            [postal.core :as postal]))
-
-;;;; Appender-fn helpers
-
-(defn instant-str
-  "2012-May-26 15:26:06:081 +0700"
-  [instant]
-  (format "%1$tY-%1$tb-%1$td %1$tH:%1$tM:%1$tS:%1$tL %1tz" instant))
-
-(defn prefixed-message
-  "2012-May-26 15:26:06:081 +0700 LEVEL [ns] - message"
-  [level instant ns message]
-  (str (instant-str instant) " " (-> level name str/upper-case)
-       " [" ns "] - " message))
+            [postal.core :as postal])
+  (:import  [java.util Date Locale]
+            [java.text SimpleDateFormat]))
 
 ;;;; Default configuration and appenders
+
+(defn prefixed-message
+  "<formatted-instant> LEVEL [ns] - message"
+  [{:keys [level instant instant-formatter ns message]}]
+  (str (instant-formatter instant) " " (-> level name str/upper-case)
+       " [" ns "] - " message))
 
 (def config
   "This map atom controls everything about the way Timbre operates. In
@@ -28,7 +23,8 @@
     :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
 
   An appender's fn takes a single map argument with keys:
-    :ap-config, :level, :error?, :instant, :ns, :message, :more
+    :ap-config, :level, :error?, :instant, :instant-formatter, :ns,
+    :message, :more
 
   See source code for examples."
   (atom {:current-level :debug
@@ -38,36 +34,37 @@
           {:doc "Prints everything to *out*."
            :min-level :debug :enabled? false :async? false
            :max-message-per-msecs nil
-           :fn (fn [{:keys [level instant ns message more]}]
-                 (apply println (prefixed-message level instant ns message)
-                        more))}
+           :fn (fn [{:keys [level instant ns message more] :as args}]
+                 (apply println (prefixed-message args) more))}
 
           :standard-out-or-err
           {:doc "Prints to *out* or *err* as appropriate. Enabled by default."
            :min-level :debug :enabled? true :async? false
            :max-message-per-msecs nil
-           :fn (fn [{:keys [level error? instant ns message more]}]
+           :fn (fn [{:keys [level error? instant ns message more] :as args}]
                  (binding [*out* (if error? *err* *out*)]
-                   (apply println (prefixed-message level instant ns message)
-                          more)))}
+                   (apply println (prefixed-message args) more)))}
 
           :postal
           {:doc (str "Sends an email using com.draines/postal.\n"
                      "Needs :postal config map in :shared-appender-config.")
            :min-level :error :enabled? false :async? true
            :max-message-per-msecs (* 60 60 2)
-           :fn (fn [{:keys [ap-config level instant ns message more]}]
+           :fn (fn [{:keys [ap-config level instant ns message more] :as args}]
                  (when-let [postal-config (:postal ap-config)]
                    (postal/send-message
                     (assoc postal-config
-                      :subject (prefixed-message level instant ns message)
-                      :body (if (seq more) (str/join " " more)
-                                "<no additional arguments>")))))}}
+                      :subject (prefixed-message args)
+                      :body    (if (seq more) (str/join " " more)
+                                   "<no additional arguments>")))))}}
 
-         ;; Example :postal map:
-         ;; ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
-         ;; {:from "me@draines.com" :to "foo@example.com"}
-         :shared-appender-config {:postal nil}}))
+         :shared-appender-config
+         {:instant-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
+          :locale nil ; A Locale object, or nil
+          ;; A Postal message map, or nil.
+          ;; ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
+          ;; {:from "me@draines.com" :to "foo@example.com"}
+          :postal nil}}))
 
 (defn set-config! [ks val] (swap! config assoc-in ks val))
 (defn set-level!  [level]  (set-config! [:current-level] level))
@@ -83,16 +80,32 @@
 (defn sufficient-level?
   [level] (>= (compare-levels level (:current-level @config)) 0))
 
-;;;; Appender-fn decoration: flood control, async, etc.
+;;;; Appender-fn decoration
+
+(defn- make-instant-formatter
+  "Returns unary fn to format an instant using given pattern string and optional
+  locale."
+  [^String pattern ^Locale locale]
+  (let [format (if locale
+                 (SimpleDateFormat. pattern locale)
+                 (SimpleDateFormat. pattern))]
+    (fn [^Date instant] (.format ^SimpleDateFormat format instant))))
+
+(comment ((make-instant-formatter "yyyy-MMM-dd" nil) (Date.)))
 
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional capabilities controlled by
   compile-time config."
   [appender-id {apfn :fn :keys [async? max-message-per-msecs] :as appender}]
   (->
-   ;; Wrap to add shared appender config to args
+   ;; Wrap to add compile-time stuff to runtime appender arguments
    (fn [apfn-args]
-     (apfn (assoc apfn-args :ap-config (@config :shared-appender-config))))
+     (let [{:keys [instant-pattern locale] :as ap-config}
+           (@config :shared-appender-config)]
+       (apfn (assoc apfn-args
+               :ap-config ap-config ; Shared appender config map
+               :instant-formatter
+               (make-instant-formatter instant-pattern locale)))))
 
    ;; Wrap for asynchronicity support
    ((fn [apfn]
@@ -189,7 +202,7 @@
                appender-args#
                {:level     level#
                 :error?    (>= (compare-levels level# :error) 0)
-                :instant   (java.util.Date.)
+                :instant   (Date.)
                 :ns        (str ~*ns*)
                 :message   (if has-throwable?# (or (first xs#) x1#) x1#)
                 :more      (if has-throwable?#

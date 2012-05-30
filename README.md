@@ -8,7 +8,7 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
 
 ## What's In The Box?
  * Small, uncomplicated **all-Clojure** library.
- * **Map-based config**: no arcane XML or properties files.
+ * **Super-simple map-based config**: no arcane XML or properties files.
  * Decent performance (**low overhead**).
  * Flexible **fn-centric appender model**.
  * Sensible built-in appenders including simple **email appender**.
@@ -71,6 +71,15 @@ Easily adjust the current logging level:
 (timbre/set-level! :warn)
 ```
 
+And the default instant formatting for log messages:
+
+```clojure
+(timbre/set-config! [:shared-appender-config :instant-pattern]
+                    "yyyy-MMM-dd HH:mm:ss ZZ")
+(timbre/set-config! [:shared-appender-config :locale]
+                    (java.util.Locale/GERMAN))
+```
+
 Enable the standard [Postal](https://github.com/drewr/postal)-based email appender:
 
 ```clojure
@@ -105,7 +114,8 @@ Writing a custom appender is easy:
   :enabled?  true
   :async?    false
   :max-message-per-msecs nil ; No rate limiting
-  :fn (fn [{:keys [ap-config level error? instant ns message more] :as args}]
+  :fn (fn [{:keys [ap-config level error? instant instant-formatter
+                  ns message more] :as args}]
         (when-not (:production-mode? ap-config)
           (apply println instant "Hello world!" message more)))
 ```
