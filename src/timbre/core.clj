@@ -31,14 +31,14 @@
          :appenders
          {:standard-out
           {:doc "Prints everything to *out*."
-           :min-level :debug :enabled? false :async? false
+           :min-level nil :enabled? false :async? false
            :max-message-per-msecs nil
            :fn (fn [{:keys [more] :as args}]
                  (apply println (prefixed-message args) more))}
 
           :standard-out-or-err
           {:doc "Prints to *out* or *err* as appropriate. Enabled by default."
-           :min-level :debug :enabled? true :async? false
+           :min-level nil :enabled? true :async? false
            :max-message-per-msecs nil
            :fn (fn [{:keys [error? more] :as args}]
                  (binding [*out* (if error? *err* *out*)]
@@ -83,7 +83,7 @@
 
 (defn- make-timestamp-fn
   "Returns a unary fn that formats instants using given pattern string and an
-  optional locale."
+  optional Locale."
   [^String pattern ^Locale locale]
   (let [format (if locale
                  (SimpleDateFormat. pattern locale)
@@ -155,7 +155,8 @@
   [level]
   (->> (:appenders @config)
        (filter #(let [{:keys [enabled? min-level]} (val %)]
-                  (and enabled? (>= (compare-levels level min-level) 0))))
+                  (and enabled? (or (nil? min-level)
+                                    (>= (compare-levels level min-level) 0)))))
        (into {})))
 
 (comment (relevant-appenders :debug)
