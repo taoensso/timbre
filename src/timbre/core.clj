@@ -65,7 +65,7 @@
           ;; {:from "me@draines.com" :to "foo@example.com"}
           :postal nil}}))
 
-(defn set-config! [ks val] (swap! config assoc-in ks val))
+(defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
 (defn set-level!  [level]  (set-config! [:current-level] level))
 
 ;;;; Define and sort logging levels
@@ -182,9 +182,9 @@
 ;; Automatically re-cache any time appenders change
 (add-watch
  config "appender-watch"
- (fn [key ref old new]
-   (when (not= (dissoc old :current-level)
-               (dissoc new :current-level))
+ (fn [key ref old-state new-state]
+   (when (not= (dissoc old-state :current-level)
+               (dissoc new-state :current-level))
      (cache-appenders!))))
 
 ;;;; Define logging macros

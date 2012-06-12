@@ -2,8 +2,9 @@
   :description "Simple, flexible, all-Clojure logging. No XML!"
   :url "https://github.com/ptaoussanis/timbre"
   :license {:name "Eclipse Public License"}
-  :dependencies [[clj-stacktrace     "0.2.4"]
-                 [com.draines/postal "1.7.1"
+  :dependencies [[org.clojure/clojure "1.3.0"]
+                 [clj-stacktrace      "0.2.4"]
+                 [com.draines/postal  "1.7.1"
                   :exclusions [org.clojure.contrib/repl-utils]]]
   :profiles {:1.3   {:dependencies [[org.clojure/clojure "1.3.0"]]}
              :1.4   {:dependencies [[org.clojure/clojure "1.4.0"]]}
