@@ -15,7 +15,7 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
  * Tunable **flood control**.
  * **Asynchronous** logging support.
 
-## Status
+## Status [![Build Status](https://secure.travis-ci.org/ptaoussanis/timbre.png)](http://travis-ci.org/ptaoussanis/timbre)
 
 Timbre was built in a day after I finally lost my patience trying to configure Log4j. I tried to keep the design simple and sensible but I didn't spend much time thinking about it so there may still be room for improvement. In particular **the configuration and appender formats are still subject to change**.
 
