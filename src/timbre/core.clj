@@ -15,6 +15,12 @@
   (str timestamp " " (-> level name str/upper-case)
        " [" ns "] - " message))
 
+(defn str-println
+  "Like 'println' but prints all objects to output stream as a single
+  atomic string. This is faster and avoids interleaving race conditions."
+  [& xs]
+  (print (str (str/join \space xs) \newline)))
+
 (def config
   "This map atom controls everything about the way Timbre operates. In
   particular note the flexibility to add arbitrary appenders.
@@ -34,7 +40,7 @@
            :min-level nil :enabled? false :async? false
            :max-message-per-msecs nil
            :fn (fn [{:keys [more] :as args}]
-                 (apply println (prefixed-message args) more))}
+                 (apply str-println (prefixed-message args) more))}
 
           :standard-out-or-err
           {:doc "Prints to *out* or *err* as appropriate. Enabled by default."
@@ -42,7 +48,7 @@
            :max-message-per-msecs nil
            :fn (fn [{:keys [error? more] :as args}]
                  (binding [*out* (if error? *err* *out*)]
-                   (apply println (prefixed-message args) more)))}
+                   (apply str-println (prefixed-message args) more)))}
 
           :postal
           {:doc (str "Sends an email using com.draines/postal.\n"
@@ -95,7 +101,7 @@
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional capabilities controlled by
   compile-time config."
-  [appender-id {apfn :fn :keys [async? max-message-per-msecs] :as appender}]
+  [{apfn :fn :keys [async? max-message-per-msecs] :as appender}]
   (->
    ;; Wrap to add compile-time stuff to runtime appender arguments
    (let [{:keys [timestamp-pattern locale] :as ap-config}
@@ -172,8 +178,7 @@
                            ;; Return nil if no relevant appenders
                            (when-let [ap-ids (keys rel-aps)]
                              (->> ap-ids
-                                  (map (fn [n] (wrap-appender-fn
-                                               n (rel-aps n))))
+                                  (map #(wrap-appender-fn (rel-aps %)))
                                   (apply juxt))))))))
        (reset! juxt-cache)))
 
@@ -250,7 +255,7 @@
 (comment
   (info "foo" "bar")
   (trace (Thread/sleep 5000))
-  (time (dotimes [n 10000] (trace "This won't log"))) ; Minimum overhead +/- 17ms
+  (time (dotimes [n 10000] (trace "This won't log"))) ; Minimum overhead +/- 4.5ms
   (time (dotimes [n 5] (info "foo" "bar")))
   (spy (* 6 5 4 3 2 1))
   (info (Exception. "noes!") "bar")
