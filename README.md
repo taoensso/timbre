@@ -126,7 +126,7 @@ See `(doc timbre/config)` for more information on appenders.
 
 ## Timbre Supports the ClojureWerkz Project Goals
 
-[ClojureWerkz](http://clojurewerkz.org/) is a growing collection of open-source, batteries-included libraries for Clojure that emphasise modern targets, great documentation, and thorough testing.
+ClojureWerkz is a growing collection of open-source, batteries-included [Clojure libraries](http://clojurewerkz.org/) that emphasise modern targets, great documentation, and thorough testing.
 
 ## Contact & Contribution
 
