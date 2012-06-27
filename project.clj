@@ -4,8 +4,7 @@
   :license {:name "Eclipse Public License"}
   :dependencies [[org.clojure/clojure "1.3.0"]
                  [clj-stacktrace      "0.2.4"]
-                 [com.draines/postal  "1.7.1"
-                  :exclusions [org.clojure.contrib/repl-utils]]]
+                 [com.draines/postal  "1.8.0"]]
   :profiles {:1.3   {:dependencies [[org.clojure/clojure "1.3.0"]]}
              :1.4   {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5   {:dependencies [[org.clojure/clojure "1.5.0-master-SNAPSHOT"]]}}
