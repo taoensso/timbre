@@ -23,7 +23,7 @@ Timbre was built in a day after I finally lost my patience trying to configure L
 
 ### Leiningen
 
-Depend on `[timbre "0.5.1-SNAPSHOT"]` in your `project.clj` and `use` the library:
+Depend on `[com.taoensso/timbre "0.5.1-SNAPSHOT"]` in your `project.clj` and `use` the library:
 
 ```clojure
 (ns my-app
