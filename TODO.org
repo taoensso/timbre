@@ -1,7 +1,0 @@
-#+STARTUP: overview, hidestars
-#+TAGS: urgent underway maybe waiting hammock next
-* DOCS
-* API
-** Standard file appender?
-* TESTS
-** Write some!
