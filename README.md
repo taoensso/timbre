@@ -1,3 +1,11 @@
+# NOTICE
+
+The Timbre Clojars group was recently changed. Please update your `project.clj` to use:
+
+```clojure
+[com.taoensso/timbre "{VERSION}"]
+```
+
 # Timbre, a (sane) logging library for Clojure
 
 Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out the box*.
@@ -23,7 +31,13 @@ Timbre was built in a day after I finally lost my patience trying to configure L
 
 ### Leiningen
 
-Depend on `[com.taoensso/timbre "0.5.1-SNAPSHOT"]` in your `project.clj` and `use` the library:
+Depend on Timbre in your `project.clj`:
+
+```clojure
+[com.taoensso/timbre "0.5.1"]
+```
+
+and `require` the library:
 
 ```clojure
 (ns my-app
