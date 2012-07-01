@@ -34,7 +34,7 @@ Timbre was built in a day after I finally lost my patience trying to configure L
 Depend on Timbre in your `project.clj`:
 
 ```clojure
-[com.taoensso/timbre "0.5.1"]
+[com.taoensso/timbre "0.5.2"]
 ```
 
 and `require` the library:

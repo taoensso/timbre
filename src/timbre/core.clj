@@ -5,7 +5,7 @@
             [clj-stacktrace.repl :as stacktrace]
             [postal.core :as postal])
   (:import  [java.util Date Locale]
-            [java.text SimpleDateFormat]))
+            java.text.SimpleDateFormat))
 
 ;;;; Default configuration and appenders
 
@@ -71,19 +71,27 @@
           ;; {:from "me@draines.com" :to "foo@example.com"}
           :postal nil}}))
 
-(defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
-(defn set-level!  [level]  (set-config! [:current-level] level))
-
 ;;;; Define and sort logging levels
 
-(def ^:private ordered-levels [:trace :debug :info :warn :error :fatal])
+(def ^:private ordered-levels [:trace :debug :info :warn :error :fatal :report])
 (def ^:private scored-levels  (zipmap ordered-levels (range)))
+(defn check-level
+  [x] (when-not (some #{x} ordered-levels)
+        (throw (Exception. (str "Invalid logging level: " x)))))
 
 (def compare-levels
   (memoize (fn [x y] (- (scored-levels x) (scored-levels y)))))
 
 (defn sufficient-level?
   [level] (>= (compare-levels level (:current-level @config)) 0))
+
+;;;; Config helpers
+
+(defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
+(defn set-level!
+  [level]
+  (check-level level)
+  (set-config! [:current-level] level))
 
 ;;;; Appender-fn decoration
 
@@ -197,8 +205,9 @@
 (defmacro log
   "Dispatches given arguments to relevant appender-fns iff logging level is
   sufficient."
-  {:arglists '([message & more] [throwable message & more])}
+  {:arglists '([level message & more] [level throwable message & more])}
   [level & args]
+  (check-level level)
   `(let [level# ~level]
      (when (sufficient-level? level#)
        (when-let [juxt-fn# (@juxt-cache level#)] ; Any relevant appenders?
@@ -226,7 +235,7 @@
          (log :trace "arg1"))
 
 (defmacro spy
-  "Evaluates expression and logs its form and result. Returns the result.
+  "Evaluates expression and logs its form and result. Always returns the result.
   Defaults to :debug logging level."
   ([expr] `(spy :debug ~expr))
   ([level expr]
