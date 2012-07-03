@@ -1,4 +1,4 @@
-(ns test-timbre.timbre
+(ns test-timbre.timbre.profiling
   (:use [clojure.test]
         [taoensso.timbre :as timbre :only (info)]))
 
