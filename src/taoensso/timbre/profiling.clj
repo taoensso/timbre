@@ -5,11 +5,18 @@
 
 (def ^:dynamic *plog* "{::pname [time1 time2 ...] ...}" nil)
 
+(defmacro prepare-name
+  "Returns namespaced keyword for given name."
+  [name]
+  `(if (and (keyword? ~name) (namespace ~name))
+     ~name
+     (keyword (str ~*ns*) (clojure.core/name ~name))))
+
 (defmacro p
   "When in the context of a *plog* binding, records execution time of named
   body. Always returns the body's result."
   [name & body]
-  (let [name (keyword (str *ns*) (clojure.core/name name))]
+  (let [name (prepare-name name)]
     `(if *plog*
        (let [start-time# (System/nanoTime)
              result#     (do ~@body)
@@ -27,7 +34,7 @@
               (assoc m pname {:count count
                               :min   (apply min times)
                               :max   (apply max times)
-                              :mean  (int (/ total count))
+                              :mean  (long (/ total count))
                               :total total})))
           {} plog))
 
@@ -40,12 +47,19 @@
   "Returns formatted plog stats table for given plog stats."
   ([stats] (plog-table stats :total))
   ([stats sort-field]
-     (let [grand-total-time (reduce + (map :total (vals stats)))
-           max-name-width   (apply max (map (comp count str)
-                                            (conj (keys stats) "Name")))
+     (let [;; How long entire (profile) body took
+           total-time (-> stats :meta/total :total)
+           stats      (dissoc stats :meta/total)
+
+           ;; Sum of (p) times, <= total-time
+           accounted (reduce + (map :total (vals stats)))
+
+           max-name-width (apply max (map (comp count str)
+                                          (conj (keys stats) "Unaccounted")))
            pattern   (str "%" max-name-width "s %6d %9s %10s %9s %7d %1s%n")
            s-pattern (.replace pattern \d \s)
 
+           perc #(Math/round (/ %1 %2 0.01))
            ft (fn [nanosecs]
                 (let [pow     #(Math/pow 10 %)
                       ok-pow? #(>= nanosecs (pow %))
@@ -53,7 +67,7 @@
                   (cond (ok-pow? 9) (str (to-pow 9) "s")
                         (ok-pow? 6) (str (to-pow 6) "ms")
                         (ok-pow? 3) (str (to-pow 3) "μs")
-                        :else (str (long nanosecs) "ns"))))]
+                        :else (str (long nanosecs)  "ns"))))]
 
        (with-out-str
          (printf s-pattern "Name" "Count" "Min" "Max" "Mean" "Total%" "Total")
@@ -62,17 +76,20 @@
                             (sort-by #(- (get-in stats [% sort-field]))))]
            (let [{:keys [count min max mean total]} (stats pname)]
              (printf pattern (fqname pname) count (ft min) (ft max) (ft mean)
-                     (Math/round (/ total grand-total-time 0.01))
+                     (perc total total-time)
                      (ft total))))
 
-         (printf s-pattern "" "" "" "" "" "" (ft grand-total-time))))))
+         (let [unacc      (- total-time accounted)
+               unacc-perc (perc unacc total-time)]
+           (printf s-pattern "Unaccounted" "" "" "" "" unacc-perc (ft unacc))
+           (printf s-pattern "Total" "" "" "" "" 100 (ft total-time)))))))
 
 (defmacro profile*
   "Executes named body with profiling enabled. Body forms wrapped in (p) will be
   timed and time stats sent along with `name` to binary `log-fn`. Returns body's
   result."
   [log-fn name & body]
-  (let [name (keyword (str *ns*) (clojure.core/name name))]
+  (let [name (prepare-name name)]
     `(binding [*plog* (atom {})]
        (let [result# (do ~@body)]
          (~log-fn ~name (plog-stats @*plog*))
@@ -97,7 +114,7 @@
                      (str "Profiling: " (fqname name#))
                      (str "\n" (plog-table stats#))))
       ~name
-      ~@body)
+      (p :meta/total ~@body))
      (do ~@body)))
 
 (defmacro sampling-profile
@@ -110,6 +127,7 @@
 
 (comment
   (profile :info :Sleepy-threads
+           (Thread/sleep 100) ; Unaccounted
            (p :1ms  (Thread/sleep 1))
            (p :2s   (Thread/sleep 2000))
            (p :50ms (Thread/sleep 50))
@@ -121,8 +139,8 @@
   (defn my-fn
     []
     (let [nums (vec (range 1000))]
-      (+ (p :fast-thread (Thread/sleep 1) 10)
-         (p :slow-thread (Thread/sleep 2) 32)
+      (+ (p :fast-sleep (Thread/sleep 1) 10)
+         (p :slow-sleep (Thread/sleep 2) 32)
          (p :add  (reduce + nums))
          (p :sub  (reduce - nums))
          (p :mult (reduce * nums))
