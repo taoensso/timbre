@@ -43,7 +43,7 @@
      (let [grand-total-time (reduce + (map :total (vals stats)))
            max-name-width   (apply max (map (comp count str)
                                             (conj (keys stats) "Event")))
-           pattern   (str "  %" max-name-width "s %6d %9s %10s %9s %7d %1s%n")
+           pattern   (str "%" max-name-width "s %6d %9s %10s %9s %7d %1s%n")
            s-pattern (.replace pattern \d \s)
 
            ft (fn [nanosecs]
@@ -93,8 +93,8 @@
       (fn [name# stats#]
         (timbre/log* ~level
                      {:profile-stats stats#}
-                     (str "Profiling table: " (fqname name#))
-                     (plog-table stats#)))
+                     (str "Profiling: " (fqname name#))
+                     (str "\n" (plog-table stats#))))
       ~name
       ~@body)
      (do ~@body)))
