@@ -23,9 +23,13 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
  * Tunable **flood control**.
  * **Asynchronous** logging support.
 
-## Status [![Build Status](https://secure.travis-ci.org/ptaoussanis/timbre.png)](http://travis-ci.org/ptaoussanis/timbre)
+## Status [![Build Status](https://secure.travis-ci.org/ptaoussanis/timbre.png?branch=master)](http://travis-ci.org/ptaoussanis/timbre)
 
-Timbre was built in a day after I finally lost my patience trying to configure Log4j. I tried to keep the design simple and sensible but I didn't spend much time thinking about it so there may still be room for improvement. In particular **the configuration and appender formats are still subject to change**.
+Tower is still currently *experimental*. It **has not yet been thoroughly tested in production** and its API is subject to change. To run tests against all supported Clojure versions, use:
+
+```bash
+lein2 all test
+```
 
 ## Getting Started
 
@@ -37,7 +41,7 @@ Depend on Timbre in your `project.clj`:
 [com.taoensso/timbre "0.5.2"]
 ```
 
-and `require` the library:
+and `use` the library:
 
 ```clojure
 (ns my-app
@@ -79,6 +83,32 @@ java.lang.Exception: Oh noes
 
 ### Configuration
 
+Configuring Timbre couldn't be simpler. Let's check out (some of) the defaults:
+
+```clojure
+@timbre/config
+=>
+{:current-level :debug
+
+ :ns-whitelist []
+ :ns-blacklist []
+
+ :appenders
+ {:standard-out
+  {:doc "Prints everything to *out*."
+   :min-level nil :enabled? false :async? false
+   :max-message-per-msecs nil
+   :fn (fn [{:keys [more] :as args}]
+         (apply timbre/str-println (timbre/prefixed-message args) more))}
+  ;; ...
+  }
+
+ :shared-appender-config
+ {:timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ"
+  :locale nil
+  :postal nil}}
+```
+
 Easily adjust the current logging level:
 
 ```clojure
@@ -92,6 +122,11 @@ And the default timestamp formatting for log messages:
                     "yyyy-MMM-dd HH:mm:ss ZZ")
 (timbre/set-config! [:shared-appender-config :locale]
                     (java.util.Locale/GERMAN))
+```
+
+Filter logging output by namespaces:
+```clojure
+(timbre/set-config! [:ns-whitelist] ["some.library.core" "my-app.*"])
 ```
 
 Enable the standard [Postal](https://github.com/drewr/postal)-based email appender:
@@ -118,7 +153,7 @@ And make sure emails are sent asynchronously:
 
 ### Custom Appenders
 
-Writing a custom appender is easy:
+Writing a custom appender is dead-easy:
 
 ```clojure
 (timbre/set-config!
