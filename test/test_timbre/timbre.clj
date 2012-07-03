@@ -1,6 +1,6 @@
-(ns timbre.test.core
+(ns test-timbre.timbre
   (:use [clojure.test]
-        [timbre.core :as timbre :only (info)]))
+        [taoensso.timbre :as timbre :only (info)]))
 
 ;; TODO Tests (help would be welcome!!)
 

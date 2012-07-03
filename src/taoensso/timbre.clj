@@ -1,4 +1,4 @@
-(ns timbre.core
+(ns taoensso.timbre
   "Simple, flexible, all-Clojure logging. No XML!"
   {:author "Peter Taoussanis"}
   (:require [clojure.string :as str]
