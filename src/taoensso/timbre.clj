@@ -5,7 +5,7 @@
             [clj-stacktrace.repl :as stacktrace]
             [postal.core :as postal])
   (:import  [java.util Date Locale]
-            java.text.SimpleDateFormat))
+            [java.text.SimpleDateFormat]))
 
 ;;;; Default configuration and appenders
 
@@ -16,7 +16,7 @@
        " [" ns "] - " message))
 
 (defn str-println
-  "Like 'println' but prints all objects to output stream as a single
+  "Like `println` but prints all objects to output stream as a single
   atomic string. This is faster and avoids interleaving race conditions."
   [& xs]
   (print (str (str/join \space xs) \newline)))
@@ -29,10 +29,16 @@
     :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
 
   An appender's fn takes a single map argument with keys:
-    :ap-config, :level, :error?, :instant, :timestamp, :ns, :message, :more
+    :ap-config, :level, :error?, :instant, :timestamp, :ns, :message, :more,
+    :profiling-stats (when applicable)
 
   See source code for examples."
   (atom {:current-level :debug
+
+         ;;; Allow log filtering by namespace patterns (e.g. ["my-app.*"]).
+         ;;; Useful for turning off logging in noisy libraries, etc.
+         :ns-whitelist []
+         :ns-blacklist []
 
          :appenders
          {:standard-out
@@ -63,6 +69,7 @@
                       :body    (if (seq more) (str/join " " more)
                                    "<no additional arguments>")))))}}
 
+         ;; Will be given to all appenders via :ap-config key
          :shared-appender-config
          {:timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
           :locale nil ; A Locale object, or nil
@@ -71,11 +78,14 @@
           ;; {:from "me@draines.com" :to "foo@example.com"}
           :postal nil}}))
 
+(defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
+(defn set-level!  [level] (set-config! [:current-level] level))
+
 ;;;; Define and sort logging levels
 
 (def ^:private ordered-levels [:trace :debug :info :warn :error :fatal :report])
 (def ^:private scored-levels  (zipmap ordered-levels (range)))
-(defn check-level
+(defn assert-valid-level
   [x] (when-not (some #{x} ordered-levels)
         (throw (Exception. (str "Invalid logging level: " x)))))
 
@@ -84,14 +94,6 @@
 
 (defn sufficient-level?
   [level] (>= (compare-levels level (:current-level @config)) 0))
-
-;;;; Config helpers
-
-(defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
-(defn set-level!
-  [level]
-  (check-level level)
-  (set-config! [:current-level] level))
 
 ;;;; Appender-fn decoration
 
@@ -107,8 +109,8 @@
 (comment ((make-timestamp-fn "yyyy-MMM-dd" nil) (Date.)))
 
 (defn- wrap-appender-fn
-  "Wraps compile-time appender fn with additional capabilities controlled by
-  compile-time config."
+  "Wraps compile-time appender fn with additional runtime capabilities
+  controlled by compile-time config."
   [{apfn :fn :keys [async? max-message-per-msecs] :as appender}]
   (->
    ;; Wrap to add compile-time stuff to runtime appender arguments
@@ -132,7 +134,7 @@
    ((fn [apfn]
       (if-not max-message-per-msecs
         apfn
-        (let [ ;; {:msg last-appended-time-msecs ...}
+        (let [;; {:msg last-appended-time-msecs ...}
               flood-timers (atom {})]
 
           (fn [{:keys [message] :as apfn-args}]
@@ -157,10 +159,13 @@
                   (when (seq expired-timers)
                     (apply swap! flood-timers dissoc expired-timers))))))))))))
 
-;;;; Appender-fn caching
+;;;; Caching
 
-(def juxt-cache
-  "Per-level, combined relevant appender-fns:
+;;; Appender-fns
+
+(def appenders-juxt-cache
+  "Per-level, combined relevant appender-fns to allow for fast runtime
+  appender-fn dispatch:
   {:level (juxt wrapped-appender-fn wrapped-appender-fn ...) or nil
     ...}"
   (atom {}))
@@ -176,63 +181,97 @@
 (comment (relevant-appenders :debug)
          (relevant-appenders :trace))
 
-(defn- cache-appenders!
-  "Prime 'juxt-cache' for fast runtime appender-fn dispatch."
+(defn- cache-appenders-juxt!
   []
-  (->> (zipmap
-        ordered-levels
-        (->> ordered-levels
-             (map (fn [l] (let [rel-aps (relevant-appenders l)]
-                           ;; Return nil if no relevant appenders
-                           (when-let [ap-ids (keys rel-aps)]
-                             (->> ap-ids
-                                  (map #(wrap-appender-fn (rel-aps %)))
-                                  (apply juxt))))))))
-       (reset! juxt-cache)))
+  (->>
+   (zipmap
+    ordered-levels
+    (->> ordered-levels
+         (map (fn [l] (let [rel-aps (relevant-appenders l)]
+                       ;; Return nil if no relevant appenders
+                       (when-let [ap-ids (keys rel-aps)]
+                         (->> ap-ids
+                              (map #(wrap-appender-fn (rel-aps %)))
+                              (apply juxt))))))))
+   (reset! appenders-juxt-cache)))
 
-(cache-appenders!) ; Actually cache default appenders now
+;;; Namespace filter
 
-;; Automatically re-cache any time appenders change
+(def ns-filter-cache "@ns-filter-cache => (fn relevant-ns? [ns] ...)"
+  (atom (constantly true)))
+
+(defn- ns-match?
+  [ns match]
+  (-> (str "^" (-> (str match) (.replace "." "\\.") (.replace "*" "(.*)")) "$")
+      re-pattern (re-find (str ns)) boolean))
+
+(defn- cache-ns-filter!
+  []
+  (->>
+   (let [{:keys [ns-whitelist ns-blacklist]} @config]
+     (memoize
+      (fn relevant-ns? [ns]
+        (and (or (empty? ns-whitelist)
+                 (some (partial ns-match? ns) ns-whitelist))
+             (or (empty? ns-blacklist)
+                 (not-any? (partial ns-match? ns) ns-blacklist))))))
+   (reset! ns-filter-cache)))
+
+;;; Prime initial caches and recache on config change
+
+(cache-appenders-juxt!)
+(cache-ns-filter!)
+
 (add-watch
- config "appender-watch"
+ config "config-cache-watch"
  (fn [key ref old-state new-state]
    (when (not= (dissoc old-state :current-level)
                (dissoc new-state :current-level))
-     (cache-appenders!))))
+     (cache-appenders-juxt!)
+     (cache-ns-filter!))))
 
 ;;;; Define logging macros
 
+(defmacro logging-enabled?
+  "Returns true when current logging level is sufficient and current namespace
+  is unfiltered."
+  [level]
+  (assert-valid-level level)
+  `(and (sufficient-level? ~level) (@ns-filter-cache ~*ns*)))
+
+(defmacro log*
+  "Prepares given arguments for, and then dispatches to all relevant
+  appender-fns."
+  [level base-args & args]
+  (assert-valid-level level)
+  `(when-let [juxt-fn# (@appenders-juxt-cache ~level)] ; Any relevant appenders?
+     (let [[x1# & xs#] (list ~@args)
+
+           has-throwable?# (instance? Throwable x1#)
+           appender-args#
+           (conj
+            ~base-args ; Allow flexibility to inject exta args
+            {:level   ~level
+             :error?  (>= (compare-levels ~level :error) 0)
+             :instant (Date.)
+             :ns      (str ~*ns*)
+             :message (if has-throwable?# (or (first xs#) x1#) x1#)
+             :more    (if has-throwable?#
+                        (conj (vec (rest xs#))
+                              (str "\n" (stacktrace/pst-str x1#)))
+                        (vec xs#))})]
+
+       (juxt-fn# appender-args#)
+       nil)))
+
 (defmacro log
-  "Dispatches given arguments to relevant appender-fns iff logging level is
-  sufficient."
+  "When logging is enabled, actually logs given arguments with relevant
+  appender-fns. Generic form of standard level-loggers (trace, info, etc.)."
   {:arglists '([level message & more] [level throwable message & more])}
   [level & args]
-  (check-level level)
-  `(let [level# ~level]
-     (when (sufficient-level? level#)
-       (when-let [juxt-fn# (@juxt-cache level#)] ; Any relevant appenders?
-         (let [[x1# & xs#] (list ~@args)
-
-               has-throwable?# (instance? Throwable x1#)
-               appender-args#
-               {:level   level#
-                :error?  (>= (compare-levels level# :error) 0)
-                :instant (Date.)
-                :ns      (str ~*ns*)
-                :message (if has-throwable?# (or (first xs#) x1#) x1#)
-                :more    (if has-throwable?#
-                           (conj (vec (rest xs#))
-                                 (str "\n" (stacktrace/pst-str x1#)))
-                           (vec xs#))}]
-
-           (juxt-fn# appender-args#)
-           nil)))))
-
-(comment (log :fatal "arg1")
-         (log :debug "arg1" "arg2")
-         (log :debug (Exception.) "arg1" "arg2")
-         (log :debug (Exception.))
-         (log :trace "arg1"))
+  (assert-valid-level level)
+  `(when (logging-enabled? ~level)
+     (log* ~level {} ~@args)))
 
 (defmacro spy
   "Evaluates expression and logs its form and result. Always returns the result.
@@ -240,7 +279,7 @@
   ([expr] `(spy :debug ~expr))
   ([level expr]
      `(try
-        (let [r# ~expr] (log ~level '~expr ~expr) r#)
+        (let [result# ~expr] (log ~level '~expr ~expr) result#)
         (catch Exception e#
           (log ~level '~expr (str "\n" (stacktrace/pst-str e#)))
           (throw e#)))))
@@ -262,9 +301,18 @@
 ;;;; Dev/tests
 
 (comment
+  (log :fatal "arg1")
+  (log :debug "arg1" "arg2")
+  (log :debug (Exception.) "arg1" "arg2")
+  (log :debug (Exception.))
+  (log :trace "arg1")
+
+  (set-config! [:ns-blacklist] [])
+  (set-config! [:ns-blacklist] ["taoensso.timbre*"])
+
   (info "foo" "bar")
   (trace (Thread/sleep 5000))
-  (time (dotimes [n 10000] (trace "This won't log"))) ; Minimum overhead +/- 4.5ms
+  (time (dotimes [n 10000] (trace "This won't log"))) ; Overhead 5ms/10ms
   (time (dotimes [n 5] (info "foo" "bar")))
   (spy (* 6 5 4 3 2 1))
   (info (Exception. "noes!") "bar")
