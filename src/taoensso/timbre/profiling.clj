@@ -42,7 +42,7 @@
   ([stats sort-field]
      (let [grand-total-time (reduce + (map :total (vals stats)))
            max-name-width   (apply max (map (comp count str)
-                                            (conj (keys stats) "Event")))
+                                            (conj (keys stats) "Name")))
            pattern   (str "%" max-name-width "s %6d %9s %10s %9s %7d %1s%n")
            s-pattern (.replace pattern \d \s)
 
@@ -56,7 +56,7 @@
                         :else (str (long nanosecs) "ns"))))]
 
        (with-out-str
-         (printf s-pattern "Event" "Count" "Min" "Max" "Mean" "Total%" "Total")
+         (printf s-pattern "Name" "Count" "Min" "Max" "Mean" "Total%" "Total")
 
          (doseq [pname (->> (keys stats)
                             (sort-by #(- (get-in stats [% sort-field]))))]
@@ -75,7 +75,8 @@
   (let [name (keyword (str *ns*) (clojure.core/name name))]
     `(binding [*plog* (atom {})]
        (let [result# (do ~@body)]
-         (~log-fn ~name (plog-stats @*plog*))))))
+         (~log-fn ~name (plog-stats @*plog*))
+         result#))))
 
 (defmacro profile
   "When logging is enabled, executes named body with profiling enabled. Body
@@ -117,12 +118,16 @@
 
   (p :hello "Hello, this is a result") ; Falls through (no *plog* context)
 
-  (let [nums (range 1000)]
-    (profile :info :Arithmetic
-             (dotimes [n 1000]
-               (p :add      (reduce + nums))
-               (p :subtract (reduce - nums))
-               (p :multiply (reduce * nums))
-               (p :divide   (reduce / nums)))))
+  (defn my-fn
+    []
+    (let [nums (vec (range 1000))]
+      (+ (p :fast-thread (Thread/sleep 1) 10)
+         (p :slow-thread (Thread/sleep 2) 32)
+         (p :add  (reduce + nums))
+         (p :sub  (reduce - nums))
+         (p :mult (reduce * nums))
+         (p :div  (reduce / nums)))))
+
+  (profile :info :Arithmetic (dotimes [n 100] (my-fn)))
 
   (sampling-profile :info 0.2 :Sampling-test (p :string "Hello!")))

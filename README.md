@@ -1,9 +1,7 @@
-# NOTICE
-
-The Timbre Clojars group was recently changed. Please update your `project.clj` to use:
+Current version:
 
 ```clojure
-[com.taoensso/timbre "{VERSION}"]
+[com.taoensso/timbre "0.5.2"]
 ```
 
 # Timbre, a (sane) logging library for Clojure
@@ -16,12 +14,13 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
 
 ## What's In The Box?
  * Small, uncomplicated **all-Clojure** library.
- * **Super-simple map-based config**: no arcane XML or properties files.
+ * **Super-simple map-based config**: no arcane XML or properties files!
  * Decent performance (**low overhead**).
  * Flexible **fn-centric appender model**.
  * Sensible built-in appenders including simple **email appender**.
- * Tunable **flood control**.
- * **Asynchronous** logging support.
+ * Tunable **flood control** and **asynchronous** logging support.
+ * Robust **namespace filtering**.
+ * Dead-simple, logging-level-aware **logging profiler**.
 
 ## Status [![Build Status](https://secure.travis-ci.org/ptaoussanis/timbre.png?branch=master)](http://travis-ci.org/ptaoussanis/timbre)
 
@@ -45,7 +44,7 @@ and `use` the library:
 
 ```clojure
 (ns my-app
-  (:use [timbre.core :as timbre :only (trace debug info warn error fatal spy)])
+  (:use [taoensso.timbre :as timbre :only (trace debug info warn error fatal spy)]))
 ```
 
 ### Start Logging
@@ -54,7 +53,12 @@ By default, Timbre gives you basic print output to `*out*`/`*err*` at a `debug` 
 
 ```clojure
 (info "This will print")
-=> 2012-May-28 17:26:11:444 +0700 INFO [timbre.tests] - This will print
+=> nil
+%> 2012-May-28 17:26:11:444 +0700 INFO [my-app] - This will print
+
+(spy :info (* 5 4 3 2 1))
+=> 120
+%> 2012-May-28 17:26:14:138 +0700 INFO [my-app] - (* 5 4 3 2 1) 120
 
 (trace "This won't print due to insufficient logging level")
 => nil
@@ -64,21 +68,21 @@ There's little overhead for checking logging levels:
 
 ```clojure
 (time (trace (Thread/sleep 5000)))
-=> "Elapsed time: 0.054 msecs"
+%> "Elapsed time: 0.054 msecs"
 
 (time (when true))
-=> "Elapsed time: 0.051 msecs"
+%> "Elapsed time: 0.051 msecs"
 ```
 
 First-argument exceptions generate a stack trace:
 
 ```clojure
 (info (Exception. "Oh noes") "arg1" "arg2")
-=> 2012-May-28 17:35:16:132 +0700 INFO [timbre.tests] - arg1 arg2
+%> 2012-May-28 17:35:16:132 +0700 INFO [my-app] - arg1 arg2
 java.lang.Exception: Oh noes
-            NO_SOURCE_FILE:1 timbre.tests/eval6409
+            NO_SOURCE_FILE:1 my-app/eval6409
           Compiler.java:6511 clojure.lang.Compiler.eval
-          [...]
+          <...>
 ```
 
 ### Configuration
@@ -94,14 +98,8 @@ Configuring Timbre couldn't be simpler. Let's check out (some of) the defaults:
  :ns-blacklist []
 
  :appenders
- {:standard-out
-  {:doc "Prints everything to *out*."
-   :min-level nil :enabled? false :async? false
-   :max-message-per-msecs nil
-   :fn (fn [{:keys [more] :as args}]
-         (apply timbre/str-println (timbre/prefixed-message args) more))}
-  ;; ...
-  }
+ {:standard-out        { <...> }
+  :postal              { <...> }}
 
  :shared-appender-config
  {:timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ"
@@ -165,13 +163,66 @@ Writing a custom appender is dead-easy:
   :max-message-per-msecs nil ; No rate limiting
   :fn (fn [{:keys [ap-config level error? instant timestamp
                   ns message more] :as args}]
-        (when-not (:production-mode? ap-config)
+        (when-not (:my-production-mode? ap-config)
           (apply println timestamp "Hello world!" message more)))
 ```
 
 And because appender fns are just regular Clojure fns, you have *unlimited power*: write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
 
-See `(doc timbre/config)` for more information on appenders.
+See the `timbre/config` docstring for more information on appenders.
+
+## Profiling
+
+The usual recommendation for Clojure profiling is: use a good **JVM profiler** like [YourKit](http://www.yourkit.com/), [JProfiler](http://www.ej-technologies.com/products/jprofiler/overview.html), or [VisualVM](http://docs.oracle.com/javase/6/docs/technotes/guides/visualvm/index.html).
+
+And these certaily do the job. But as with many Java tools, they can be a little hairy and often heavy-handed - especially when applied to Clojure. Timbre includes an alternative. 
+
+Let's add it to our app's `ns` declaration:
+
+```clojure
+(ns my-app
+  (:use [taoensso.timbre :as timbre :only (trace debug info warn error fatal spy)]
+        [taoensso.timbre.profiling :as profiling :only (p profile)]))
+```
+
+Wrap forms that you'd like to profile with the `p` macro and give them a name:
+
+```clojure
+(defn my-fn
+  []
+  (let [nums (vec (range 1000))]
+    (+ (p :fast-thread (Thread/sleep 1) 10)
+       (p :slow-thread (Thread/sleep 2) 32)
+       (p :add  (reduce + nums))
+       (p :sub  (reduce - nums))
+       (p :mult (reduce * nums))
+       (p :div  (reduce / nums)))))
+
+(my-fn)
+=> 42
+```
+
+The `profile` macro can now be used to log times for any wrapped forms:
+
+```clojure
+(profile :info :Arithmetic (dotimes [n 100] (my-fn)))
+=> "Done!"
+%> 2012-Jul-03 19:39:12 +0700 INFO [my-app] - Profiling: my-app/Arithmetic
+               Name  Count       Min        Max      Mean  Total% Total
+ my-app/slow-thread    100       2ms        2ms       2ms      62 232ms
+ my-app/fast-thread    100       1ms        1ms       1ms      32 119ms
+         my-app/div    100      64μs      146μs      79μs       2 7ms
+         my-app/add    100      24μs      107μs      54μs       1 5ms
+        my-app/mult    100      33μs       92μs      42μs       1 4ms
+         my-app/sub    100      30μs      124μs      42μs       1 4ms
+                                                                  373ms
+```
+
+It's important to note that Timbre profiling is fully **log-level aware**: if the logging level is insufficient, you won't pay for profiling. Likewise, normal namespace filtering applies. (Performance characteristics for both checks are inherited from Timbre itself).
+
+And since `p` and `profile` **always return their body's result** regardless of whether profiling actually happens or not, it becomes feasible to use profiling more often as part of your normal workflow: just *leave profiling code in production as you do logging code*.
+
+A **sampling profiler** is also available: `taoensso.timbre.profiling/sampling-profile`.
 
 ## Timbre Supports the ClojureWerkz Project Goals
 

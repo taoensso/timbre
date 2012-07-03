@@ -5,7 +5,7 @@
             [clj-stacktrace.repl :as stacktrace]
             [postal.core :as postal])
   (:import  [java.util Date Locale]
-            [java.text.SimpleDateFormat]))
+            [java.text SimpleDateFormat]))
 
 ;;;; Default configuration and appenders
 
