@@ -1,7 +1,7 @@
-Current version:
+Current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "0.6.0"]
+[com.taoensso/timbre "0.6.1"] ; Please note that the repo and ns have changed recently
 ```
 
 # Timbre, a (sane) logging library for Clojure
@@ -37,7 +37,7 @@ lein2 all test
 Depend on Timbre in your `project.clj`:
 
 ```clojure
-[com.taoensso/timbre "0.6.0"]
+[com.taoensso/timbre "0.6.1"]
 ```
 
 and `use` the library:
@@ -207,23 +207,23 @@ The `profile` macro can now be used to log times for any wrapped forms:
 ```clojure
 (profile :info :Arithmetic (dotimes [n 100] (my-fn)))
 => "Done!"
-%> 2012-Jul-03 20:46:17 +0700 INFO [my-app] - Profiling: my-app/Arithmetic
-              Name  Count       Min        Max      Mean  Total% Total
- my-app/slow-sleep    100       2ms        2ms       2ms      58 232ms
- my-app/fast-sleep    100       1ms        1ms       1ms      30 120ms
-        my-app/div    100      65μs      204μs      90μs       2 9ms
-        my-app/add    100      32μs      116μs      59μs       1 5ms
-        my-app/sub    100      30μs      145μs      47μs       1 4ms
-       my-app/mult    100      33μs      117μs      45μs       1 4ms
-       Unaccounted                                             6 25ms
-             Total                                           100 403ms
+%> 2012-Jul-03 20:46:17 +0700 INFO [my-app] - Profiling my-app/Arithmetic
+              Name  Calls       Min        Max       MAD      Mean  Total% Total
+ my-app/slow-sleep    100       2ms        2ms      31μs       2ms      57 231ms
+ my-app/fast-sleep    100       1ms        1ms      27μs       1ms      29 118ms
+        my-app/add    100      44μs        2ms      46μs     100μs       2 10ms
+        my-app/sub    100      42μs      564μs      26μs      72μs       2 7ms
+        my-app/div    100      54μs      191μs      17μs      71μs       2 7ms
+       my-app/mult    100      31μs      165μs      11μs      44μs       1 4ms
+       Unaccounted                                                       6 26ms
+             Total                                                     100 405ms
 ```
 
-It's important to note that Timbre profiling is fully **log-level aware**: if the logging level is insufficient, you won't pay for profiling. Likewise, normal namespace filtering applies. (Performance characteristics for both checks are inherited from Timbre itself).
+It's important to note that Timbre profiling is fully **logging-level aware**: if the  level is insufficient, you *won't pay for profiling*. Likewise, normal namespace filtering applies. (Performance characteristics for both checks are inherited from Timbre itself).
 
 And since `p` and `profile` **always return their body's result** regardless of whether profiling actually happens or not, it becomes feasible to use profiling more often as part of your normal workflow: just *leave profiling code in production as you do for logging code*.
 
-A **sampling profiler** is also available: `taoensso.timbre.profiling/sampling-profile`.
+A simple **sampling profiler** is also available: `taoensso.timbre.profiling/sampling-profile`.
 
 ## Timbre Supports the ClojureWerkz Project Goals
 

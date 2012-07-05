@@ -217,7 +217,7 @@
                  (not-any? (partial ns-match? ns) ns-blacklist))))))
    (reset! ns-filter-cache)))
 
-;;; Prime initial caches and recache on config change
+;;; Prime initial caches and re-cache on config change
 
 (cache-appenders-juxt!)
 (cache-ns-filter!)

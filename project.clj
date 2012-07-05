@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "0.6.0"
+(defproject com.taoensso/timbre "0.6.1"
   :description "Simple, flexible, all-Clojure logging. No XML!"
   :url "https://github.com/ptaoussanis/timbre"
   :license {:name "Eclipse Public License"}
