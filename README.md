@@ -1,7 +1,7 @@
 Current version:
 
 ```clojure
-[com.taoensso/timbre "0.6.0"]
+[com.taoensso/timbre "0.6.0"] ; Please note that the repo and ns have changed recently
 ```
 
 # Timbre, a (sane) logging library for Clojure
