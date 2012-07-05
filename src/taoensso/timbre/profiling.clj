@@ -132,12 +132,14 @@
 
 (comment
   (profile :info :Sleepy-threads
-           (Thread/sleep 100) ; Unaccounted
-           (p :1ms  (Thread/sleep 1))
-           (p :2s   (Thread/sleep 2000))
-           (p :50ms (Thread/sleep 50))
-           (p :10ms (Thread/sleep 10))
-           "Result")
+           (dotimes [n 5]
+             (Thread/sleep 100) ; Unaccounted
+             (p :1ms  (Thread/sleep 1))
+             (p :2s   (Thread/sleep 2000))
+             (p :50ms (Thread/sleep 50))
+             (p :rand (Thread/sleep (if (> 0.5 (rand)) 10 500)))
+             (p :10ms (Thread/sleep 10))
+             "Result"))
 
   (p :hello "Hello, this is a result") ; Falls through (no *plog* context)
 
