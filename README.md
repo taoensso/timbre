@@ -225,7 +225,7 @@ And since `p` and `profile` **always return their body's result** regardless of 
 
 A simple **sampling profiler** is also available: `taoensso.timbre.profiling/sampling-profile`.
 
-## Timbre Supports the ClojureWerkz Project Goals
+## Timbre supports the ClojureWerkz Project Goals
 
 ClojureWerkz is a growing collection of open-source, batteries-included [Clojure libraries](http://clojurewerkz.org/) that emphasise modern targets, great documentation, and thorough testing.
 
