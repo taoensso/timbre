@@ -75,7 +75,7 @@
           :locale nil ; A Locale object, or nil
           ;; A Postal message map, or nil.
           ;; ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
-          ;; {:from "me@draines.com" :to "foo@example.com"}
+          ;; {:from "Bob's logger <me@draines.com>" :to "foo@example.com"}
           :postal nil}}))
 
 (defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
