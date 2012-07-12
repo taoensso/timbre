@@ -21,18 +21,19 @@
   [& xs]
   (print (str (str/join \space xs) \newline)))
 
-(def config
-  "This map atom controls everything about the way Timbre operates. In
-  particular note the flexibility to add arbitrary appenders.
+(defonce config
+  ^{:doc
+    "This map atom controls everything about the way Timbre operates. In
+    particular note the flexibility to add arbitrary appenders.
 
-  An appender is a map with keys:
-    :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
+    An appender is a map with keys:
+      :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
 
-  An appender's fn takes a single map argument with keys:
-    :ap-config, :level, :error?, :instant, :timestamp, :ns, :message, :more,
-    :profiling-stats (when applicable)
+    An appender's fn takes a single map argument with keys:
+      :ap-config, :level, :error?, :instant, :timestamp, :ns, :message, :more,
+      :profiling-stats (when applicable)
 
-  See source code for examples."
+    See source code for examples."}
   (atom {:current-level :debug
 
          ;;; Allow log filtering by namespace patterns (e.g. ["my-app.*"]).
