@@ -2,8 +2,7 @@
   "Simple, flexible, all-Clojure logging. No XML!"
   {:author "Peter Taoussanis"}
   (:require [clojure.string :as str]
-            [clj-stacktrace.repl :as stacktrace]
-            [postal.core :as postal])
+            [clj-stacktrace.repl :as stacktrace])
   (:import  [java.util Date Locale]
             [java.text SimpleDateFormat]))
 
@@ -56,29 +55,13 @@
            :max-message-per-msecs nil
            :fn (fn [{:keys [error? more] :as args}]
                  (binding [*out* (if error? *err* *out*)]
-                   (apply str-println (prefixed-message args) more)))}
-
-          :postal
-          {:doc (str "Sends an email using com.draines/postal.\n"
-                     "Needs :postal config map in :shared-appender-config.")
-           :min-level :error :enabled? false :async? true
-           :max-message-per-msecs (* 60 60 2)
-           :fn (fn [{:keys [ap-config more] :as args}]
-                 (when-let [postal-config (:postal ap-config)]
-                   (postal/send-message
-                    (assoc postal-config
-                      :subject (prefixed-message args)
-                      :body    (if (seq more) (str/join " " more)
-                                   "<no additional arguments>")))))}}
+                   (apply str-println (prefixed-message args) more)))}}
 
          ;; Will be given to all appenders via :ap-config key
          :shared-appender-config
          {:timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
           :locale nil ; A Locale object, or nil
-          ;; A Postal message map, or nil.
-          ;; ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
-          ;; {:from "Bob's logger <me@draines.com>" :to "foo@example.com"}
-          :postal nil}}))
+          }}))
 
 (defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
 (defn set-level!  [level] (set-config! [:current-level] level))

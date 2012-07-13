@@ -99,12 +99,11 @@ Configuring Timbre couldn't be simpler. Let's check out (some of) the defaults:
 
  :appenders
  {:standard-out        { <...> }
-  :postal              { <...> }}
+  <...> }
 
  :shared-appender-config
  {:timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ"
-  :locale nil
-  :postal nil}}
+  :locale nil}}
 ```
 
 Easily adjust the current logging level:
@@ -127,14 +126,27 @@ Filter logging output by namespaces:
 (timbre/set-config! [:ns-whitelist] ["some.library.core" "my-app.*"])
 ```
 
-Enable the standard [Postal](https://github.com/drewr/postal)-based email appender:
+### Email Appender
+
+To enable the standard [Postal](https://github.com/drewr/postal)-based email appender, add the Postal dependency to your `project.clj`:
 
 ```clojure
+[com.draines/postal "1.8.0"]
+```
+
+And add the appender to your `ns` declaration:
+
+```clojure
+(:require [taoensso.timbre.appenders (postal :as postal-appender)])
+```
+
+Then adjust your Timbre config:
+
+```clojure
+(timbre/set-config! [:appenders :postal] postal-appender/postal-appender)
 (timbre/set-config! [:shared-appender-config :postal]
                     ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
                     {:from "me@draines.com" :to "foo@example.com"})
-
-(timbre/set-config! [:appenders :postal :enabled?] true)
 ```
 
 Rate-limit to one email per message per minute:
@@ -180,9 +192,7 @@ And these certaily do the job. But as with many Java tools, they can be a little
 Let's add it to our app's `ns` declaration:
 
 ```clojure
-(ns my-app
-  (:use [taoensso.timbre :as timbre :only (trace debug info warn error fatal spy)]
-        [taoensso.timbre.profiling :as profiling :only (p profile)]))
+(:use [taoensso.timbre.profiling :as profiling :only (p profile)])
 ```
 
 Wrap forms that you'd like to profile with the `p` macro and give them a name:
