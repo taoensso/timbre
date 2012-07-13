@@ -1,8 +1,13 @@
 Current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "0.6.1"] ; Please note that the repo and ns have changed recently
+[com.taoensso/timbre "0.6.1"]
 ```
+
+**Breaking changes** since _0.6.x_ (see updated README examples for any necessary changes):
+ * Affecting **users of the standard email appender**:
+   * Postal appender moved to own ns: `taoensso.timbre.appenders.postal`.
+   * `com.draines/postal` no longer automatically included as a dependency.
 
 # Timbre, a (sane) logging library for Clojure
 
