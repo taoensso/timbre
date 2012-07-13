@@ -2,8 +2,7 @@
   "Simple, flexible, all-Clojure logging. No XML!"
   {:author "Peter Taoussanis"}
   (:require [clojure.string :as str]
-            [clj-stacktrace.repl :as stacktrace]
-            [postal.core :as postal])
+            [clj-stacktrace.repl :as stacktrace])
   (:import  [java.util Date Locale]
             [java.text SimpleDateFormat]))
 
@@ -19,20 +18,22 @@
   "Like `println` but prints all objects to output stream as a single
   atomic string. This is faster and avoids interleaving race conditions."
   [& xs]
-  (print (str (str/join \space xs) \newline)))
+  (print (str (str/join \space xs) \newline))
+  (flush))
 
-(def config
-  "This map atom controls everything about the way Timbre operates. In
-  particular note the flexibility to add arbitrary appenders.
+(defonce config
+  ^{:doc
+    "This map atom controls everything about the way Timbre operates. In
+    particular note the flexibility to add arbitrary appenders.
 
-  An appender is a map with keys:
-    :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
+    An appender is a map with keys:
+      :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
 
-  An appender's fn takes a single map argument with keys:
-    :ap-config, :level, :error?, :instant, :timestamp, :ns, :message, :more,
-    :profiling-stats (when applicable)
+    An appender's fn takes a single map argument with keys:
+      :ap-config, :level, :error?, :instant, :timestamp, :ns, :message, :more,
+      :profiling-stats (when applicable)
 
-  See source code for examples."
+    See source code for examples."}
   (atom {:current-level :debug
 
          ;;; Allow log filtering by namespace patterns (e.g. ["my-app.*"]).
@@ -54,29 +55,13 @@
            :max-message-per-msecs nil
            :fn (fn [{:keys [error? more] :as args}]
                  (binding [*out* (if error? *err* *out*)]
-                   (apply str-println (prefixed-message args) more)))}
-
-          :postal
-          {:doc (str "Sends an email using com.draines/postal.\n"
-                     "Needs :postal config map in :shared-appender-config.")
-           :min-level :error :enabled? false :async? true
-           :max-message-per-msecs (* 60 60 2)
-           :fn (fn [{:keys [ap-config more] :as args}]
-                 (when-let [postal-config (:postal ap-config)]
-                   (postal/send-message
-                    (assoc postal-config
-                      :subject (prefixed-message args)
-                      :body    (if (seq more) (str/join " " more)
-                                   "<no additional arguments>")))))}}
+                   (apply str-println (prefixed-message args) more)))}}
 
          ;; Will be given to all appenders via :ap-config key
          :shared-appender-config
          {:timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
           :locale nil ; A Locale object, or nil
-          ;; A Postal message map, or nil.
-          ;; ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
-          ;; {:from "me@draines.com" :to "foo@example.com"}
-          :postal nil}}))
+          }}))
 
 (defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
 (defn set-level!  [level] (set-config! [:current-level] level))

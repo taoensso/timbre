@@ -1,10 +1,9 @@
-(defproject com.taoensso/timbre "0.6.1"
+(defproject com.taoensso/timbre "0.7.0"
   :description "Simple, flexible, all-Clojure logging. No XML!"
   :url "https://github.com/ptaoussanis/timbre"
   :license {:name "Eclipse Public License"}
   :dependencies [[org.clojure/clojure "1.3.0"]
-                 [clj-stacktrace      "0.2.4"]
-                 [com.draines/postal  "1.8.0"]]
+                 [clj-stacktrace      "0.2.4"]]
   :profiles {:1.3   {:dependencies [[org.clojure/clojure "1.3.0"]]}
              :1.4   {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5   {:dependencies [[org.clojure/clojure "1.5.0-master-SNAPSHOT"]]}}
