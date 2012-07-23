@@ -12,7 +12,7 @@
              ^{:host \"mail.isp.net\" :user \"jsmith\" :pass \"sekrat!!1\"}
              {:from \"Bob's logger <me@draines.com>\" :to \"foo@example.com\"}")
    :min-level :error :enabled? true :async? true
-   :max-message-per-msecs (* 60 60 2)
+   :max-message-per-msecs (* 1000 60 10) ; 1 email per message per 10 mins
    :fn (fn [{:keys [ap-config more] :as args}]
          (when-let [postal-config (:postal ap-config)]
            (postal/send-message
