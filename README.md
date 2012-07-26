@@ -4,10 +4,13 @@ Current [semantic](http://semver.org/) version:
 [com.taoensso/timbre "0.8.0"]
 ```
 
-**Breaking changes** since _0.6.x_ (see updated README examples for any necessary changes):
- * Affecting **users of the standard email appender**:
-   * Postal appender moved to own ns: `taoensso.timbre.appenders.postal`.
-   * `com.draines/postal` no longer automatically included as a dependency.
+**Breaking changes** since _0.7.x_:
+ * Affecting users with their own/non-default config:
+   * Appender has been renamed: `:standard-out-or-err` -> `:standard-out`. Old `:standard-out` appender has been removed.
+   * Config option has been renamed: `[:shared-appender-config :timestamp-pattern]` -> `[:timestamp-pattern]`.
+   * Config option has been renamed: `[:shared-appender-config :locale]` -> `[:timestamp-locale]`.
+ * Affecting appender authors using `timbre/prefixed-message`:
+   * This fn has been removed. Please see the new `:prefix-fn` config option and `:prefix` appender argument for a cleaner alternative.
 
 # Timbre, a (sane) logging library for Clojure
 
@@ -59,11 +62,11 @@ By default, Timbre gives you basic print output to `*out*`/`*err*` at a `debug` 
 ```clojure
 (info "This will print")
 => nil
-%> 2012-May-28 17:26:11:444 +0700 INFO [my-app] - This will print
+%> 2012-May-28 17:26:11:444 +0700 localhost INFO [my-app] - This will print
 
 (spy :info (* 5 4 3 2 1))
 => 120
-%> 2012-May-28 17:26:14:138 +0700 INFO [my-app] - (* 5 4 3 2 1) 120
+%> 2012-May-28 17:26:14:138 +0700 localhost INFO [my-app] - (* 5 4 3 2 1) 120
 
 (trace "This won't print due to insufficient logging level")
 => nil
@@ -83,7 +86,7 @@ First-argument exceptions generate a stack trace:
 
 ```clojure
 (info (Exception. "Oh noes") "arg1" "arg2")
-%> 2012-May-28 17:35:16:132 +0700 INFO [my-app] - arg1 arg2
+%> 2012-May-28 17:35:16:132 +0700 localhost INFO [my-app] - arg1 arg2
 java.lang.Exception: Oh noes
             NO_SOURCE_FILE:1 my-app/eval6409
           Compiler.java:6511 clojure.lang.Compiler.eval
@@ -102,13 +105,14 @@ Configuring Timbre couldn't be simpler. Let's check out (some of) the defaults:
  :ns-whitelist []
  :ns-blacklist []
 
+ :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ"
+ :timestamp-locale  nil
+
  :appenders
  {:standard-out        { <...> }
   <...> }
 
- :shared-appender-config
- {:timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ"
-  :locale nil}}
+ :shared-appender-config {}}
 ```
 
 Easily adjust the current logging level:
@@ -120,10 +124,8 @@ Easily adjust the current logging level:
 And the default timestamp formatting for log messages:
 
 ```clojure
-(timbre/set-config! [:shared-appender-config :timestamp-pattern]
-                    "yyyy-MMM-dd HH:mm:ss ZZ")
-(timbre/set-config! [:shared-appender-config :locale]
-                    (java.util.Locale/GERMAN))
+(timbre/set-config! [:timestamp-pattern] "yyyy-MMM-dd HH:mm:ss ZZ")
+(timbre/set-config! [:timestamp-locale] (java.util.Locale/GERMAN))
 ```
 
 Filter logging output by namespaces:
@@ -178,10 +180,9 @@ Writing a custom appender is dead-easy:
   :enabled?  true
   :async?    false
   :max-message-per-msecs nil ; No rate limiting
-  :fn (fn [{:keys [ap-config level error? instant timestamp
-                  ns message more] :as args}]
+  :fn (fn [{:keys [ap-config level prefix message more] :as args}]
         (when-not (:my-production-mode? ap-config)
-          (apply println timestamp "Hello world!" message more)))
+          (apply println prefix "Hello world!" message more)))
 ```
 
 And because appender fns are just regular Clojure fns, you have *unlimited power*: write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
@@ -222,7 +223,7 @@ The `profile` macro can now be used to log times for any wrapped forms:
 ```clojure
 (profile :info :Arithmetic (dotimes [n 100] (my-fn)))
 => "Done!"
-%> 2012-Jul-03 20:46:17 +0700 INFO [my-app] - Profiling my-app/Arithmetic
+%> 2012-Jul-03 20:46:17 +0700 localhost INFO [my-app] - Profiling my-app/Arithmetic
               Name  Calls       Min        Max       MAD      Mean  Total% Total
  my-app/slow-sleep    100       2ms        2ms      31μs       2ms      57 231ms
  my-app/fast-sleep    100       1ms        1ms      27μs       1ms      29 118ms
