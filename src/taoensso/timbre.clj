@@ -1,17 +1,18 @@
 (ns taoensso.timbre
   "Simple, flexible, all-Clojure logging. No XML!"
   {:author "Peter Taoussanis"}
-  (:require [clojure.string :as str]
-            [clj-stacktrace.repl :as stacktrace])
+  (:require [clojure.string        :as str]
+            [clj-stacktrace.repl   :as stacktrace]
+            [taoensso.timbre.utils :as utils])
   (:import  [java.util Date Locale]
             [java.text SimpleDateFormat]))
 
 ;;;; Default configuration and appenders
 
 (defn prefixed-message
-  "timestamp LEVEL [ns] - message"
-  [{:keys [level timestamp ns message]}]
-  (str timestamp " " (-> level name str/upper-case)
+  "timestamp hostname LEVEL [ns] - message"
+  [{:keys [level timestamp hostname ns message]}]
+  (str timestamp " " hostname " " (-> level name str/upper-case)
        " [" ns "] - " message))
 
 (defn str-println
@@ -30,8 +31,8 @@
       :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
 
     An appender's fn takes a single map argument with keys:
-      :ap-config, :level, :error?, :instant, :timestamp, :ns, :message, :more,
-      :profiling-stats (when applicable)
+      :ap-config, :level, :error?, :instant, :timestamp, :hostname, :ns,
+      :message, :more, :profiling-stats (when applicable)
 
     See source code for examples."}
   (atom {:current-level :debug
@@ -93,6 +94,11 @@
 
 (comment ((make-timestamp-fn "yyyy-MMM-dd" nil) (Date.)))
 
+(def get-hostname
+  (utils/memoize-ttl
+   60000
+   (fn [] (.. java.net.InetAddress getLocalHost getHostName))))
+
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional runtime capabilities
   controlled by compile-time config."
@@ -106,7 +112,8 @@
      (fn [{:keys [instant] :as apfn-args}]
        (apfn (assoc apfn-args
                :ap-config ap-config
-               :timestamp (timestamp-fn instant)))))
+               :timestamp (timestamp-fn instant)
+               :hostname  (get-hostname)))))
 
    ;; Wrap for asynchronicity support
    ((fn [apfn]
