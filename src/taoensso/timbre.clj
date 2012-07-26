@@ -9,12 +9,6 @@
 
 ;;;; Default configuration and appenders
 
-(defn prefixed-message
-  "timestamp hostname LEVEL [ns] - message"
-  [{:keys [level timestamp hostname ns message]}]
-  (str timestamp " " hostname " " (-> level name str/upper-case)
-       " [" ns "] - " message))
-
 (defn str-println
   "Like `println` but prints all objects to output stream as a single
   atomic string. This is faster and avoids interleaving race conditions."
@@ -31,38 +25,42 @@
       :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
 
     An appender's fn takes a single map argument with keys:
-      :ap-config, :level, :error?, :instant, :timestamp, :hostname, :ns,
-      :message, :more, :profiling-stats (when applicable)
+      :level, :message, :more ; From all logging macros (`info`, etc.)
+      :profiling-stats        ; From `profile` macro
+      :ap-config              ; `shared-appender-config`
+      :prefix                 ; Output of `prefix-fn`
+
+      Other keys include: :instant, :timestamp, :hostname, :ns, :error?
 
     See source code for examples."}
   (atom {:current-level :debug
 
-         ;;; Allow log filtering by namespace patterns (e.g. ["my-app.*"]).
+         ;;; Control log filtering by namespace patterns (e.g. ["my-app.*"]).
          ;;; Useful for turning off logging in noisy libraries, etc.
          :ns-whitelist []
          :ns-blacklist []
 
+         ;;; Control :timestamp format
+         :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
+         :timestamp-locale  nil ; A Locale object, or nil
+
+         ;;; Control :prefix format
+         :prefix-fn
+         (fn [{:keys [level timestamp hostname ns]}]
+           (str timestamp " " hostname " " (-> level name str/upper-case)
+                " [" ns "]"))
+
+         ;; Will be provided to all appenders via :ap-config key
+         :shared-appender-config {}
+
          :appenders
          {:standard-out
-          {:doc "Prints everything to *out*."
-           :min-level nil :enabled? false :async? false
-           :max-message-per-msecs nil
-           :fn (fn [{:keys [more] :as args}]
-                 (apply str-println (prefixed-message args) more))}
-
-          :standard-out-or-err
           {:doc "Prints to *out* or *err* as appropriate. Enabled by default."
            :min-level nil :enabled? true :async? false
            :max-message-per-msecs nil
-           :fn (fn [{:keys [error? more] :as args}]
+           :fn (fn [{:keys [error? prefix message more]}]
                  (binding [*out* (if error? *err* *out*)]
-                   (apply str-println (prefixed-message args) more)))}}
-
-         ;; Will be given to all appenders via :ap-config key
-         :shared-appender-config
-         {:timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
-          :locale nil ; A Locale object, or nil
-          }}))
+                   (apply str-println prefix "-" message more)))}}}))
 
 (defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
 (defn set-level!  [level] (set-config! [:current-level] level))
@@ -74,6 +72,8 @@
 (defn assert-valid-level
   [x] (when-not (some #{x} ordered-levels)
         (throw (Exception. (str "Invalid logging level: " x)))))
+
+(defn error-level? [x] (boolean (#{:error :fatal} x)))
 
 (def compare-levels
   (memoize (fn [x y] (- (scored-levels x) (scored-levels y)))))
@@ -96,8 +96,7 @@
 
 (def get-hostname
   (utils/memoize-ttl
-   60000
-   (fn [] (.. java.net.InetAddress getLocalHost getHostName))))
+   60000 (fn [] (.. java.net.InetAddress getLocalHost getHostName))))
 
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional runtime capabilities
@@ -105,15 +104,15 @@
   [{apfn :fn :keys [async? max-message-per-msecs] :as appender}]
   (->
    ;; Wrap to add compile-time stuff to runtime appender arguments
-   (let [{:keys [timestamp-pattern locale] :as ap-config}
-         (@config :shared-appender-config)
-         timestamp-fn (make-timestamp-fn timestamp-pattern locale)]
+   (let [{:keys [timestamp-pattern timestamp-locale prefix-fn] :as ap-config}
+         @config
+         timestamp-fn (make-timestamp-fn timestamp-pattern timestamp-locale)]
 
      (fn [{:keys [instant] :as apfn-args}]
-       (apfn (assoc apfn-args
-               :ap-config ap-config
-               :timestamp (timestamp-fn instant)
-               :hostname  (get-hostname)))))
+       (let [apfn-args (merge apfn-args {:ap-config ap-config
+                                         :timestamp (timestamp-fn instant)
+                                         :hostname  (get-hostname)})]
+         (apfn (assoc apfn-args :prefix (prefix-fn apfn-args))))))
 
    ;; Wrap for asynchronicity support
    ((fn [apfn]
@@ -244,7 +243,7 @@
            (conj
             ~base-args ; Allow flexibility to inject exta args
             {:level   ~level
-             :error?  (>= (compare-levels ~level :error) 0)
+             :error?  (error-level? ~level)
              :instant (Date.)
              :ns      (str ~*ns*)
              :message (if has-throwable?# (or (first xs#) x1#) x1#)
