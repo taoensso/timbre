@@ -44,7 +44,7 @@
          :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
          :timestamp-locale  nil ; A Locale object, or nil
 
-         ;;; Control :prefix format
+         ;; Control :prefix format
          :prefix-fn
          (fn [{:keys [level timestamp hostname ns]}]
            (str timestamp " " hostname " " (-> level name str/upper-case)
@@ -233,10 +233,10 @@
 (defmacro log*
   "Prepares given arguments for, and then dispatches to all relevant
   appender-fns."
-  [level base-args & args]
+  [level base-args & sigs]
   (assert-valid-level level)
   `(when-let [juxt-fn# (@appenders-juxt-cache ~level)] ; Any relevant appenders?
-     (let [[x1# & xs#] (list ~@args)
+     (let [[x1# & xs#] (list ~@sigs)
 
            has-throwable?# (instance? Throwable x1#)
            appender-args#
@@ -259,18 +259,19 @@
   "When logging is enabled, actually logs given arguments with relevant
   appender-fns. Generic form of standard level-loggers (trace, info, etc.)."
   {:arglists '([level message & more] [level throwable message & more])}
-  [level & args]
+  [level & sigs]
   (assert-valid-level level)
   `(when (logging-enabled? ~level)
-     (log* ~level {} ~@args)))
+     (log* ~level {} ~@sigs)))
 
 (defmacro spy
-  "Evaluates expression and logs its form and result. Always returns the result.
-  Defaults to :debug logging level."
+  "Evaluates named expression and logs its result. Always returns the result.
+  Defaults to :debug logging level and unevaluated expression as name."
   ([expr] `(spy :debug ~expr))
-  ([level expr]
+  ([level expr] `(spy ~level '~expr ~expr))
+  ([level name expr]
      `(try
-        (let [result# ~expr] (log ~level '~expr ~expr) result#)
+        (let [result# ~expr] (log ~level ~name ~expr) result#)
         (catch Exception e#
           (log ~level '~expr (str "\n" (stacktrace/pst-str e#)))
           (throw e#)))))
@@ -281,8 +282,8 @@
     `(defmacro ~(symbol level-name)
        ~(str "Log given arguments at " (str/capitalize level-name) " level.")
        ~'{:arglists '([message & more] [throwable message & more])}
-       [& args#]
-       `(log ~~level ~@args#))))
+       [& sigs#]
+       `(log ~~level ~@sigs#))))
 
 (defmacro ^:private def-loggers
   [] `(do ~@(map (fn [level] `(def-logger ~level)) ordered-levels)))
@@ -306,5 +307,6 @@
   (time (dotimes [n 10000] (trace "This won't log"))) ; Overhead 5ms/10ms
   (time (dotimes [n 5] (info "foo" "bar")))
   (spy (* 6 5 4 3 2 1))
+  (spy :debug :factorial6 (* 6 5 4 3 2 1))
   (info (Exception. "noes!") "bar")
   (spy (/ 4 0)))

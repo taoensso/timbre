@@ -1,7 +1,7 @@
 Current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "0.8.0"]
+[com.taoensso/timbre "0.8.1"]
 ```
 
 **Breaking changes** since _0.7.x_:
@@ -45,7 +45,7 @@ lein2 all test
 Depend on Timbre in your `project.clj`:
 
 ```clojure
-[com.taoensso/timbre "0.8.0"]
+[com.taoensso/timbre "0.8.1"]
 ```
 
 and `use` the library:
