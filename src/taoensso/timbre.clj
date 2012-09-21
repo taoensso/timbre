@@ -265,12 +265,13 @@
      (log* ~level {} ~@sigs)))
 
 (defmacro spy
-  "Evaluates expression and logs its form and result. Always returns the result.
-  Defaults to :debug logging level."
+  "Evaluates named expression and logs its result. Always returns the result.
+  Defaults to :debug logging level and unevaluated expression as name."
   ([expr] `(spy :debug ~expr))
-  ([level expr]
+  ([level expr] `(spy ~level '~expr ~expr))
+  ([level name expr]
      `(try
-        (let [result# ~expr] (log ~level '~expr ~expr) result#)
+        (let [result# ~expr] (log ~level ~name ~expr) result#)
         (catch Exception e#
           (log ~level '~expr (str "\n" (stacktrace/pst-str e#)))
           (throw e#)))))
@@ -306,5 +307,6 @@
   (time (dotimes [n 10000] (trace "This won't log"))) ; Overhead 5ms/10ms
   (time (dotimes [n 5] (info "foo" "bar")))
   (spy (* 6 5 4 3 2 1))
+  (spy :debug :factorial6 (* 6 5 4 3 2 1))
   (info (Exception. "noes!") "bar")
   (spy (/ 4 0)))
