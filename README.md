@@ -51,8 +51,7 @@ Depend on Timbre in your `project.clj`:
 and `use` the library:
 
 ```clojure
-(ns my-app
-  (:use [taoensso.timbre :as timbre :only (trace debug info warn error fatal spy)]))
+(ns my-app (:use [taoensso.timbre :as timbre :only (trace debug info warn error fatal spy)]))
 ```
 
 ### Start Logging

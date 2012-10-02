@@ -186,7 +186,7 @@
                               (apply juxt))))))))
    (reset! appenders-juxt-cache)))
 
-;;; Namespace filter
+;;; Namespace filter ; TODO Generalize to arbitrary fn filters?
 
 (def ns-filter-cache "@ns-filter-cache => (fn relevant-ns? [ns] ...)"
   (atom (constantly true)))
