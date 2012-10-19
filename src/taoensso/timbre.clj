@@ -61,7 +61,19 @@
            :max-message-per-msecs nil
            :fn (fn [{:keys [error? prefix message more]}]
                  (binding [*out* (if error? *err* *out*)]
-                   (apply str-println prefix "-" message more)))}}}))
+                   (apply str-println prefix "-" message more)))}
+
+          :spit
+          {:doc "Spits to (:spit-filename :shared-appender-config) file."
+           :min-level nil :enabled? false :async? false
+           :max-message-per-msecs nil
+           :fn (fn [{:keys [ap-config prefix message more]}]
+                 (when-let [filename (:spit-filename ap-config)]
+                   (try (spit filename
+                              (with-out-str (apply str-println prefix "-"
+                                                   message more))
+                              :append true)
+                        (catch java.io.IOException _))))}}}))
 
 (defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
 (defn set-level!  [level] (set-config! [:current-level] level))

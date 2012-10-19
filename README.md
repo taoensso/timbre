@@ -109,6 +109,7 @@ Configuring Timbre couldn't be simpler. Let's check out (some of) the defaults:
 
  :appenders
  {:standard-out        { <...> }
+  :spit                { <...> }
   <...> }
 
  :shared-appender-config {}}
