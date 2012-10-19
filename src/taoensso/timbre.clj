@@ -32,7 +32,8 @@
 
       Other keys include: :instant, :timestamp, :hostname, :ns, :error?
 
-    See source code for examples."}
+    See source code for examples and `utils/deep-merge` for a convenient way
+    to reconfigure appenders."}
   (atom {:current-level :debug
 
          ;;; Control log filtering by namespace patterns (e.g. ["my-app.*"]).
@@ -60,7 +61,19 @@
            :max-message-per-msecs nil
            :fn (fn [{:keys [error? prefix message more]}]
                  (binding [*out* (if error? *err* *out*)]
-                   (apply str-println prefix "-" message more)))}}}))
+                   (apply str-println prefix "-" message more)))}
+
+          :spit
+          {:doc "Spits to (:spit-filename :shared-appender-config) file."
+           :min-level nil :enabled? false :async? false
+           :max-message-per-msecs nil
+           :fn (fn [{:keys [ap-config prefix message more]}]
+                 (when-let [filename (:spit-filename ap-config)]
+                   (try (spit filename
+                              (with-out-str (apply str-println prefix "-"
+                                                   message more))
+                              :append true)
+                        (catch java.io.IOException _))))}}}))
 
 (defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
 (defn set-level!  [level] (set-config! [:current-level] level))
@@ -104,9 +117,10 @@
   [{apfn :fn :keys [async? max-message-per-msecs] :as appender}]
   (->
    ;; Wrap to add compile-time stuff to runtime appender arguments
-   (let [{:keys [timestamp-pattern timestamp-locale prefix-fn] :as ap-config}
-         @config
-         timestamp-fn (make-timestamp-fn timestamp-pattern timestamp-locale)]
+   (let [{ap-config :shared-appender-config
+          :keys [timestamp-pattern timestamp-locale prefix-fn]} @config
+
+          timestamp-fn (make-timestamp-fn timestamp-pattern timestamp-locale)]
 
      (fn [{:keys [instant] :as apfn-args}]
        (let [apfn-args (merge apfn-args {:ap-config ap-config
@@ -186,7 +200,7 @@
                               (apply juxt))))))))
    (reset! appenders-juxt-cache)))
 
-;;; Namespace filter
+;;; Namespace filter ; TODO Generalize to arbitrary fn filters?
 
 (def ns-filter-cache "@ns-filter-cache => (fn relevant-ns? [ns] ...)"
   (atom (constantly true)))

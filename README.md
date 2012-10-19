@@ -1,7 +1,7 @@
 Current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "0.8.1"]
+[com.taoensso/timbre "0.8.2"]
 ```
 
 **Breaking changes** since _0.7.x_:
@@ -45,14 +45,13 @@ lein2 all test
 Depend on Timbre in your `project.clj`:
 
 ```clojure
-[com.taoensso/timbre "0.8.1"]
+[com.taoensso/timbre "0.8.2"]
 ```
 
 and `use` the library:
 
 ```clojure
-(ns my-app
-  (:use [taoensso.timbre :as timbre :only (trace debug info warn error fatal spy)]))
+(ns my-app (:use [taoensso.timbre :as timbre :only (trace debug info warn error fatal spy)]))
 ```
 
 ### Start Logging
@@ -110,6 +109,7 @@ Configuring Timbre couldn't be simpler. Let's check out (some of) the defaults:
 
  :appenders
  {:standard-out        { <...> }
+  :spit                { <...> }
   <...> }
 
  :shared-appender-config {}}
