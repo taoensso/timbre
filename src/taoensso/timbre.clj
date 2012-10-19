@@ -104,9 +104,10 @@
   [{apfn :fn :keys [async? max-message-per-msecs] :as appender}]
   (->
    ;; Wrap to add compile-time stuff to runtime appender arguments
-   (let [{:keys [timestamp-pattern timestamp-locale prefix-fn] :as ap-config}
-         @config
-         timestamp-fn (make-timestamp-fn timestamp-pattern timestamp-locale)]
+   (let [{ap-config :shared-appender-config
+          :keys [timestamp-pattern timestamp-locale prefix-fn]} @config
+
+          timestamp-fn (make-timestamp-fn timestamp-pattern timestamp-locale)]
 
      (fn [{:keys [instant] :as apfn-args}]
        (let [apfn-args (merge apfn-args {:ap-config ap-config
