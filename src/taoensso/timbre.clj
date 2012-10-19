@@ -32,7 +32,8 @@
 
       Other keys include: :instant, :timestamp, :hostname, :ns, :error?
 
-    See source code for examples."}
+    See source code for examples and `utils/deep-merge` for a convenient way
+    to reconfigure appenders."}
   (atom {:current-level :debug
 
          ;;; Control log filtering by namespace patterns (e.g. ["my-app.*"]).
