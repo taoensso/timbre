@@ -35,7 +35,7 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
 Timbre is still currently *experimental*. It **has not yet been thoroughly tested in production** and its API is subject to change. To run tests against all supported Clojure versions, use:
 
 ```bash
-lein2 all test
+lein all test
 ```
 
 ## Getting Started
