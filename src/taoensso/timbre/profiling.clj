@@ -110,7 +110,6 @@
   for db appenders to check for this special key and to log profiling stats to
   db in a queryable manner."
   [level name & body]
-  (timbre/assert-valid-level level)
   `(if (timbre/logging-enabled? ~level)
      (profile*
       (fn [name# stats#]
