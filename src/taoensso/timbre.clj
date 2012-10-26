@@ -81,15 +81,16 @@
 ;;;; Define and sort logging levels
 
 (def ^:private ordered-levels [:trace :debug :info :warn :error :fatal :report])
-(def ^:private scored-levels  (zipmap ordered-levels (range)))
-(defn assert-valid-level
-  [x] (when-not (some #{x} ordered-levels)
-        (throw (Exception. (str "Invalid logging level: " x)))))
+(def ^:private scored-levels  (assoc (zipmap ordered-levels (range)) nil 0))
 
-(defn error-level? [x] (boolean (#{:error :fatal} x)))
+(defn error-level? [level] (boolean (#{:error :fatal} level)))
+
+(defn- checked-level-score [level]
+  (or (scored-levels level)
+      (throw (Exception. (str "Invalid logging level: " level)))))
 
 (def compare-levels
-  (memoize (fn [x y] (- (scored-levels x) (scored-levels y)))))
+  (memoize (fn [x y] (- (checked-level-score x) (checked-level-score y)))))
 
 (defn sufficient-level?
   [level] (>= (compare-levels level (:current-level @config)) 0))
@@ -179,8 +180,7 @@
   [level]
   (->> (:appenders @config)
        (filter #(let [{:keys [enabled? min-level]} (val %)]
-                  (and enabled? (or (nil? min-level)
-                                    (>= (compare-levels level min-level) 0)))))
+                  (and enabled? (>= (compare-levels level min-level) 0))))
        (into {})))
 
 (comment (relevant-appenders :debug)
@@ -241,14 +241,12 @@
   "Returns true when current logging level is sufficient and current namespace
   is unfiltered."
   [level]
-  (assert-valid-level level)
   `(and (sufficient-level? ~level) (@ns-filter-cache ~*ns*)))
 
 (defmacro log*
   "Prepares given arguments for, and then dispatches to all relevant
   appender-fns."
   [level base-args & sigs]
-  (assert-valid-level level)
   `(when-let [juxt-fn# (@appenders-juxt-cache ~level)] ; Any relevant appenders?
      (let [[x1# & xs#] (list ~@sigs)
 
@@ -274,7 +272,6 @@
   appender-fns. Generic form of standard level-loggers (trace, info, etc.)."
   {:arglists '([level message & more] [level throwable message & more])}
   [level & sigs]
-  (assert-valid-level level)
   `(when (logging-enabled? ~level)
      (log* ~level {} ~@sigs)))
 
@@ -312,6 +309,8 @@
   (log :debug (Exception.) "arg1" "arg2")
   (log :debug (Exception.))
   (log :trace "arg1")
+
+  (log (or nil :info) "Booya")
 
   (set-config! [:ns-blacklist] [])
   (set-config! [:ns-blacklist] ["taoensso.timbre*"])
