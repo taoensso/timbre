@@ -14,7 +14,7 @@ Current [semantic](http://semver.org/) version:
 
 # Timbre, a (sane) logging library for Clojure
 
-Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out the box*.
+Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out-the-box*.
 
 [tools.logging](https://github.com/clojure/tools.logging) helps, but it doesn't save you from the mess of logger dependencies and configuration hell.
 
@@ -30,7 +30,7 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
  * Robust **namespace filtering**.
  * Dead-simple, logging-level-aware **logging profiler**.
 
-## Status [![Build Status](https://secure.travis-ci.org/ptaoussanis/timbre.png?branch=master)](http://travis-ci.org/ptaoussanis/timbre)
+## Status
 
 Timbre is still currently *experimental*. It **has not yet been thoroughly tested in production** and its API is subject to change. To run tests against all supported Clojure versions, use:
 
