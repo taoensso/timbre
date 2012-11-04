@@ -1,5 +1,5 @@
-(defproject com.taoensso/timbre "0.8.3"
-  :description "Simple, flexible, all-Clojure logging. No XML!"
+(defproject com.taoensso/timbre "1.0.0"
+  :description "Clojure logging & profiling library"
   :url "https://github.com/ptaoussanis/timbre"
   :license {:name "Eclipse Public License"}
   :dependencies [[org.clojure/clojure "1.3.0"]

@@ -1,24 +1,14 @@
 Current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "0.8.3"]
+[com.taoensso/timbre "1.0.0"]
 ```
 
-**Breaking changes** since _0.7.x_:
- * Affecting users with their own/non-default config:
-   * Appender has been renamed: `:standard-out-or-err` -> `:standard-out`. Old `:standard-out` appender has been removed.
-   * Config option has been renamed: `[:shared-appender-config :timestamp-pattern]` -> `[:timestamp-pattern]`.
-   * Config option has been renamed: `[:shared-appender-config :locale]` -> `[:timestamp-locale]`.
- * Affecting appender authors using `timbre/prefixed-message`:
-   * This fn has been removed. Please see the new `:prefix-fn` config option and `:prefix` appender argument for a cleaner alternative.
+# Timbre, a (sane) Clojure logging & profiling library
 
-# Timbre, a (sane) logging library for Clojure
+Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out-the-box*. [tools.logging](https://github.com/clojure/tools.logging) helps, but it doesn't save you from the mess of logger dependencies and configuration hell.
 
-Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out-the-box*.
-
-[tools.logging](https://github.com/clojure/tools.logging) helps, but it doesn't save you from the mess of logger dependencies and configuration hell.
-
-Timbre is an attempt to make **simple logging simple** and more **complex logging possible**.
+Timbre is an attempt to make **simple logging simple** and more **complex logging reasonable**. No XML!
 
 ## What's In The Box?
  * Small, uncomplicated **all-Clojure** library.
@@ -30,14 +20,6 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
  * Robust **namespace filtering**.
  * Dead-simple, logging-level-aware **logging profiler**.
 
-## Status
-
-Timbre is still currently *experimental*. It **has not yet been thoroughly tested in production** and its API is subject to change. To run tests against all supported Clojure versions, use:
-
-```bash
-lein all test
-```
-
 ## Getting Started
 
 ### Leiningen
@@ -45,7 +27,7 @@ lein all test
 Depend on Timbre in your `project.clj`:
 
 ```clojure
-[com.taoensso/timbre "0.8.3"]
+[com.taoensso/timbre "1.0.0"]
 ```
 
 and `use` the library:
@@ -54,7 +36,7 @@ and `use` the library:
 (ns my-app (:use [taoensso.timbre :as timbre :only (trace debug info warn error fatal spy)]))
 ```
 
-### Start Logging
+### Logging
 
 By default, Timbre gives you basic print output to `*out*`/`*err*` at a `debug` logging level:
 
@@ -138,7 +120,7 @@ Filter logging output by namespaces:
 To enable the standard [Postal](https://github.com/drewr/postal)-based email appender, add the Postal dependency to your `project.clj`:
 
 ```clojure
-[com.draines/postal "1.8.0"]
+[com.draines/postal "1.9.1"]
 ```
 
 And add the appender to your `ns` declaration:
@@ -247,12 +229,8 @@ ClojureWerkz is a growing collection of open-source, batteries-included [Clojure
 
 ## Contact & Contribution
 
-Reach me (Peter Taoussanis) at *ptaoussanis at gmail.com* for questions/comments/suggestions/whatever. I'm very open to ideas if you have any!
-
-I'm also on Twitter: [@ptaoussanis](https://twitter.com/#!/ptaoussanis).
+Reach me (Peter Taoussanis) at *ptaoussanis at gmail.com* for questions/comments/suggestions/whatever. I'm very open to ideas if you have any! I'm also on Twitter: [@ptaoussanis](https://twitter.com/#!/ptaoussanis).
 
 ## License
 
-Copyright &copy; 2012 Peter Taoussanis
-
-Distributed under the [Eclipse Public License](http://www.eclipse.org/legal/epl-v10.html), the same as Clojure.
+Copyright &copy; 2012 Peter Taoussanis. Distributed under the [Eclipse Public License](http://www.eclipse.org/legal/epl-v10.html), the same as Clojure.
