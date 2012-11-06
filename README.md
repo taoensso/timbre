@@ -13,7 +13,7 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
 ## What's In The Box?
  * Small, uncomplicated **all-Clojure** library.
  * **Super-simple map-based config**: no arcane XML or properties files!
- * Decent performance (**low overhead**).
+ * **Decent performance** (low overhead).
  * Flexible **fn-centric appender model**.
  * Sensible built-in appenders including simple **email appender**.
  * Tunable **flood control** and **asynchronous** logging support.
