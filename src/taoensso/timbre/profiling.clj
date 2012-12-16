@@ -30,8 +30,8 @@
   [plog]
   (reduce (fn [m [pname times]]
             (let [count (count times)
-                  total (reduce + times)
-                  mean  (long (/ total count))
+                  time  (reduce + times)
+                  mean  (long (/ time count))
                   ;; Mean Absolute Deviation
                   mad   (long (/ (reduce + (map #(Math/abs (long (- % mean)))
                                                 times))
@@ -41,7 +41,7 @@
                               :max   (apply max times)
                               :mean  mean
                               :mad   mad
-                              :total total})))
+                              :time  time})))
           {} plog))
 
 (defn fqname
@@ -51,14 +51,14 @@
 
 (defn plog-table
   "Returns formatted table string for given plog stats."
-  ([stats] (plog-table stats :total))
+  ([stats] (plog-table stats :time))
   ([stats sort-field]
      (let [;; How long entire (profile) body took
-           total-time (-> stats :meta/total :total)
+           total-time (-> stats :meta/total :time)
            stats      (dissoc stats :meta/total)
 
            ;; Sum of (p) times, <= total-time
-           accounted (reduce + (map :total (vals stats)))
+           accounted (reduce + (map :time (vals stats)))
 
            max-name-width (apply max (map (comp count str)
                                           (conj (keys stats) "Unaccounted")))
@@ -76,18 +76,18 @@
                         :else (str (long nanosecs)  "ns"))))]
 
        (with-out-str
-         (printf s-pattern "Name" "Calls" "Min" "Max" "MAD" "Mean" "Total%" "Total")
+         (printf s-pattern "Name" "Calls" "Min" "Max" "MAD" "Mean" "Time%" "Time")
 
          (doseq [pname (->> (keys stats)
                             (sort-by #(- (get-in stats [% sort-field]))))]
-           (let [{:keys [count min max mean mad total]} (stats pname)]
+           (let [{:keys [count min max mean mad time]} (stats pname)]
              (printf pattern (fqname pname) count (ft min) (ft max) (ft mad)
-                     (ft mean) (perc total total-time) (ft total))))
+                     (ft mean) (perc time total-time) (ft time))))
 
          (let [unacc      (- total-time accounted)
                unacc-perc (perc unacc total-time)]
            (printf s-pattern "Unaccounted" "" "" "" "" "" unacc-perc (ft unacc))
-           (printf s-pattern "Total" "" "" "" "" "" 100 (ft total-time)))))))
+           (printf s-pattern "Time" "" "" "" "" "" 100 (ft total-time)))))))
 
 (defmacro profile*
   "Executes named body with profiling enabled. Body forms wrapped in (p) will be
