@@ -1,7 +1,8 @@
 (ns taoensso.timbre.profiling
   "Simple all-Clojure profiling adapted from clojure.contrib.profile."
   {:author "Peter Taoussanis"}
-  (:require [taoensso.timbre :as timbre]))
+  (:require [taoensso.timbre       :as timbre]
+            [taoensso.timbre.utils :as utils]))
 
 (def ^:dynamic *plog* "{::pname [time1 time2 ...] ...}" nil)
 
@@ -30,8 +31,8 @@
   [plog]
   (reduce (fn [m [pname times]]
             (let [count (count times)
-                  total (reduce + times)
-                  mean  (long (/ total count))
+                  time  (reduce + times)
+                  mean  (long (/ time count))
                   ;; Mean Absolute Deviation
                   mad   (long (/ (reduce + (map #(Math/abs (long (- % mean)))
                                                 times))
@@ -41,7 +42,7 @@
                               :max   (apply max times)
                               :mean  mean
                               :mad   mad
-                              :total total})))
+                              :time  time})))
           {} plog))
 
 (defn fqname
@@ -51,17 +52,15 @@
 
 (defn plog-table
   "Returns formatted table string for given plog stats."
-  ([stats] (plog-table stats :total))
+  ([stats] (plog-table stats :time))
   ([stats sort-field]
      (let [;; How long entire (profile) body took
-           total-time (-> stats :meta/total :total)
-           stats      (dissoc stats :meta/total)
+           clock-time (-> stats ::clock-time :time)
+           stats      (dissoc stats ::clock-time)
 
-           ;; Sum of (p) times, <= total-time
-           accounted (reduce + (map :total (vals stats)))
-
+           accounted (reduce + (map :time (vals stats)))
            max-name-width (apply max (map (comp count str)
-                                          (conj (keys stats) "Unaccounted")))
+                                          (conj (keys stats) "Accounted Time")))
            pattern   (str "%" max-name-width "s %6d %9s %10s %9s %9s %7d %1s%n")
            s-pattern (.replace pattern \d \s)
 
@@ -69,25 +68,24 @@
            ft (fn [nanosecs]
                 (let [pow     #(Math/pow 10 %)
                       ok-pow? #(>= nanosecs (pow %))
-                      to-pow  #(long (/ nanosecs (pow %)))]
-                  (cond (ok-pow? 9) (str (to-pow 9) "s")
-                        (ok-pow? 6) (str (to-pow 6) "ms")
-                        (ok-pow? 3) (str (to-pow 3) "μs")
-                        :else (str (long nanosecs)  "ns"))))]
+                      to-pow  #(utils/round-to (/ nanosecs (pow %1)) %2)]
+                  (cond (ok-pow? 9) (str (to-pow 9 1) "s")
+                        (ok-pow? 6) (str (to-pow 6 0) "ms")
+                        (ok-pow? 3) (str (to-pow 3 0) "μs")
+                        :else       (str nanosecs     "ns"))))]
 
        (with-out-str
-         (printf s-pattern "Name" "Calls" "Min" "Max" "MAD" "Mean" "Total%" "Total")
+         (printf s-pattern "Name" "Calls" "Min" "Max" "MAD" "Mean" "Time%" "Time")
 
          (doseq [pname (->> (keys stats)
                             (sort-by #(- (get-in stats [% sort-field]))))]
-           (let [{:keys [count min max mean mad total]} (stats pname)]
+           (let [{:keys [count min max mean mad time]} (stats pname)]
              (printf pattern (fqname pname) count (ft min) (ft max) (ft mad)
-                     (ft mean) (perc total total-time) (ft total))))
+                     (ft mean) (perc time clock-time) (ft time))))
 
-         (let [unacc      (- total-time accounted)
-               unacc-perc (perc unacc total-time)]
-           (printf s-pattern "Unaccounted" "" "" "" "" "" unacc-perc (ft unacc))
-           (printf s-pattern "Total" "" "" "" "" "" 100 (ft total-time)))))))
+         (printf s-pattern "[Clock] Time" "" "" "" "" "" 100 (ft clock-time))
+         (printf s-pattern "Accounted Time" "" "" "" "" ""
+                 (perc accounted clock-time) (ft accounted))))))
 
 (defmacro profile*
   "Executes named body with profiling enabled. Body forms wrapped in (p) will be
@@ -118,7 +116,7 @@
                      (str "Profiling " (fqname name#))
                      (str "\n" (plog-table stats#))))
       ~name
-      (p :meta/total ~@body))
+      (p ::clock-time ~@body))
      (do ~@body)))
 
 (defmacro sampling-profile

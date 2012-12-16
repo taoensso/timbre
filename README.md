@@ -1,7 +1,7 @@
 Current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "1.0.0"]
+[com.taoensso/timbre "1.1.0"]
 ```
 
 # Timbre, a (sane) Clojure logging & profiling library
@@ -27,7 +27,7 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
 Depend on Timbre in your `project.clj`:
 
 ```clojure
-[com.taoensso/timbre "1.0.0"]
+[com.taoensso/timbre "1.1.0"]
 ```
 
 and `use` the library:
@@ -231,7 +231,7 @@ CDS (Clojure Documentation Site) is a contributor-friendly community project aim
 
 ## Contact & Contribution
 
-Reach me (Peter Taoussanis) at *ptaoussanis at gmail.com* for questions/comments/suggestions/whatever. I'm very open to ideas if you have any! I'm also on Twitter: [@ptaoussanis](https://twitter.com/#!/ptaoussanis).
+Reach me (Peter Taoussanis) at [taoensso.com](https://www.taoensso.com) for questions/comments/suggestions/whatever. I'm very open to ideas if you have any! I'm also on Twitter: [@ptaoussanis](https://twitter.com/#!/ptaoussanis).
 
 ## License
 

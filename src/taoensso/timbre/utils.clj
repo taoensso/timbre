@@ -35,3 +35,14 @@
   "Partial of `deep-merge-with`."
   [& maps]
   (apply deep-merge-with (fn [x y] y) maps))
+
+(defn round-to
+  "Rounds argument to given number of decimal places."
+  [x places]
+  (if (zero? places)
+    (Math/round (double x))
+    (let [modifier (Math/pow 10.0 places)]
+      (/ (Math/round (* x modifier)) modifier))))
+
+(comment (round-to 10 0)
+         (round-to 10.123 2))
