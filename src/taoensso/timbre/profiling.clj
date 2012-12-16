@@ -54,14 +54,12 @@
   ([stats] (plog-table stats :time))
   ([stats sort-field]
      (let [;; How long entire (profile) body took
-           total-time (-> stats :meta/total :time)
-           stats      (dissoc stats :meta/total)
+           clock-time (-> stats ::clock-time :time)
+           stats      (dissoc stats ::clock-time)
 
-           ;; Sum of (p) times, <= total-time
            accounted (reduce + (map :time (vals stats)))
-
            max-name-width (apply max (map (comp count str)
-                                          (conj (keys stats) "Unaccounted")))
+                                          (conj (keys stats) "Accounted Time")))
            pattern   (str "%" max-name-width "s %6d %9s %10s %9s %9s %7d %1s%n")
            s-pattern (.replace pattern \d \s)
 
@@ -82,12 +80,11 @@
                             (sort-by #(- (get-in stats [% sort-field]))))]
            (let [{:keys [count min max mean mad time]} (stats pname)]
              (printf pattern (fqname pname) count (ft min) (ft max) (ft mad)
-                     (ft mean) (perc time total-time) (ft time))))
+                     (ft mean) (perc time clock-time) (ft time))))
 
-         (let [unacc      (- total-time accounted)
-               unacc-perc (perc unacc total-time)]
-           (printf s-pattern "Unaccounted" "" "" "" "" "" unacc-perc (ft unacc))
-           (printf s-pattern "Time" "" "" "" "" "" 100 (ft total-time)))))))
+         (printf s-pattern "[Clock] Time" "" "" "" "" "" 100 (ft clock-time))
+         (printf s-pattern "Accounted Time" "" "" "" "" ""
+                 (perc accounted clock-time) (ft accounted))))))
 
 (defmacro profile*
   "Executes named body with profiling enabled. Body forms wrapped in (p) will be
@@ -118,7 +115,7 @@
                      (str "Profiling " (fqname name#))
                      (str "\n" (plog-table stats#))))
       ~name
-      (p :meta/total ~@body))
+      (p ::clock-time ~@body))
      (do ~@body)))
 
 (defmacro sampling-profile
