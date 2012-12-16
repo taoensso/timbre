@@ -1,7 +1,8 @@
 (ns taoensso.timbre.profiling
   "Simple all-Clojure profiling adapted from clojure.contrib.profile."
   {:author "Peter Taoussanis"}
-  (:require [taoensso.timbre :as timbre]))
+  (:require [taoensso.timbre       :as timbre]
+            [taoensso.timbre.utils :as utils]))
 
 (def ^:dynamic *plog* "{::pname [time1 time2 ...] ...}" nil)
 
@@ -67,11 +68,11 @@
            ft (fn [nanosecs]
                 (let [pow     #(Math/pow 10 %)
                       ok-pow? #(>= nanosecs (pow %))
-                      to-pow  #(long (/ nanosecs (pow %)))]
-                  (cond (ok-pow? 9) (str (to-pow 9) "s")
-                        (ok-pow? 6) (str (to-pow 6) "ms")
-                        (ok-pow? 3) (str (to-pow 3) "μs")
-                        :else (str (long nanosecs)  "ns"))))]
+                      to-pow  #(utils/round-to (/ nanosecs (pow %1)) %2)]
+                  (cond (ok-pow? 9) (str (to-pow 9 1) "s")
+                        (ok-pow? 6) (str (to-pow 6 0) "ms")
+                        (ok-pow? 3) (str (to-pow 3 0) "μs")
+                        :else       (str nanosecs     "ns"))))]
 
        (with-out-str
          (printf s-pattern "Name" "Calls" "Min" "Max" "MAD" "Mean" "Time%" "Time")
