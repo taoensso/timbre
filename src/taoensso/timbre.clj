@@ -16,24 +16,23 @@
   (print (str (str/join \space xs) \newline))
   (flush))
 
-(defonce config
-  ^{:doc
-    "This map atom controls everything about the way Timbre operates. In
-    particular note the flexibility to add arbitrary appenders.
+(utils/defonce* config
+  "This map atom controls everything about the way Timbre operates. In
+  particular note the flexibility to add arbitrary appenders.
 
-    An appender is a map with keys:
-      :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
+  An appender is a map with keys:
+    :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
 
-    An appender's fn takes a single map argument with keys:
-      :level, :message, :more ; From all logging macros (`info`, etc.)
-      :profiling-stats        ; From `profile` macro
-      :ap-config              ; `shared-appender-config`
-      :prefix                 ; Output of `prefix-fn`
+  An appender's fn takes a single map argument with keys:
+    :level, :message, :more ; From all logging macros (`info`, etc.)
+    :profiling-stats        ; From `profile` macro
+    :ap-config              ; `shared-appender-config`
+    :prefix                 ; Output of `prefix-fn`
 
-      Other keys include: :instant, :timestamp, :hostname, :ns, :error?
+    Other keys include: :instant, :timestamp, :hostname, :ns, :error?
 
-    See source code for examples and `utils/deep-merge` for a convenient way
-    to reconfigure appenders."}
+  See source code for examples and `utils/deep-merge` for a convenient way
+  to reconfigure appenders."
   (atom {:current-level :debug
 
          ;;; Control log filtering by namespace patterns (e.g. ["my-app.*"]).
