@@ -273,7 +273,8 @@
              :message (if has-throwable?# (or (first xs#) x1#) x1#)
              :more    (if has-throwable?#
                         (conj (vec (rest xs#))
-                              (str "\n" (stacktrace/pst-str x1#)))
+                              (str "\nStacktrace:\n"
+                                   (stacktrace/pst-str x1#)))
                         (vec xs#))})]
 
        (juxt-fn# appender-args#)
