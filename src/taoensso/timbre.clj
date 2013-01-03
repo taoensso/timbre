@@ -7,7 +7,7 @@
   (:import  [java.util Date Locale]
             [java.text SimpleDateFormat]))
 
-;;;; Default configuration and appenders
+;;;; Public str utils
 
 (defn str-println
   "Like `println` but prints all objects to output stream as a single
@@ -15,6 +15,19 @@
   [& xs]
   (print (str (str/join \space xs) \newline))
   (flush))
+
+(defn color-str [color-key & xs]
+  (let [ansi-color #(str "\u001b[" (case % :reset  "0"  :black  "30" :red   "31"
+                                           :green  "32" :yellow "33" :blue  "34"
+                                           :purple "35" :cyan   "36" :white "37"
+                                           "0") "m")]
+    (str (ansi-color color-key) (apply str xs) (ansi-color :reset))))
+
+(def red    (partial color-str :red))
+(def green  (partial color-str :green))
+(def yellow (partial color-str :yellow))
+
+;;;; Default configuration and appenders
 
 (utils/defonce* config
   "This map atom controls everything about the way Timbre operates. In
