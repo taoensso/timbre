@@ -40,10 +40,10 @@
        (apply f maps)))
    maps))
 
-(defn deep-merge
-  "Partial of `deep-merge-with`."
-  [& maps]
-  (apply deep-merge-with (fn [x y] y) maps))
+(def deep-merge (partial deep-merge-with (fn [x y] y)))
+
+(comment (deep-merge {:a {:b {:c {:d :D :e :E}}}}
+                     {:a {:b {:g :G :c {:c {:f :F}}}}}))
 
 (defn round-to
   "Rounds argument to given number of decimal places."
