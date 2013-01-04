@@ -44,8 +44,9 @@
 
     Other keys include: :instant, :timestamp, :hostname, :ns, :error?
 
-  See source code for examples and `utils/deep-merge` for a convenient way
-  to reconfigure appenders."
+  See source code for examples.
+  See `set-config!`, `merge-config!`, `set-level!` for convenient config
+  editing."
   (atom {:current-level :debug
 
          ;;; Control log filtering by namespace patterns (e.g. ["my-app.*"]).
@@ -87,8 +88,9 @@
                               :append true)
                         (catch java.io.IOException _))))}}}))
 
-(defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
-(defn set-level!  [level] (set-config! [:current-level] level))
+(defn set-config!   [[k & ks] val] (swap! config assoc-in (cons k ks) val))
+(defn merge-config! [& maps] (apply swap! config utils/deep-merge maps))
+(defn set-level!    [level] (set-config! [:current-level] level))
 
 ;;;; Define and sort logging levels
 
