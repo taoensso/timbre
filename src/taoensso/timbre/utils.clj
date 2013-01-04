@@ -1,5 +1,14 @@
 (ns taoensso.timbre.utils
-  {:author "Peter Taoussanis"})
+  {:author "Peter Taoussanis"}
+  (:require [clojure.tools.macro :as macro]))
+
+(defmacro defonce*
+  "Like `clojure.core/defonce` but supports optional docstring and attributes
+  map for name symbol."
+  {:arglists '([name expr])}
+  [name & sigs]
+  (let [[name [expr]] (macro/name-with-attributes name sigs)]
+    `(clojure.core/defonce ~name ~expr)))
 
 (defn memoize-ttl
   "Like `memoize` but invalidates the cache for a set of arguments after TTL
@@ -31,10 +40,10 @@
        (apply f maps)))
    maps))
 
-(defn deep-merge
-  "Partial of `deep-merge-with`."
-  [& maps]
-  (apply deep-merge-with (fn [x y] y) maps))
+(def deep-merge (partial deep-merge-with (fn [x y] y)))
+
+(comment (deep-merge {:a {:b {:c {:d :D :e :E}}}}
+                     {:a {:b {:g :G :c {:c {:f :F}}}}}))
 
 (defn round-to
   "Rounds argument to given number of decimal places."

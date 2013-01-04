@@ -7,7 +7,7 @@
   (:import  [java.util Date Locale]
             [java.text SimpleDateFormat]))
 
-;;;; Default configuration and appenders
+;;;; Public str utils
 
 (defn str-println
   "Like `println` but prints all objects to output stream as a single
@@ -16,24 +16,37 @@
   (print (str (str/join \space xs) \newline))
   (flush))
 
-(defonce config
-  ^{:doc
-    "This map atom controls everything about the way Timbre operates. In
-    particular note the flexibility to add arbitrary appenders.
+(defn color-str [color-key & xs]
+  (let [ansi-color #(str "\u001b[" (case % :reset  "0"  :black  "30" :red   "31"
+                                           :green  "32" :yellow "33" :blue  "34"
+                                           :purple "35" :cyan   "36" :white "37"
+                                           "0") "m")]
+    (str (ansi-color color-key) (apply str xs) (ansi-color :reset))))
 
-    An appender is a map with keys:
-      :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
+(def red    (partial color-str :red))
+(def green  (partial color-str :green))
+(def yellow (partial color-str :yellow))
 
-    An appender's fn takes a single map argument with keys:
-      :level, :message, :more ; From all logging macros (`info`, etc.)
-      :profiling-stats        ; From `profile` macro
-      :ap-config              ; `shared-appender-config`
-      :prefix                 ; Output of `prefix-fn`
+;;;; Default configuration and appenders
 
-      Other keys include: :instant, :timestamp, :hostname, :ns, :error?
+(utils/defonce* config
+  "This map atom controls everything about the way Timbre operates. In
+  particular note the flexibility to add arbitrary appenders.
 
-    See source code for examples and `utils/deep-merge` for a convenient way
-    to reconfigure appenders."}
+  An appender is a map with keys:
+    :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
+
+  An appender's fn takes a single map argument with keys:
+    :level, :message, :more ; From all logging macros (`info`, etc.)
+    :profiling-stats        ; From `profile` macro
+    :ap-config              ; `shared-appender-config`
+    :prefix                 ; Output of `prefix-fn`
+
+    Other keys include: :instant, :timestamp, :hostname, :ns, :error?
+
+  See source code for examples.
+  See `set-config!`, `merge-config!`, `set-level!` for convenient config
+  editing."
   (atom {:current-level :debug
 
          ;;; Control log filtering by namespace patterns (e.g. ["my-app.*"]).
@@ -75,8 +88,9 @@
                               :append true)
                         (catch java.io.IOException _))))}}}))
 
-(defn set-config! [[k & ks] val] (swap! config assoc-in (cons k ks) val))
-(defn set-level!  [level] (set-config! [:current-level] level))
+(defn set-config!   [[k & ks] val] (swap! config assoc-in (cons k ks) val))
+(defn merge-config! [& maps] (apply swap! config utils/deep-merge maps))
+(defn set-level!    [level] (set-config! [:current-level] level))
 
 ;;;; Define and sort logging levels
 
@@ -261,7 +275,8 @@
              :message (if has-throwable?# (or (first xs#) x1#) x1#)
              :more    (if has-throwable?#
                         (conj (vec (rest xs#))
-                              (str "\n" (stacktrace/pst-str x1#)))
+                              (str "\nStacktrace:\n"
+                                   (stacktrace/pst-str x1#)))
                         (vec xs#))})]
 
        (juxt-fn# appender-args#)

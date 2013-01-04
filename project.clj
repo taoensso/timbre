@@ -1,9 +1,10 @@
-(defproject com.taoensso/timbre "1.1.0"
+(defproject com.taoensso/timbre "1.2.0"
   :description "Clojure logging & profiling library"
   :url "https://github.com/ptaoussanis/timbre"
   :license {:name "Eclipse Public License"}
-  :dependencies [[org.clojure/clojure "1.3.0"]
-                 [clj-stacktrace      "0.2.5"]]
+  :dependencies [[org.clojure/clojure     "1.3.0"]
+                 [org.clojure/tools.macro "0.1.1"]
+                 [clj-stacktrace          "0.2.5"]]
   :profiles {:1.3  {:dependencies [[org.clojure/clojure "1.3.0"]]}
              :1.4  {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5  {:dependencies [[org.clojure/clojure "1.5.0-alpha3"]]}
