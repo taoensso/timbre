@@ -7,7 +7,7 @@
   (:import  [java.util Date Locale]
             [java.text SimpleDateFormat]))
 
-;;;; Public str utils
+;;;; Public utils
 
 (defn str-println
   "Like `println` but prints all objects to output stream as a single
@@ -26,6 +26,17 @@
 (def red    (partial color-str :red))
 (def green  (partial color-str :green))
 (def yellow (partial color-str :yellow))
+
+(def default-out (java.io.OutputStreamWriter. System/out))
+(def default-err (java.io.PrintWriter.        System/err))
+
+(defmacro with-default-outs
+  "Executes body with Clojure's default *out* and *err* bindings."
+  [& body] `(binding [*out* default-out *err* default-err] ~@body))
+
+(defmacro with-err-as-out
+  "Executes body with *err* bound to *out*."
+  [& body] `(binding [*err* *out*] ~@body))
 
 ;;;; Default configuration and appenders
 
@@ -315,6 +326,15 @@
   [] `(do ~@(map (fn [level] `(def-logger ~level)) ordered-levels)))
 
 (def-loggers) ; Actually define a logger for each logging level
+
+(defmacro log-errors
+  [& body] `(try ~@body (catch Exception e# (error e#))))
+
+(defmacro log-and-rethrow-errors
+  [& body] `(try ~@body (catch Exception e# (error e#) (throw e#))))
+
+(comment (log-errors (/ 0))
+         (log-and-rethrow-errors (/ 0)))
 
 ;;;; Dev/tests
 

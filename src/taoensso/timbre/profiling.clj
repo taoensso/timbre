@@ -29,7 +29,7 @@
 (defn plog-stats
   "{::pname [time1 time2 ...] ...} => {::pname {:min <min-time> ...} ...}"
   [plog]
-  (reduce (fn [m [pname times]]
+  (reduce (fn [m [pname times]] ; TODO reduce-kv for Clojure 1.4+
             (let [count (count times)
                   time  (reduce + times)
                   mean  (long (/ time count))
@@ -68,7 +68,7 @@
            ft (fn [nanosecs]
                 (let [pow     #(Math/pow 10 %)
                       ok-pow? #(>= nanosecs (pow %))
-                      to-pow  #(utils/round-to (/ nanosecs (pow %1)) %2)]
+                      to-pow  #(utils/round-to %2 (/ nanosecs (pow %1)))]
                   (cond (ok-pow? 9) (str (to-pow 9 1) "s")
                         (ok-pow? 6) (str (to-pow 6 0) "ms")
                         (ok-pow? 3) (str (to-pow 3 0) "μs")

@@ -47,11 +47,11 @@
 
 (defn round-to
   "Rounds argument to given number of decimal places."
-  [x places]
+  [places x]
   (if (zero? places)
     (Math/round (double x))
     (let [modifier (Math/pow 10.0 places)]
       (/ (Math/round (* x modifier)) modifier))))
 
-(comment (round-to 10 0)
-         (round-to 10.123 2))
+(comment (round-to 0 10)
+         (round-to 2 10.123))
