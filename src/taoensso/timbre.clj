@@ -31,11 +31,11 @@
 (def default-err (java.io.PrintWriter.        System/err))
 
 (defmacro with-default-outs
-  "Executes body with Clojure's default *out* and *err* bindings."
+  "Evaluates body with Clojure's default *out* and *err* bindings."
   [& body] `(binding [*out* default-out *err* default-err] ~@body))
 
 (defmacro with-err-as-out
-  "Executes body with *err* bound to *out*."
+  "Evaluates body with *err* bound to *out*."
   [& body] `(binding [*err* *out*] ~@body))
 
 ;;;; Default configuration and appenders
