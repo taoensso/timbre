@@ -65,6 +65,17 @@
          :ns-whitelist []
          :ns-blacklist []
 
+         ;; TODO Generalized transformation/filtering unary fns to operate on
+         ;; logging requests to either either filter or transform logging
+         ;; messages (e.g. obscure security credentials).
+         ;;
+         ;; Could use a cacheable comp/juxt and include ns white/black list
+         ;; functionality? Possibly even just prepend to the regular appender
+         ;; juxt (assuming we keep ns filtering separate)? Note that this'd
+         ;; also make any additional middlware cost async-able.
+         ;;
+         ;; :middleware []
+
          ;;; Control :timestamp format
          :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
          :timestamp-locale  nil ; A Locale object, or nil
@@ -225,7 +236,7 @@
                               (apply juxt))))))))
    (reset! appenders-juxt-cache)))
 
-;;; Namespace filter ; TODO Generalize to arbitrary fn filters?
+;;; Namespace filter ; TODO Generalize to arbitrary configurable middleware juxt?
 
 (def ns-filter-cache "@ns-filter-cache => (fn relevant-ns? [ns] ...)"
   (atom (constantly true)))
