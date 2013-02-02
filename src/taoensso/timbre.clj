@@ -319,7 +319,7 @@
   ([level expr] `(spy ~level '~expr ~expr))
   ([level name expr]
      `(try
-        (let [result# ~expr] (log ~level ~name ~expr) result#)
+        (let [result# ~expr] (log ~level ~name result#) result#)
         (catch Exception e#
           (log ~level '~expr (str "\n" (stacktrace/pst-str e#)))
           (throw e#)))))
