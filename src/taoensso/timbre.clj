@@ -31,11 +31,11 @@
 (def default-err (java.io.PrintWriter.        System/err))
 
 (defmacro with-default-outs
-  "Executes body with Clojure's default *out* and *err* bindings."
+  "Evaluates body with Clojure's default *out* and *err* bindings."
   [& body] `(binding [*out* default-out *err* default-err] ~@body))
 
 (defmacro with-err-as-out
-  "Executes body with *err* bound to *out*."
+  "Evaluates body with *err* bound to *out*."
   [& body] `(binding [*err* *out*] ~@body))
 
 ;;;; Default configuration and appenders
@@ -64,6 +64,17 @@
          ;;; Useful for turning off logging in noisy libraries, etc.
          :ns-whitelist []
          :ns-blacklist []
+
+         ;; TODO Generalized transformation/filtering unary fns to operate on
+         ;; logging requests to either either filter or transform logging
+         ;; messages (e.g. obscure security credentials).
+         ;;
+         ;; Could use a cacheable comp/juxt and include ns white/black list
+         ;; functionality? Possibly even just prepend to the regular appender
+         ;; juxt (assuming we keep ns filtering separate)? Note that this'd
+         ;; also make any additional middlware cost async-able.
+         ;;
+         ;; :middleware []
 
          ;;; Control :timestamp format
          :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
@@ -225,7 +236,7 @@
                               (apply juxt))))))))
    (reset! appenders-juxt-cache)))
 
-;;; Namespace filter ; TODO Generalize to arbitrary fn filters?
+;;; Namespace filter ; TODO Generalize to arbitrary configurable middleware juxt?
 
 (def ns-filter-cache "@ns-filter-cache => (fn relevant-ns? [ns] ...)"
   (atom (constantly true)))
@@ -308,10 +319,14 @@
   ([level expr] `(spy ~level '~expr ~expr))
   ([level name expr]
      `(try
-        (let [result# ~expr] (log ~level ~name ~expr) result#)
+        (let [result# ~expr] (log ~level ~name result#) result#)
         (catch Exception e#
           (log ~level '~expr (str "\n" (stacktrace/pst-str e#)))
           (throw e#)))))
+
+(defmacro s ; Alias
+  {:arglists '([expr] [level expr] [level name expr])}
+  [& args] `(spy ~@args))
 
 (defmacro ^:private def-logger
   [level]
