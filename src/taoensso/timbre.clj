@@ -324,6 +324,10 @@
           (log ~level '~expr (str "\n" (stacktrace/pst-str e#)))
           (throw e#)))))
 
+(defmacro s ; Alias
+  {:arglists '([expr] [level expr] [level name expr])}
+  [& args] `(spy ~@args))
+
 (defmacro ^:private def-logger
   [level]
   (let [level-name (name level)]
