@@ -41,23 +41,26 @@
 ;;;; Default configuration and appenders
 
 (utils/defonce* config
-  "This map atom controls everything about the way Timbre operates. In
-  particular note the flexibility to add arbitrary appenders.
+  "This map atom controls everything about the way Timbre operates.
 
-  An appender is a map with keys:
-    :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn?
+    APPENDERS
+      An appender is a map with keys:
+        :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn
 
-  An appender's fn takes a single map argument with keys:
-    :level, :message, :more ; From all logging macros (`info`, etc.)
-    :profiling-stats        ; From `profile` macro
-    :ap-config              ; `shared-appender-config`
-    :prefix                 ; Output of `prefix-fn`
+      An appender's fn takes a single map argument with keys:
+        :level, :message, :more ; From all logging macros (`info`, etc.)
+        :profiling-stats        ; From `profile` macro
+        :ap-config              ; `shared-appender-config`
+        :prefix                 ; Output of `prefix-fn`
+        And also: :instant, :timestamp, :hostname, :ns, :error?
 
-    Other keys include: :instant, :timestamp, :hostname, :ns, :error?
+    MIDDLEWARE
+      Middleware are fns (applied right-to-left) that transform the map argument
+      dispatched to appender fns. If any middleware returns nil, no dispatching
+      will occur (i.e. the event will be filtered).
 
-  See source code for examples.
-  See `set-config!`, `merge-config!`, `set-level!` for convenient config
-  editing."
+  See source code for examples. See `set-config!`, `merge-config!`, `set-level!`
+  for convenient config editing."
   (atom {:current-level :debug
 
          ;;; Control log filtering by namespace patterns (e.g. ["my-app.*"]).
@@ -65,16 +68,9 @@
          :ns-whitelist []
          :ns-blacklist []
 
-         ;; TODO Generalized transformation/filtering unary fns to operate on
-         ;; logging requests to either either filter or transform logging
-         ;; messages (e.g. obscure security credentials).
-         ;;
-         ;; Could use a cacheable comp/juxt and include ns white/black list
-         ;; functionality? Possibly even just prepend to the regular appender
-         ;; juxt (assuming we keep ns filtering separate)? Note that this'd
-         ;; also make any additional middlware cost async-able.
-         ;;
-         ;; :middleware []
+         ;; Fns (applied right-to-left) to transform/filter appender fn args.
+         ;; Useful for obfuscating credentials, pattern filtering, etc.
+         :middleware []
 
          ;;; Control :timestamp format
          :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
@@ -133,44 +129,12 @@
 
 ;;;; Appender-fn decoration
 
-(defn- make-timestamp-fn
-  "Returns a unary fn that formats instants using given pattern string and an
-  optional Locale."
-  [^String pattern ^Locale locale]
-  (let [format (if locale
-                 (SimpleDateFormat. pattern locale)
-                 (SimpleDateFormat. pattern))]
-    (fn [^Date instant] (.format ^SimpleDateFormat format instant))))
-
-(comment ((make-timestamp-fn "yyyy-MMM-dd" nil) (Date.)))
-
-(def get-hostname
-  (utils/memoize-ttl
-   60000 (fn [] (.. java.net.InetAddress getLocalHost getHostName))))
-
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional runtime capabilities
   controlled by compile-time config."
   [{apfn :fn :keys [async? max-message-per-msecs] :as appender}]
-  (->
-   ;; Wrap to add compile-time stuff to runtime appender arguments
-   (let [{ap-config :shared-appender-config
-          :keys [timestamp-pattern timestamp-locale prefix-fn]} @config
-
-          timestamp-fn (make-timestamp-fn timestamp-pattern timestamp-locale)]
-
-     (fn [{:keys [instant] :as apfn-args}]
-       (let [apfn-args (merge apfn-args {:ap-config ap-config
-                                         :timestamp (timestamp-fn instant)
-                                         :hostname  (get-hostname)})]
-         (apfn (assoc apfn-args :prefix (prefix-fn apfn-args))))))
-
-   ;; Wrap for asynchronicity support
-   ((fn [apfn]
-      (if-not async?
-        apfn
-        (let [agent (agent nil :error-mode :continue)]
-          (fn [apfn-args] (send-off agent (fn [_] (apfn apfn-args))))))))
+  (->> ; Wrapping applies capabilities bottom-to-top
+   apfn
 
    ;; Wrap for runtime flood-safety support
    ((fn [apfn]
@@ -199,7 +163,60 @@
                       (->> (keys timers-snapshot)
                            (filter #(allow? (timers-snapshot %))))]
                   (when (seq expired-timers)
-                    (apply swap! flood-timers dissoc expired-timers))))))))))))
+                    (apply swap! flood-timers dissoc expired-timers))))))))))
+
+   ;; Wrap for async (agent) support
+   ((fn [apfn]
+      (if-not async?
+        apfn
+        (let [agent (agent nil :error-mode :continue)]
+          (fn [apfn-args] (send-off agent (fn [_] (apfn apfn-args))))))))))
+
+(defn- make-timestamp-fn
+  "Returns a unary fn that formats instants using given pattern string and an
+  optional Locale."
+  [^String pattern ^Locale locale]
+  (let [format (if locale
+                 (SimpleDateFormat. pattern locale)
+                 (SimpleDateFormat. pattern))]
+    (fn [^Date instant] (.format ^SimpleDateFormat format instant))))
+
+(comment ((make-timestamp-fn "yyyy-MMM-dd" nil) (Date.)))
+
+(def get-hostname
+  (utils/memoize-ttl
+   60000 (fn [] (.. java.net.InetAddress getLocalHost getHostName))))
+
+(defn- wrap-appender-juxt
+  "Wraps compile-time appender juxt with additional runtime capabilities
+  (incl. middleware) controller by compile-time config. Like `wrap-appender-fn`
+  but operates on the entire juxt at once."
+  [juxtfn]
+  (->> ; Wrapping applies capabilities bottom-to-top
+   juxtfn
+
+   ;; Wrap to add middleware transforms/filters
+   ((fn [juxtfn]
+      (if-let [middleware (seq (:middleware @config))]
+        (let [composed-middleware
+              (apply comp (map (fn [mf] (fn [args] (when args (mf args))))
+                               middleware))]
+          (fn [juxtfn-args]
+            (when-let [juxtfn-args (composed-middleware juxtfn-args)]
+              (juxtfn juxtfn-args))))
+        juxtfn)))
+
+   ;; Wrap to add compile-time stuff to runtime appender arguments
+   ((fn [juxtfn]
+      (let [{ap-config :shared-appender-config
+             :keys [timestamp-pattern timestamp-locale prefix-fn]} @config
+
+             timestamp-fn (make-timestamp-fn timestamp-pattern timestamp-locale)]
+        (fn [{:keys [instant] :as juxtfn-args}]
+          (let [juxtfn-args (merge juxtfn-args {:ap-config ap-config
+                                                :timestamp (timestamp-fn instant)
+                                                :hostname  (get-hostname)})]
+            (juxtfn (assoc juxtfn-args :prefix (prefix-fn juxtfn-args))))))))))
 
 ;;;; Caching
 
@@ -208,7 +225,7 @@
 (def appenders-juxt-cache
   "Per-level, combined relevant appender-fns to allow for fast runtime
   appender-fn dispatch:
-  {:level (juxt wrapped-appender-fn wrapped-appender-fn ...) or nil
+  {:level (wrapped-juxt wrapped-appender-fn wrapped-appender-fn ...) or nil
     ...}"
   (atom {}))
 
@@ -233,10 +250,11 @@
                        (when-let [ap-ids (keys rel-aps)]
                          (->> ap-ids
                               (map #(wrap-appender-fn (rel-aps %)))
-                              (apply juxt))))))))
+                              (apply juxt)
+                              (wrap-appender-juxt))))))))
    (reset! appenders-juxt-cache)))
 
-;;; Namespace filter ; TODO Generalize to arbitrary configurable middleware juxt?
+;;; Namespace filter
 
 (def ns-filter-cache "@ns-filter-cache => (fn relevant-ns? [ns] ...)"
   (atom (constantly true)))
@@ -372,4 +390,16 @@
   (spy (* 6 5 4 3 2 1))
   (spy :debug :factorial6 (* 6 5 4 3 2 1))
   (info (Exception. "noes!") "bar")
-  (spy (/ 4 0)))
+  (spy (/ 4 0))
+
+  ;; Middleware
+  (info {:name "Robert Paulson" :password "Super secret"})
+  (set-config!
+   [:middleware]
+   [(fn [{:keys [hostname message] :as args}]
+      (cond (= hostname "filtered-host") nil ; Filter
+            (map? message)
+            (if (contains? message :password)
+              (assoc args :message (assoc message :password "*****"))
+              args)
+            :else args))]))

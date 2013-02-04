@@ -14,7 +14,7 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
  * Small, uncomplicated **all-Clojure** library.
  * **Super-simple map-based config**: no arcane XML or properties files!
  * **Decent performance** (low overhead).
- * Flexible **fn-centric appender model**.
+ * Flexible **fn-centric appender model** with **middleware**.
  * Sensible built-in appenders including simple **email appender**.
  * Tunable **flood control** and **asynchronous** logging support.
  * Robust **namespace filtering**.
@@ -85,6 +85,8 @@ Configuring Timbre couldn't be simpler. Let's check out (some of) the defaults:
 
  :ns-whitelist []
  :ns-blacklist []
+
+ :middleware [] ; As of 1.4.0, see source code
 
  :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ"
  :timestamp-locale  nil
