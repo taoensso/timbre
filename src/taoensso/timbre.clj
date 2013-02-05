@@ -367,8 +367,11 @@
 (defmacro log-and-rethrow-errors
   [& body] `(try ~@body (catch Exception e# (error e#) (throw e#))))
 
+(defmacro logged-future [& body] `(future (log-errors ~@body)))
+
 (comment (log-errors (/ 0))
-         (log-and-rethrow-errors (/ 0)))
+         (log-and-rethrow-errors (/ 0))
+         (logged-future (/ 0)))
 
 ;;;; Dev/tests
 
