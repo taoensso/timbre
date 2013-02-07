@@ -7,8 +7,6 @@
 
 (def ^:dynamic *fdata* "{::fname {form-value frequency}}" nil)
 
-(declare fdata-table)
-
 (defmacro with-fdata
   [level & body]
   `(if-not (timbre/logging-enabled? ~level)
@@ -16,13 +14,15 @@
      (binding [*fdata* (atom {})]
        {:result (do ~@body) :stats @*fdata*})))
 
+(declare format-fdata)
+
 (defmacro log-frequencies
   "When logging is enabled, executes named body with frequency counting enabled.
   Body forms wrapped in (fspy) will have their result frequencies logged. Always
   returns body's result.
 
-  Note that logging appenders will receive both a frequencies table string AND
-  the raw frequency stats under a special :frequency-stats key (useful for
+  Note that logging appenders will receive both a formatted frequencies string
+  AND the raw frequency stats under a special :frequency-stats key (useful for
   queryable db logging)."
   [level name & body]
   (let [name (utils/fq-keyword name)]
@@ -31,8 +31,16 @@
          (timbre/log* ~level
                       {:frequency-stats stats#}
                       (str "Frequencies " ~name)
-                      (str "\n" (fdata-table stats#))))
+                      (str "\n" (format-fdata stats#))))
        result#)))
+
+(defmacro sampling-log-frequencies
+  "Like `log-frequencies`, but only enables frequency counting every
+  1/`proportion` calls. Always returns body's result."
+  [level proportion name & body]
+  `(if-not (> ~proportion (rand))
+     (do ~@body)
+     (log-frequencies ~level ~name ~@body)))
 
 (defmacro fspy
   "Frequency spy. When in the context of a *fdata* binding, records the frequency
@@ -44,13 +52,12 @@
        (let [name#   ~name
              result# (do ~@body)]
          (swap! *fdata* #(assoc-in % [name# result#]
-                                  (inc (get-in % [name# result#] 0))))
+                                   (inc (get-in % [name# result#] 0))))
          result#))))
 
 (defmacro f [name & body] `(fspy name ~@body)) ; Alias
 
-(defn fdata-table
-  "Returns formatted table string for given fdata stats."
+(defn format-fdata
   [stats]
   (let [sorted-fnames (sort (keys stats))
         sorted-fvals  (fn [form-stats] (reverse (sort-by form-stats
@@ -64,8 +71,8 @@
                 (mapv (fn [v] (vector v (get form-stats v 0)))
                       sorted-fvs))))))))
 
-(comment (fdata-table {:name1 {:a 10 :b 4 :c 20}
-                       :name2 {33 8 12 2 false 6}}))
+(comment (format-fdata {:name1 {:a 10 :b 4 :c 20}
+                        :name2 {33 8 12 2 false 6}}))
 
 (comment
   (with-fdata :info
