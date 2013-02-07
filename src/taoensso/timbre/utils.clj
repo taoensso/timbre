@@ -55,3 +55,12 @@
 
 (comment (round-to 0 10)
          (round-to 2 10.123))
+
+(defmacro fq-keyword
+  "Returns namespaced keyword for given name."
+  [name]
+  `(if (and (keyword? ~name) (namespace ~name))
+     ~name
+     (keyword (str ~*ns*) (clojure.core/name ~name))))
+
+(comment (map #(fq-keyword %) ["foo" :foo :foo/bar]))

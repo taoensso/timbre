@@ -140,19 +140,20 @@
    ((fn [apfn]
       (if-not max-message-per-msecs
         apfn
-        (let [;; {:msg last-appended-time-msecs ...}
+        (let [;; {:hash last-appended-time-msecs ...}
               flood-timers (atom {})]
 
-          (fn [{:keys [message] :as apfn-args}]
+          (fn [{:keys [ns message] :as apfn-args}]
             (let [now    (System/currentTimeMillis)
+                  hash   (str ns "/" message)
                   allow? (fn [last-msecs]
                            (if last-msecs
                              (> (- now last-msecs) max-message-per-msecs)
                              true))]
 
-              (when (allow? (@flood-timers message))
+              (when (allow? (@flood-timers hash))
                 (apfn apfn-args)
-                (swap! flood-timers assoc message now))
+                (swap! flood-timers assoc hash now))
 
               ;; Occassionally garbage-collect all expired timers. Note
               ;; that due to snapshotting, garbage-collection can cause
@@ -366,8 +367,11 @@
 (defmacro log-and-rethrow-errors
   [& body] `(try ~@body (catch Exception e# (error e#) (throw e#))))
 
+(defmacro logged-future [& body] `(future (log-errors ~@body)))
+
 (comment (log-errors (/ 0))
-         (log-and-rethrow-errors (/ 0)))
+         (log-and-rethrow-errors (/ 0))
+         (logged-future (/ 0)))
 
 ;;;; Dev/tests
 
