@@ -1,34 +1,64 @@
 (ns taoensso.timbre.profiling
-  "Simple all-Clojure profiling adapted from clojure.contrib.profile."
+  "Logging profiler for Timbre, adapted from clojure.contrib.profile."
   {:author "Peter Taoussanis"}
   (:require [taoensso.timbre       :as timbre]
             [taoensso.timbre.utils :as utils]))
 
-(def ^:dynamic *plog* "{::pname [time1 time2 ...] ...}" nil)
+(def ^:dynamic *pdata* "{::pname [time1 time2 ...] ...}" nil)
 
-(defmacro prepare-name
-  "Returns namespaced keyword for given name."
-  [name]
-  `(if (and (keyword? ~name) (namespace ~name))
-     ~name
-     (keyword (str ~*ns*) (clojure.core/name ~name))))
+(declare p pdata-stats pdata-table)
 
-(defmacro p
-  "When in the context of a *plog* binding, records execution time of named
-  body. Always returns the body's result."
+(defmacro with-pdata
+  [level & body]
+  `(if-not (timbre/logging-enabled? ~level)
+     {:result (do ~@body)}
+     (binding [*pdata* (atom {})]
+       {:result (p ::clock-time ~@body) :stats (pdata-stats @*pdata*)})))
+
+(defmacro profile
+  "When logging is enabled, executes named body with profiling enabled. Body
+  forms wrapped in (pspy) will be timed and time stats logged. Always returns
+  body's result.
+
+  Note that logging appenders will receive both a profiling table string AND the
+  raw profiling stats under a special :profiling-stats key (useful for queryable
+  db logging)."
+  [level name & body]
+  (let [name (utils/fq-keyword name)]
+    `(let [{result# :result stats# :stats} (with-pdata ~level ~@body)]
+       (when stats#
+         (timbre/log* ~level
+                      {:profile-stats stats#}
+                      (str "Profiling " ~name)
+                      (str "\n" (pdata-table stats#))))
+       result#)))
+
+(defmacro sampling-profile
+  "Like `profile`, but only enables profiling every 1/`proportion` calls.
+  Always returns body's result."
+  [level proportion name & body]
+  `(if-not (> ~proportion (rand))
+     (do ~@body)
+     (profile ~level ~name ~@body)))
+
+(defmacro pspy
+  "Profile spy. When in the context of a *pdata* binding, records execution time
+  of named body. Always returns the body's result."
   [name & body]
-  (let [name (prepare-name name)]
-    `(if *plog*
+  (let [name (utils/fq-keyword name)]
+    `(if-not *pdata*
+       (do ~@body)
        (let [start-time# (System/nanoTime)
              result#     (do ~@body)
              elapsed#    (- (System/nanoTime) start-time#)]
-         (swap! *plog* #(assoc % ~name (conj (% ~name []) elapsed#)))
-         result#)
-       (do ~@body))))
+         (swap! *pdata* #(assoc % ~name (conj (% ~name []) elapsed#)))
+         result#))))
 
-(defn plog-stats
+(defmacro p [name & body] `(pspy ~name ~@body)) ; Alias
+
+(defn pdata-stats
   "{::pname [time1 time2 ...] ...} => {::pname {:min <min-time> ...} ...}"
-  [plog]
+  [pdata]
   (reduce (fn [m [pname times]] ; TODO reduce-kv for Clojure 1.4+
             (let [count (count times)
                   time  (reduce + times)
@@ -43,16 +73,11 @@
                               :mean  mean
                               :mad   mad
                               :time  time})))
-          {} plog))
+          {} pdata))
 
-(defn fqname
-  "Like `name` but returns fully-qualified name."
-  [keyword]
-  (str (namespace keyword) "/" (name keyword)))
-
-(defn plog-table
-  "Returns formatted table string for given plog stats."
-  ([stats] (plog-table stats :time))
+(defn pdata-table
+  "Returns formatted table string for given pdata stats."
+  ([stats] (pdata-table stats :time))
   ([stats sort-field]
      (let [;; How long entire (profile) body took
            clock-time (-> stats ::clock-time :time)
@@ -80,52 +105,12 @@
          (doseq [pname (->> (keys stats)
                             (sort-by #(- (get-in stats [% sort-field]))))]
            (let [{:keys [count min max mean mad time]} (stats pname)]
-             (printf pattern (fqname pname) count (ft min) (ft max) (ft mad)
+             (printf pattern pname count (ft min) (ft max) (ft mad)
                      (ft mean) (perc time clock-time) (ft time))))
 
          (printf s-pattern "[Clock] Time" "" "" "" "" "" 100 (ft clock-time))
          (printf s-pattern "Accounted Time" "" "" "" "" ""
                  (perc accounted clock-time) (ft accounted))))))
-
-(defmacro profile*
-  "Executes named body with profiling enabled. Body forms wrapped in (p) will be
-  timed and time stats sent along with `name` to binary `log-fn`. Returns body's
-  result."
-  [log-fn name & body]
-  (let [name (prepare-name name)]
-    `(binding [*plog* (atom {})]
-       (let [result# (do ~@body)]
-         (~log-fn ~name (plog-stats @*plog*))
-         result#))))
-
-(defmacro profile
-  "When logging is enabled, executes named body with profiling enabled. Body
-  forms wrapped in (p) will be timed and time stats logged. Always returns
-  body's result.
-
-  Note that logging appenders will receive both a profiling table string AND the
-  raw profiling stats under a special :profiling-stats key. One common use is
-  for db appenders to check for this special key and to log profiling stats to
-  db in a queryable manner."
-  [level name & body]
-  `(if (timbre/logging-enabled? ~level)
-     (profile*
-      (fn [name# stats#]
-        (timbre/log* ~level
-                     {:profile-stats stats#}
-                     (str "Profiling " (fqname name#))
-                     (str "\n" (plog-table stats#))))
-      ~name
-      (p ::clock-time ~@body))
-     (do ~@body)))
-
-(defmacro sampling-profile
-  "Like `profile`, but only enables profiling every 1/`proportion` calls.
-  Always returns body's result."
-  [level proportion name & body]
-  `(if (> ~proportion (rand))
-     (profile ~level ~name ~@body)
-     (do ~@body)))
 
 (comment
   (profile :info :Sleepy-threads
@@ -138,7 +123,7 @@
              (p :10ms (Thread/sleep 10))
              "Result"))
 
-  (p :hello "Hello, this is a result") ; Falls through (no *plog* context)
+  (p :hello "Hello, this is a result") ; Falls through (no *pdata* context)
 
   (defn my-fn
     []
