@@ -186,7 +186,9 @@
 
 (def get-hostname
   (utils/memoize-ttl
-   60000 (fn [] (.. java.net.InetAddress getLocalHost getHostName))))
+   60000 (fn [] (try (.. java.net.InetAddress getLocalHost getHostName)
+                    (catch java.net.UnknownHostException e
+                      "UnknownHost")))))
 
 (defn- wrap-appender-juxt
   "Wraps compile-time appender juxt with additional runtime capabilities
