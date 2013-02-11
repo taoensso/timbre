@@ -147,9 +147,8 @@
             (let [now    (System/currentTimeMillis)
                   hash   (str ns "/" message)
                   allow? (fn [last-msecs]
-                           (if last-msecs
-                             (> (- now last-msecs) max-message-per-msecs)
-                             true))]
+                           (or (not last-msecs)
+                               (> (- now last-msecs) max-message-per-msecs)))]
 
               (when (allow? (@flood-timers hash))
                 (apfn apfn-args)
@@ -187,12 +186,12 @@
 (def get-hostname
   (utils/memoize-ttl
    60000 (fn [] (try (.. java.net.InetAddress getLocalHost getHostName)
-                    (catch java.net.UnknownHostException e
+                    (catch java.net.UnknownHostException _
                       "UnknownHost")))))
 
 (defn- wrap-appender-juxt
   "Wraps compile-time appender juxt with additional runtime capabilities
-  (incl. middleware) controller by compile-time config. Like `wrap-appender-fn`
+  (incl. middleware) controlled by compile-time config. Like `wrap-appender-fn`
   but operates on the entire juxt at once."
   [juxtfn]
   (->> ; Wrapping applies capabilities bottom-to-top
