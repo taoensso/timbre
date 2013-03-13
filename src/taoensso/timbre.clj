@@ -113,7 +113,7 @@
 ;;;; Define and sort logging levels
 
 (def ^:private ordered-levels [:trace :debug :info :warn :error :fatal :report])
-(def ^:private scored-levels  (assoc (zipmap ordered-levels (range)) nil 0))
+(def ^:private scored-levels  (assoc (zipmap ordered-levels (next (range))) nil 0))
 
 (defn error-level? [level] (boolean (#{:error :fatal} level)))
 
