@@ -106,9 +106,9 @@
                               :append true)
                         (catch java.io.IOException _))))}}}))
 
-(defn set-config!   [[k & ks] val] (swap! config assoc-in (cons k ks) val))
+(defn set-config!   [ks val] (swap! config assoc-in ks val))
 (defn merge-config! [& maps] (apply swap! config utils/deep-merge maps))
-(defn set-level!    [level] (set-config! [:current-level] level))
+(defn set-level!    [level]  (set-config! [:current-level] level))
 
 ;;;; Define and sort logging levels
 
