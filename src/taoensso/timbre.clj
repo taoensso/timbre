@@ -293,11 +293,11 @@
 
 ;;;; Define logging macros
 
-(defmacro logging-enabled?
+(defn logging-enabled?
   "Returns true when current logging level is sufficient and current namespace
   is unfiltered."
   [level]
-  `(and (sufficient-level? ~level) (@ns-filter-cache ~*ns*)))
+  (and (sufficient-level? level) (@ns-filter-cache *ns*)))
 
 (defmacro log*
   "Prepares given arguments for, and then dispatches to all relevant
@@ -313,7 +313,7 @@
             {:level   ~level
              :error?  (error-level? ~level)
              :instant (Date.)
-             :ns      (str ~*ns*)
+             :ns      ~(str *ns*)
              :message (if has-throwable?# (or (first xs#) x1#) x1#)
              :more    (if has-throwable?#
                         (conj (vec (rest xs#))
