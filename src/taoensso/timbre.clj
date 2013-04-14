@@ -106,14 +106,14 @@
                               :append true)
                         (catch java.io.IOException _))))}}}))
 
-(defn set-config!   [[k & ks] val] (swap! config assoc-in (cons k ks) val))
+(defn set-config!   [ks val] (swap! config assoc-in ks val))
 (defn merge-config! [& maps] (apply swap! config utils/deep-merge maps))
-(defn set-level!    [level] (set-config! [:current-level] level))
+(defn set-level!    [level]  (set-config! [:current-level] level))
 
 ;;;; Define and sort logging levels
 
 (def ^:private ordered-levels [:trace :debug :info :warn :error :fatal :report])
-(def ^:private scored-levels  (assoc (zipmap ordered-levels (range)) nil 0))
+(def ^:private scored-levels  (assoc (zipmap ordered-levels (next (range))) nil 0))
 
 (defn error-level? [level] (boolean (#{:error :fatal} level)))
 
@@ -147,9 +147,8 @@
             (let [now    (System/currentTimeMillis)
                   hash   (str ns "/" message)
                   allow? (fn [last-msecs]
-                           (if last-msecs
-                             (> (- now last-msecs) max-message-per-msecs)
-                             true))]
+                           (or (not last-msecs)
+                               (> (- now last-msecs) max-message-per-msecs)))]
 
               (when (allow? (@flood-timers hash))
                 (apfn apfn-args)
@@ -187,12 +186,12 @@
 (def get-hostname
   (utils/memoize-ttl
    60000 (fn [] (try (.. java.net.InetAddress getLocalHost getHostName)
-                    (catch java.net.UnknownHostException e
+                    (catch java.net.UnknownHostException _
                       "UnknownHost")))))
 
 (defn- wrap-appender-juxt
   "Wraps compile-time appender juxt with additional runtime capabilities
-  (incl. middleware) controller by compile-time config. Like `wrap-appender-fn`
+  (incl. middleware) controlled by compile-time config. Like `wrap-appender-fn`
   but operates on the entire juxt at once."
   [juxtfn]
   (->> ; Wrapping applies capabilities bottom-to-top
@@ -294,11 +293,11 @@
 
 ;;;; Define logging macros
 
-(defmacro logging-enabled?
+(defn logging-enabled?
   "Returns true when current logging level is sufficient and current namespace
   is unfiltered."
   [level]
-  `(and (sufficient-level? ~level) (@ns-filter-cache ~*ns*)))
+  (and (sufficient-level? level) (@ns-filter-cache *ns*)))
 
 (defmacro log*
   "Prepares given arguments for, and then dispatches to all relevant
@@ -314,7 +313,7 @@
             {:level   ~level
              :error?  (error-level? ~level)
              :instant (Date.)
-             :ns      (str ~*ns*)
+             :ns      ~(str *ns*)
              :message (if has-throwable?# (or (first xs#) x1#) x1#)
              :more    (if has-throwable?#
                         (conj (vec (rest xs#))

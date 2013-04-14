@@ -1,7 +1,7 @@
 Current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "1.5.2"]
+[com.taoensso/timbre "1.5.3"]
 ```
 
 # Timbre, a (sane) Clojure logging & profiling library
@@ -27,7 +27,7 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
 Depend on Timbre in your `project.clj`:
 
 ```clojure
-[com.taoensso/timbre "1.5.2"]
+[com.taoensso/timbre "1.5.3"]
 ```
 
 and `use` the library:
@@ -59,7 +59,7 @@ There's little overhead for checking logging levels:
 (time (trace (Thread/sleep 5000)))
 %> "Elapsed time: 0.054 msecs"
 
-(time (when true))
+(time (when false))
 %> "Elapsed time: 0.051 msecs"
 ```
 
@@ -122,7 +122,7 @@ Filter logging output by namespaces:
 To enable the standard [Postal](https://github.com/drewr/postal)-based email appender, add the Postal dependency to your `project.clj`:
 
 ```clojure
-[com.draines/postal "1.9.1"]
+[com.draines/postal "1.9.2"]
 ```
 
 And add the appender to your `ns` declaration:
