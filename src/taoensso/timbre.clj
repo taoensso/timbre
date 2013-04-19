@@ -132,9 +132,17 @@
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional runtime capabilities
   controlled by compile-time config."
-  [{apfn :fn :keys [async? max-message-per-msecs] :as appender}]
+  [{apfn :fn :keys [async? max-message-per-msecs prefix-fn] :as appender}]
   (->> ; Wrapping applies capabilities bottom-to-top
    apfn
+
+   ;; Wrap for per-appender prefix-fn support
+   ((fn [apfn]
+      (if-not prefix-fn
+        apfn
+        (fn [apfn-args]
+          (apfn (assoc apfn-args
+                  :prefix (prefix-fn apfn-args)))))))
 
    ;; Wrap for runtime flood-safety support
    ((fn [apfn]
