@@ -152,6 +152,32 @@ And make sure emails are sent asynchronously:
 (timbre/set-config! [:appenders :postal :async?] true)
 ```
 
+### IRC Appender
+
+To enable the standard [irclj](https://github.com/flatland/irclj)-based IRC appender, add the irclj dependency to your `project.clj`:
+
+```clojure
+[irclj "0.5.0-alpha2"]
+```
+
+And add the appender to your `ns` declaration:
+
+```clojure
+(:require [taoensso.timbre.appenders.irc :refer [irc-appender]])
+```
+
+Then adjust your Timbre config:
+
+```clojure
+(timbre/set-config! [:appenders :irc] irc-appender)
+(timbre/set-config! [:shared-appender-config :irc]
+                    {:host "irc.example.org"
+                     :port 6667
+                     :nick "logger"
+                     :name "Logger"
+                     :chan "#logs"})
+```
+
 ### Custom Appenders
 
 Writing a custom appender is dead-easy:
