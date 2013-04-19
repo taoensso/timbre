@@ -152,6 +152,32 @@ And make sure emails are sent asynchronously:
 (timbre/set-config! [:appenders :postal :async?] true)
 ```
 
+### IRC Appender
+
+To enable the standard [irclj](https://github.com/flatland/irclj)-based IRC appender, add the irclj dependency to your `project.clj`:
+
+```clojure
+[irclj "0.5.0-alpha2"]
+```
+
+And add the appender to your `ns` declaration:
+
+```clojure
+(:require [taoensso.timbre.appenders.irc :refer [irc-appender]])
+```
+
+Then adjust your Timbre config:
+
+```clojure
+(timbre/set-config! [:appenders :irc] irc-appender)
+(timbre/set-config! [:shared-appender-config :irc]
+                    {:host "irc.example.org"
+                     :port 6667
+                     :nick "logger"
+                     :name "Logger"
+                     :chan "#logs"})
+```
+
 ### Custom Appenders
 
 Writing a custom appender is dead-easy:
@@ -177,7 +203,7 @@ See the `timbre/config` docstring for more information on appenders.
 
 The usual recommendation for Clojure profiling is: use a good **JVM profiler** like [YourKit](http://www.yourkit.com/), [JProfiler](http://www.ej-technologies.com/products/jprofiler/overview.html), or [VisualVM](http://docs.oracle.com/javase/6/docs/technotes/guides/visualvm/index.html).
 
-And these certainly do the job. But as with many Java tools, they can be a little hairy and often heavy-handed - especially when applied to Clojure. Timbre includes an alternative. 
+And these certainly do the job. But as with many Java tools, they can be a little hairy and often heavy-handed - especially when applied to Clojure. Timbre includes an alternative.
 
 Let's add it to our app's `ns` declaration:
 
