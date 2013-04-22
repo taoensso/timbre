@@ -32,9 +32,7 @@
   (when-let [irc-config (:irc ap-config)]
     (send-message
      (assoc irc-config
-       :prefix (if-let [prefix-fn (:prefix-fn irc-config)]
-                 (prefix-fn prefix)
-                 prefix)
+       :prefix prefix
        :message message))))
 
 (def irc-appender
@@ -44,4 +42,5 @@
               :name \"My Logger\" :chan \"#logs\"")
    :min-level :info :enabled? true :async? false
    :max-message-per-msecs nil ; no rate limit by default
+   :prefix-fn (fn [{:keys [level]}] (-> level name str/upper-case))
    :fn appender-fn})
