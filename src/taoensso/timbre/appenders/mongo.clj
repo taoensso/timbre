@@ -15,8 +15,7 @@
                            :or {logged-keys default-keys}
                            :as config}]
   (mongo/with-mongo (ensure-conn config)
-    (mongo/insert! collection
-                   (select-keys params logged-keys))))
+    (mongo/insert! collection (select-keys params logged-keys))))
 
 (defn appender-fn [{:keys [ap-config] :as params}]
   (when-let [mongo-config (:mongo ap-config)]
@@ -25,7 +24,9 @@
 (def mongo-appender
   {:doc (str "Logs to MongoDB using congomongo.\n"
              "Needs :mongo config map in :shared-appender-config, e.g.:
-             {:db \"logs\" :collection \"myapp\"
+             {:db \"logs\"
+              :collection \"myapp\"
+              :logged-keys [:instant :level :message]
               :args {:host \"127.0.0.1\"
                      :port 27017}}")
    :min-level :warn :enabled? true :async? false
