@@ -8,12 +8,12 @@
 (def conn (atom nil))
 
 (defn listener-fun [in out]
-  (loop [[line & rest] (in ->
-                           #(InputStreamReader. %)
-                           #(BufferedReader. %)
-                           line-seq)]
-    (when-not (re-find #"(?i)^quit" line)
-      (recur rest))))
+  (loop [lines (-> in
+                   (InputStreamReader.)
+                   (BufferedReader.)
+                   (line-seq))]
+    (when-not (re-find #"(?i)^quit" (first lines))
+      (recur (rest lines)))))
 
 (defn ensure-conn [{:keys [port]}]
   (swap! conn #(or % (create-server port listener-fun))))
