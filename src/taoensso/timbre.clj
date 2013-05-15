@@ -16,12 +16,12 @@
   (print (str (str/join \space xs) \newline))
   (flush))
 
-(defn color-str [color-key & xs]
+(defn color-str [color & xs]
   (let [ansi-color #(str "\u001b[" (case % :reset  "0"  :black  "30" :red   "31"
                                            :green  "32" :yellow "33" :blue  "34"
                                            :purple "35" :cyan   "36" :white "37"
                                            "0") "m")]
-    (str (ansi-color color-key) (apply str xs) (ansi-color :reset))))
+    (str (ansi-color color) (apply str xs) (ansi-color :reset))))
 
 (def red    (partial color-str :red))
 (def green  (partial color-str :green))
@@ -133,10 +133,10 @@
   "Wraps compile-time appender fn with additional runtime capabilities
   controlled by compile-time config."
   [{apfn :fn :keys [async? max-message-per-msecs prefix-fn] :as appender}]
-  (->> ; Wrapping applies capabilities bottom-to-top
+  (->> ; Wrapping applies per appender, bottom-to-top
    apfn
 
-   ;; Wrap for per-appender prefix-fn support
+   ;; Prefix-fn support
    ((fn [apfn]
       (if-not prefix-fn
         apfn
@@ -144,7 +144,7 @@
           (apfn (assoc apfn-args
                   :prefix (prefix-fn apfn-args)))))))
 
-   ;; Wrap for runtime flood-safety support
+   ;; Rate limit support
    ((fn [apfn]
       (if-not max-message-per-msecs
         apfn
@@ -173,7 +173,7 @@
                   (when (seq expired-timers)
                     (apply swap! flood-timers dissoc expired-timers))))))))))
 
-   ;; Wrap for async (agent) support
+   ;; Async (agent) support
    ((fn [apfn]
       (if-not async?
         apfn
@@ -202,10 +202,10 @@
   (incl. middleware) controlled by compile-time config. Like `wrap-appender-fn`
   but operates on the entire juxt at once."
   [juxtfn]
-  (->> ; Wrapping applies capabilities bottom-to-top
+  (->> ; Wrapping applies per juxt, bottom-to-top
    juxtfn
 
-   ;; Wrap to add middleware transforms/filters
+   ;; Middleware transforms/filters support
    ((fn [juxtfn]
       (if-let [middleware (seq (:middleware @config))]
         (let [composed-middleware
@@ -216,7 +216,7 @@
               (juxtfn juxtfn-args))))
         juxtfn)))
 
-   ;; Wrap to add compile-time stuff to runtime appender arguments
+   ;; Add compile-time stuff to runtime appender args
    ((fn [juxtfn]
       (let [{ap-config :shared-appender-config
              :keys [timestamp-pattern timestamp-locale prefix-fn]} @config
@@ -233,14 +233,13 @@
 ;;; Appender-fns
 
 (def appenders-juxt-cache
-  "Per-level, combined relevant appender-fns to allow for fast runtime
+  "Per-level, combined level-relevant appender-fns to allow for fast runtime
   appender-fn dispatch:
   {:level (wrapped-juxt wrapped-appender-fn wrapped-appender-fn ...) or nil
     ...}"
   (atom {}))
 
-(defn- relevant-appenders
-  [level]
+(defn- relevant-appenders [level]
   (->> (:appenders @config)
        (filter #(let [{:keys [enabled? min-level]} (val %)]
                   (and enabled? (>= (compare-levels level min-level) 0))))
@@ -249,8 +248,7 @@
 (comment (relevant-appenders :debug)
          (relevant-appenders :trace))
 
-(defn- cache-appenders-juxt!
-  []
+(defn- cache-appenders-juxt! []
   (->>
    (zipmap
     ordered-levels
@@ -269,13 +267,11 @@
 (def ns-filter-cache "@ns-filter-cache => (fn relevant-ns? [ns] ...)"
   (atom (constantly true)))
 
-(defn- ns-match?
-  [ns match]
+(defn- ns-match? [ns match]
   (-> (str "^" (-> (str match) (.replace "." "\\.") (.replace "*" "(.*)")) "$")
       re-pattern (re-find (str ns)) boolean))
 
-(defn- cache-ns-filter!
-  []
+(defn- cache-ns-filter! []
   (->>
    (let [{:keys [ns-whitelist ns-blacklist]} @config]
      (memoize
@@ -304,11 +300,10 @@
 (defn logging-enabled?
   "Returns true when current logging level is sufficient and current namespace
   is unfiltered."
-  [level]
-  (and (sufficient-level? level) (@ns-filter-cache *ns*)))
+  [level] (and (sufficient-level? level) (@ns-filter-cache *ns*)))
 
 (defmacro log*
-  "Prepares given arguments for, and then dispatches to all relevant
+  "Prepares given arguments for, and then dispatches to all level-relevant
   appender-fns."
   [level base-args & sigs]
   `(when-let [juxt-fn# (@appenders-juxt-cache ~level)] ; Any relevant appenders?
@@ -333,7 +328,7 @@
        nil)))
 
 (defmacro log
-  "When logging is enabled, actually logs given arguments with relevant
+  "When logging is enabled, actually logs given arguments with level-relevant
   appender-fns. Generic form of standard level-loggers (trace, info, etc.)."
   {:arglists '([level message & more] [level throwable message & more])}
   [level & sigs]
@@ -356,8 +351,7 @@
   {:arglists '([expr] [level expr] [level name expr])}
   [& args] `(spy ~@args))
 
-(defmacro ^:private def-logger
-  [level]
+(defmacro ^:private def-logger [level]
   (let [level-name (name level)]
     `(defmacro ~(symbol level-name)
        ~(str "Log given arguments at " (str/capitalize level-name) " level.")
@@ -370,13 +364,14 @@
 
 (def-loggers) ; Actually define a logger for each logging level
 
-(defmacro log-errors
-  [& body] `(try ~@body (catch Exception e# (error e#))))
+(defmacro log-errors [& body]
+  `(try ~@body (catch Exception e# (error e#))))
 
-(defmacro log-and-rethrow-errors
-  [& body] `(try ~@body (catch Exception e# (error e#) (throw e#))))
+(defmacro log-and-rethrow-errors [& body]
+  `(try ~@body (catch Exception e# (error e#) (throw e#))))
 
-(defmacro logged-future [& body] `(future (log-errors ~@body)))
+(defmacro logged-future [& body]
+  `(future (log-errors ~@body)))
 
 (comment (log-errors (/ 0))
          (log-and-rethrow-errors (/ 0))

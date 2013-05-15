@@ -86,7 +86,7 @@ Configuring Timbre couldn't be simpler. Let's check out (some of) the defaults:
  :ns-whitelist []
  :ns-blacklist []
 
- :middleware [] ; As of 1.4.0, see source code
+ :middleware [] ; As of 1.4.0, see source for details
 
  :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ"
  :timestamp-locale  nil
