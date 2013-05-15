@@ -12,10 +12,11 @@
              {:from \"Bob's logger <me@draines.com>\" :to \"foo@example.com\"}")
    :min-level :error :enabled? true :async? true
    :limit-per-msecs (* 1000 60 10) ; 1 subject / 10 mins
-   :fn (fn [{:keys [ap-config prefix message more]}]
+   :fn (fn [{:keys [ap-config prefix throwable args]}]
          (when-let [postal-config (:postal ap-config)]
-           (postal/send-message
-            (assoc postal-config
-              :subject (str prefix " - " message)
-              :body    (if (seq more) (str/join " " more)
-                           "<no additional arguments>")))))})
+           (let [[subject & body] args]
+             (postal/send-message
+              (assoc postal-config
+                :subject (str prefix " - " subject)
+                :body    (str (str/join \space body)
+                              (timbre/stacktrace throwable "\n")))))))})

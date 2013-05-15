@@ -20,19 +20,21 @@
 (defn ensure-conn [conf]
   (swap! conn #(or % (connect conf))))
 
-(defn send-message [{:keys [message prefix chan] :as config}]
+(defn send-message [{:keys [prefix throwable message chan] :as config}]
   (let [conn (ensure-conn config)
-        lines (str/split message #"\n")]
+        lines (-> (str message (timbre/stacktrace throwable "\n"))
+                  (str/split #"\n"))]
     (irclj/message conn chan prefix (first lines))
     (doseq [line (rest lines)]
       (irclj/message conn chan ">" line))))
 
-(defn appender-fn [{:keys [ap-config prefix message]}]
+(defn appender-fn [{:keys [ap-config prefix throwable message]}]
   (when-let [irc-config (:irc ap-config)]
     (send-message
      (assoc irc-config
-       :prefix prefix
-       :message message))))
+       :prefix    prefix
+       :throwable throwable
+       :message   message))))
 
 (def irc-appender
   {:doc (str "Sends IRC messages using irclj.\n"

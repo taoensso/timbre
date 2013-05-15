@@ -6,9 +6,7 @@ Current [semantic](http://semver.org/) version:
 
 # Timbre, a (sane) Clojure logging & profiling library
 
-Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out-the-box*. [tools.logging](https://github.com/clojure/tools.logging) helps, but it doesn't save you from the mess of logger dependencies and configuration hell.
-
-Timbre is an attempt to make **simple logging simple** and more **complex logging reasonable**. No XML!
+Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out-the-box*. Timbre is an attempt to make **simple logging simple** and more **complex logging reasonable**. No XML!
 
 ## What's In The Box?
  * Small, uncomplicated **all-Clojure** library.
@@ -18,6 +16,7 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
  * Sensible built-in appenders including simple **email appender**.
  * Tunable **rate limit** and **asynchronous** logging support.
  * Robust **namespace filtering**.
+ * **[tools.logging](https://github.com/clojure/tools.logging)** support (optional).
  * Dead-simple, logging-level-aware **logging profiler**.
 
 ## Getting Started
@@ -171,9 +170,9 @@ Writing a custom appender is dead-easy:
   :enabled?  true
   :async?    false
   :limit-per-msecs nil ; No rate limit
-  :fn (fn [{:keys [ap-config level prefix message more] :as args}]
+  :fn (fn [{:keys [ap-config level prefix throwable message] :as args}]
         (when-not (:my-production-mode? ap-config)
-          (apply println prefix "Hello world!" message more)))
+          (println prefix "Hello world!" message)))
 ```
 
 And because appender fns are just regular Clojure fns, you have *unlimited power*: write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
