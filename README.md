@@ -16,7 +16,7 @@ Timbre is an attempt to make **simple logging simple** and more **complex loggin
  * **Decent performance** (low overhead).
  * Flexible **fn-centric appender model** with **middleware**.
  * Sensible built-in appenders including simple **email appender**.
- * Tunable **flood control** and **asynchronous** logging support.
+ * Tunable **rate limit** and **asynchronous** logging support.
  * Robust **namespace filtering**.
  * Dead-simple, logging-level-aware **logging profiler**.
 
@@ -137,8 +137,8 @@ Filter logging output by namespaces:
                     ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
                     {:from "me@draines.com" :to "foo@example.com"})
 
-;; Rate-limit to one email per message per minute
-(timbre/set-config! [:appenders :postal :max-message-per-msecs] 60000)
+;; Rate limit to one email per message per minute
+(timbre/set-config! [:appenders :postal :limit-per-msecs] 60000)
 
 ;; Make sure emails are sent asynchronously
 (timbre/set-config! [:appenders :postal :async?] true)
@@ -170,7 +170,7 @@ Writing a custom appender is dead-easy:
   :min-level :debug
   :enabled?  true
   :async?    false
-  :max-message-per-msecs nil ; No rate limiting
+  :limit-per-msecs nil ; No rate limit
   :fn (fn [{:keys [ap-config level prefix message more] :as args}]
         (when-not (:my-production-mode? ap-config)
           (apply println prefix "Hello world!" message more)))

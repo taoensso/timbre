@@ -45,7 +45,7 @@
 
     APPENDERS
       An appender is a map with keys:
-        :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn
+        :doc, :min-level, :enabled?, :async?, :limit-per-msecs, :fn
 
       An appender's fn takes a single map argument with keys:
         :level, :message, :more ; From all logging macros (`info`, etc.)
@@ -88,16 +88,14 @@
          :appenders
          {:standard-out
           {:doc "Prints to *out* or *err* as appropriate. Enabled by default."
-           :min-level nil :enabled? true :async? false
-           :max-message-per-msecs nil
+           :min-level nil :enabled? true :async? false :limit-per-msecs nil
            :fn (fn [{:keys [error? prefix message more]}]
                  (binding [*out* (if error? *err* *out*)]
                    (apply str-println prefix "-" message more)))}
 
           :spit
           {:doc "Spits to (:spit-filename :shared-appender-config) file."
-           :min-level nil :enabled? false :async? false
-           :max-message-per-msecs nil
+           :min-level nil :enabled? false :async? false :limit-per-msecs nil
            :fn (fn [{:keys [ap-config prefix message more]}]
                  (when-let [filename (:spit-filename ap-config)]
                    (try (spit filename
@@ -132,53 +130,55 @@
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional runtime capabilities
   controlled by compile-time config."
-  [{apfn :fn :keys [async? max-message-per-msecs prefix-fn] :as appender}]
-  (->> ; Wrapping applies per appender, bottom-to-top
-   apfn
+  [{apfn :fn :keys [async? limit-per-msecs prefix-fn] :as appender}]
+  (let [limit-per-msecs (or (:max-message-per-msecs appender)
+                            limit-per-msecs)] ; Backwards-compatibility
+    (->> ; Wrapping applies per appender, bottom-to-top
+     apfn
 
-   ;; Prefix-fn support
-   ((fn [apfn]
-      (if-not prefix-fn
-        apfn
-        (fn [apfn-args]
-          (apfn (assoc apfn-args
-                  :prefix (prefix-fn apfn-args)))))))
+     ;; Per-appender prefix-fn support (cmp. default prefix-fn)
+     ((fn [apfn]
+        (if-not prefix-fn
+          apfn
+          (fn [apfn-args]
+            (apfn (assoc apfn-args
+                    :prefix (prefix-fn apfn-args)))))))
 
-   ;; Rate limit support
-   ((fn [apfn]
-      (if-not max-message-per-msecs
-        apfn
-        (let [;; {:hash last-appended-time-msecs ...}
-              flood-timers (atom {})]
+     ;; Rate limit support
+     ((fn [apfn]
+        (if-not limit-per-msecs
+          apfn
+          (let [;; {:hash last-appended-time-msecs ...}
+                flood-timers (atom {})]
 
-          (fn [{:keys [ns message] :as apfn-args}]
-            (let [now    (System/currentTimeMillis)
-                  hash   (str ns "/" message)
-                  allow? (fn [last-msecs]
-                           (or (not last-msecs)
-                               (> (- now last-msecs) max-message-per-msecs)))]
+            (fn [{:keys [ns message] :as apfn-args}]
+              (let [now    (System/currentTimeMillis)
+                    hash   (str ns "/" message)
+                    allow? (fn [last-msecs]
+                             (or (not last-msecs)
+                                 (> (- now last-msecs) limit-per-msecs)))]
 
-              (when (allow? (@flood-timers hash))
-                (apfn apfn-args)
-                (swap! flood-timers assoc hash now))
+                (when (allow? (@flood-timers hash))
+                  (apfn apfn-args)
+                  (swap! flood-timers assoc hash now))
 
-              ;; Occassionally garbage-collect all expired timers. Note
-              ;; that due to snapshotting, garbage-collection can cause
-              ;; some appenders to re-append prematurely.
-              (when (< (rand) 0.001)
-                (let [timers-snapshot @flood-timers
-                      expired-timers
-                      (->> (keys timers-snapshot)
-                           (filter #(allow? (timers-snapshot %))))]
-                  (when (seq expired-timers)
-                    (apply swap! flood-timers dissoc expired-timers))))))))))
+                ;; Occassionally garbage-collect all expired timers. Note
+                ;; that due to snapshotting, garbage-collection can cause
+                ;; some appenders to re-append prematurely.
+                (when (< (rand) 0.001)
+                  (let [timers-snapshot @flood-timers
+                        expired-timers
+                        (->> (keys timers-snapshot)
+                             (filter #(allow? (timers-snapshot %))))]
+                    (when (seq expired-timers)
+                      (apply swap! flood-timers dissoc expired-timers))))))))))
 
-   ;; Async (agent) support
-   ((fn [apfn]
-      (if-not async?
-        apfn
-        (let [agent (agent nil :error-mode :continue)]
-          (fn [apfn-args] (send-off agent (fn [_] (apfn apfn-args))))))))))
+     ;; Async (agent) support
+     ((fn [apfn]
+        (if-not async?
+          apfn
+          (let [agent (agent nil :error-mode :continue)]
+            (fn [apfn-args] (send-off agent (fn [_] (apfn apfn-args)))))))))))
 
 (defn- make-timestamp-fn
   "Returns a unary fn that formats instants using given pattern string and an
