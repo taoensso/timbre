@@ -1,6 +1,5 @@
 (ns taoensso.timbre.appenders.postal
-  "Email appender for com.draines/postal.
-  Ref: https://github.com/drewr/postal."
+  "Email appender. Depends on https://github.com/drewr/postal."
   {:author "Peter Taoussanis"}
   (:require [clojure.string  :as str]
             [postal.core     :as postal]

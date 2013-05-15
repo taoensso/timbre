@@ -117,59 +117,40 @@ Filter logging output by namespaces:
 (timbre/set-config! [:ns-whitelist] ["some.library.core" "my-app.*"])
 ```
 
-### Email Appender
+### Built-in Appenders
 
-To enable the standard [Postal](https://github.com/drewr/postal)-based email appender, add the Postal dependency to your `project.clj`:
+#### File Appender
 
 ```clojure
-[com.draines/postal "1.9.2"]
+(timbre/set-config! [:appenders :spit :enabled?] true)
+(timbre/set-config! [:shared-appender-config :spit-filename] "/path/my-file.log")
 ```
 
-And add the appender to your `ns` declaration:
+#### Email ([Postal](https://github.com/drewr/postal)) Appender
 
 ```clojure
-(:require [taoensso.timbre.appenders (postal :as postal-appender)])
-```
+;; [com.draines/postal "1.9.2"] ; Add to project.clj dependencies
+;; (:require [taoensso.timbre.appenders (postal :as postal-appender)]) ; Add to ns
 
-Then adjust your Timbre config:
-
-```clojure
 (timbre/set-config! [:appenders :postal] postal-appender/postal-appender)
 (timbre/set-config! [:shared-appender-config :postal]
                     ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
                     {:from "me@draines.com" :to "foo@example.com"})
-```
 
-Rate-limit to one email per message per minute:
-
-```clojure
+;; Rate-limit to one email per message per minute
 (timbre/set-config! [:appenders :postal :max-message-per-msecs] 60000)
-```
 
-And make sure emails are sent asynchronously:
-
-```clojure
+;; Make sure emails are sent asynchronously
 (timbre/set-config! [:appenders :postal :async?] true)
 ```
 
-### IRC Appender
-
-To enable the standard [irclj](https://github.com/flatland/irclj)-based IRC appender, add the irclj dependency to your `project.clj`:
+#### IRC ([irclj](https://github.com/flatland/irclj)) Appender
 
 ```clojure
-[irclj "0.5.0-alpha2"]
-```
+;; [irclj "0.5.0-alpha2"] ; Add to project.clj dependencies
+;; (:require [taoensso.timbre.appenders (irc :as irc-appender)]) ; Add to ns
 
-And add the appender to your `ns` declaration:
-
-```clojure
-(:require [taoensso.timbre.appenders.irc :refer [irc-appender]])
-```
-
-Then adjust your Timbre config:
-
-```clojure
-(timbre/set-config! [:appenders :irc] irc-appender)
+(timbre/set-config! [:appenders :irc] irc-appender/irc-appender)
 (timbre/set-config! [:shared-appender-config :irc]
                     {:host "irc.example.org"
                      :port 6667

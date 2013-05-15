@@ -1,6 +1,5 @@
 (ns taoensso.timbre.appenders.irc
-  "IRC appender for irclj.
-  Ref: https://github.com/flatland/irclj."
+  "IRC appender. Depends on https://github.com/flatland/irclj."
   {:author "Emlyn Corrin"}
   (:require [clojure.string  :as str]
             [irclj.core      :as irclj]
