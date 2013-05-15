@@ -2,9 +2,8 @@
   "IRC appender for irclj.
   Ref: https://github.com/flatland/irclj."
   {:author "Emlyn Corrin"}
-  (:require [clojure.string  :as str]
-            [irclj.core      :as irclj]
-            [taoensso.timbre :as timbre]))
+  (:require [clojure.string :as str]
+            [irclj.core     :as irclj]))
 
 (def conn (atom nil))
 

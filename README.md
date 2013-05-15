@@ -178,6 +178,53 @@ Then adjust your Timbre config:
                      :chan "#logs"})
 ```
 
+### Socket Appender
+
+To enable the standard [server-socket](https://github.com/technomancy/server-socket)-based TCP socket appender, add the server-socket dependency to your `project.clj`:
+
+```clojure
+[server-socket "1.0.0"]
+```
+
+And add the appender to your `ns` declaration:
+
+```clojure
+(:require [taoensso.timbre.appenders.socket :refer [socket-appender]])
+```
+
+Then adjust your Timbre config:
+
+```clojure
+(timbre/set-config! [:appenders :socket] socket-appender)
+(timbre/set-config! [:shared-appender-config :socket]
+                    {:port 9000})
+```
+
+### MongoDB Appender
+
+To enable the standard [congomongo](https://github.com/aboekhoff/congomongo)-based MongoDB appender, add the congomongo dependency to your `project.clj`:
+
+```clojure
+[congomongo "0.4.1"]
+```
+
+And add the appender to your `ns` declaration:
+
+```clojure
+(:require [taoensso.timbre.appenders.mongo :refer [mongo-appender]])
+```
+
+Then adjust your Timbre config:
+
+```clojure
+(timbre/set-config! [:appenders :mongo] mongo-appender)
+(timbre/set-config! [:shared-appender-config :mongo]
+                    {:db "logs"
+                     :collection "myapp"
+                     :args {:host "127.0.0.1"
+                            :port 27017}})
+```
+
 ### Custom Appenders
 
 Writing a custom appender is dead-easy:
@@ -203,7 +250,7 @@ See the `timbre/config` docstring for more information on appenders.
 
 The usual recommendation for Clojure profiling is: use a good **JVM profiler** like [YourKit](http://www.yourkit.com/), [JProfiler](http://www.ej-technologies.com/products/jprofiler/overview.html), or [VisualVM](http://docs.oracle.com/javase/6/docs/technotes/guides/visualvm/index.html).
 
-And these certainly do the job. But as with many Java tools, they can be a little hairy and often heavy-handed - especially when applied to Clojure. Timbre includes an alternative. 
+And these certainly do the job. But as with many Java tools, they can be a little hairy and often heavy-handed - especially when applied to Clojure. Timbre includes an alternative.
 
 Let's add it to our app's `ns` declaration:
 
