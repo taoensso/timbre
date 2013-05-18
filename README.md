@@ -1,7 +1,8 @@
 Current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "1.6.0"]
+[com.taoensso/timbre "1.6.0"]          ; Stable
+[com.taoensso/timbre "2.0.0-SNAPSHOT"] ; Development, see commit for breaking changes
 ```
 
 # Timbre, a (sane) Clojure logging & profiling library

@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "1.6.0"
+(defproject com.taoensso/timbre "2.0.0-SNAPSHOT"
   :description "Clojure logging & profiling library"
   :url "https://github.com/ptaoussanis/timbre"
   :license {:name "Eclipse Public License"}
