@@ -1,8 +1,7 @@
 Current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "1.6.0"]          ; Stable
-[com.taoensso/timbre "2.0.0-SNAPSHOT"] ; Development, see commit for breaking changes
+[com.taoensso/timbre "2.0.0"] ; See commit history for breaking changes since 1.x
 ```
 
 # Timbre, a (sane) Clojure logging & profiling library
@@ -27,7 +26,7 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 Depend on Timbre in your `project.clj`:
 
 ```clojure
-[com.taoensso/timbre "1.6.0"]
+[com.taoensso/timbre "2.0.0"]
 ```
 
 and `use` the library:
