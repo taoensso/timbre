@@ -8,7 +8,7 @@ Current [semantic](http://semver.org/) version:
 
 Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out-the-box*. Timbre is an attempt to make **simple logging simple** and more **complex logging reasonable**. No XML!
 
-## What's In The Box?
+## What's in the box™?
  * Small, uncomplicated **all-Clojure** library.
  * **Super-simple map-based config**: no arcane XML or properties files!
  * **Decent performance** (low overhead).
@@ -16,23 +16,19 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
  * Sensible built-in appenders including simple **email appender**.
  * Tunable **rate limit** and **asynchronous** logging support.
  * Robust **namespace filtering**.
- * **[tools.logging](https://github.com/clojure/tools.logging)** support (optional).
+ * **[tools.logging](https://github.com/clojure/tools.logging) support** (optional).
  * Dead-simple, logging-level-aware **logging profiler**.
 
-## Getting Started
+## Getting started
 
-### Leiningen
+### Dependencies
 
-Depend on Timbre in your `project.clj`:
-
-```clojure
-[com.taoensso/timbre "2.0.0"]
-```
-
-and `use` the library:
+Add the necessary dependency to your [Leiningen](http://leiningen.org/) `project.clj` and `require` the library in your ns:
 
 ```clojure
-(ns my-app (:use [taoensso.timbre :as timbre :only (trace debug info warn error fatal spy)]))
+[com.taoensso/timbre "2.0.0"] ; project.clj
+(ns my-app (:require [taoensso.timbre :as timbre
+                      :refer (trace debug info warn error fatal spy)])) ; ns
 ```
 
 ### Logging
@@ -85,7 +81,7 @@ Configuring Timbre couldn't be simpler. Let's check out (some of) the defaults:
  :ns-whitelist []
  :ns-blacklist []
 
- :middleware [] ; As of 1.4.0, see source for details
+ :middleware [] ; As of Timbre 1.4.0, see source for details
 
  :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ"
  :timestamp-locale  nil
@@ -116,16 +112,16 @@ Filter logging output by namespaces:
 (timbre/set-config! [:ns-whitelist] ["some.library.core" "my-app.*"])
 ```
 
-### Built-in Appenders
+### Built-in appenders
 
-#### File Appender
+#### File appender
 
 ```clojure
 (timbre/set-config! [:appenders :spit :enabled?] true)
 (timbre/set-config! [:shared-appender-config :spit-filename] "/path/my-file.log")
 ```
 
-#### Email ([Postal](https://github.com/drewr/postal)) Appender
+#### Email ([Postal](https://github.com/drewr/postal)) appender
 
 ```clojure
 ;; [com.draines/postal "1.9.2"] ; Add to project.clj dependencies
@@ -143,7 +139,7 @@ Filter logging output by namespaces:
 (timbre/set-config! [:appenders :postal :async?] true)
 ```
 
-#### IRC ([irclj](https://github.com/flatland/irclj)) Appender
+#### IRC ([irclj](https://github.com/flatland/irclj)) appender
 
 ```clojure
 ;; [irclj "0.5.0-alpha2"] ; Add to project.clj dependencies
@@ -158,7 +154,7 @@ Filter logging output by namespaces:
                      :chan "#logs"})
 ```
 
-### Custom Appenders
+### Custom appenders
 
 Writing a custom appender is dead-easy:
 
@@ -188,7 +184,7 @@ And these certainly do the job. But as with many Java tools, they can be a littl
 Let's add it to our app's `ns` declaration:
 
 ```clojure
-(:use [taoensso.timbre.profiling :as profiling :only (p profile)])
+(:require [taoensso.timbre.profiling :as profiling :refer (p profile)])
 ```
 
 Wrap forms that you'd like to profile with the `p` macro and give them a name:
@@ -231,16 +227,23 @@ And since `p` and `profile` **always return their body's result** regardless of 
 
 A simple **sampling profiler** is also available: `taoensso.timbre.profiling/sampling-profile`.
 
-## Timbre Supports the ClojureWerkz and CDS Project Goals
+## Project links
 
-ClojureWerkz is a growing collection of open-source, batteries-included [Clojure libraries](http://clojurewerkz.org/) that emphasise modern targets, great documentation, and thorough testing.
+  * [API documentation](http://ptaoussanis.github.io/timbre/).
+  * My other [Clojure libraries](https://www.taoensso.com/clojure-libraries) (Redis & DynamoDB clients, logging+profiling, I18n+L10n, serialization, A/B testing).
 
-CDS (Clojure Documentation Site) is a contributor-friendly community project aimed at producing top-notch [Clojure tutorials](http://clojure-doc.org/) and documentation.
+##### This project supports the **CDS and ClojureWerkz project goals**:
 
-## Contact & Contribution
+  * [CDS](http://clojure-doc.org/), the **Clojure Documentation Site**, is a contributer-friendly community project aimed at producing top-notch Clojure tutorials and documentation.
 
-Reach me (Peter Taoussanis) at [taoensso.com](https://www.taoensso.com) for questions/comments/suggestions/whatever. I'm very open to ideas if you have any! I'm also on Twitter: [@ptaoussanis](https://twitter.com/#!/ptaoussanis).
+  * [ClojureWerkz](http://clojurewerkz.org/) is a growing collection of open-source, batteries-included **Clojure libraries** that emphasise modern targets, great documentation, and thorough testing.
+
+## Contact & contribution
+
+Please use the [project's GitHub issues page](https://github.com/ptaoussanis/timbre/issues) for project questions/comments/suggestions/whatever **(pull requests welcome!)**. Am very open to ideas if you have any!
+
+Otherwise reach me (Peter Taoussanis) at [taoensso.com](https://www.taoensso.com) or on Twitter ([@ptaoussanis](https://twitter.com/#!/ptaoussanis)). Cheers!
 
 ## License
 
-Copyright &copy; 2012 Peter Taoussanis. Distributed under the [Eclipse Public License](http://www.eclipse.org/legal/epl-v10.html), the same as Clojure.
+Copyright &copy; 2012, 2013 Peter Taoussanis. Distributed under the [Eclipse Public License](http://www.eclipse.org/legal/epl-v10.html), the same as Clojure.
