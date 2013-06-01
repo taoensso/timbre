@@ -28,10 +28,11 @@
   (let [name (utils/fq-keyword name)]
     `(let [{result# :result stats# :stats} (with-fdata ~level ~@body)]
        (when stats#
-         (timbre/log* ~level
-                      {:frequency-stats stats#}
-                      (str "Frequencies " ~name)
-                      (str "\n" (format-fdata stats#))))
+         (timbre/log* {:frequency-stats stats#}
+                      ~level
+                      [(str "Frequencies " ~name)
+                       (str "\n" (format-fdata stats#))]
+                      print-str))
        result#)))
 
 (defmacro sampling-log-frequencies

@@ -16,12 +16,12 @@
   (print (str (str/join \space xs) \newline))
   (flush))
 
-(defn color-str [color-key & xs]
+(defn color-str [color & xs]
   (let [ansi-color #(str "\u001b[" (case % :reset  "0"  :black  "30" :red   "31"
                                            :green  "32" :yellow "33" :blue  "34"
                                            :purple "35" :cyan   "36" :white "37"
                                            "0") "m")]
-    (str (ansi-color color-key) (apply str xs) (ansi-color :reset))))
+    (str (ansi-color color) (apply str xs) (ansi-color :reset))))
 
 (def red    (partial color-str :red))
 (def green  (partial color-str :green))
@@ -38,6 +38,10 @@
   "Evaluates body with *err* bound to *out*."
   [& body] `(binding [*err* *out*] ~@body))
 
+(defn stacktrace [throwable & [separator]]
+  (when throwable
+    (str (when-let [s separator] s) (stacktrace/pst-str throwable))))
+
 ;;;; Default configuration and appenders
 
 (utils/defonce* config
@@ -45,13 +49,15 @@
 
     APPENDERS
       An appender is a map with keys:
-        :doc, :min-level, :enabled?, :async?, :max-message-per-msecs, :fn
+        :doc, :min-level, :enabled?, :async?, :limit-per-msecs, :fn
 
       An appender's fn takes a single map argument with keys:
-        :level, :message, :more ; From all logging macros (`info`, etc.)
-        :profiling-stats        ; From `profile` macro
-        :ap-config              ; `shared-appender-config`
-        :prefix                 ; Output of `prefix-fn`
+        :level, :throwable
+        :message,        ; Stringified logging macro args, or nil
+        :args,           ; Raw logging macro args (`info`, etc.)
+        :ap-config       ; `shared-appender-config`
+        :prefix          ; Output of `prefix-fn`
+        :profiling-stats ; From `profile` macro
         And also: :instant, :timestamp, :hostname, :ns, :error?
 
     MIDDLEWARE
@@ -88,21 +94,20 @@
          :appenders
          {:standard-out
           {:doc "Prints to *out* or *err* as appropriate. Enabled by default."
-           :min-level nil :enabled? true :async? false
-           :max-message-per-msecs nil
-           :fn (fn [{:keys [error? prefix message more]}]
+           :min-level nil :enabled? true :async? false :limit-per-msecs nil
+           :fn (fn [{:keys [error? prefix throwable message]}]
                  (binding [*out* (if error? *err* *out*)]
-                   (apply str-println prefix "-" message more)))}
+                   (str-println prefix "-" message (stacktrace throwable))))}
 
           :spit
           {:doc "Spits to (:spit-filename :shared-appender-config) file."
-           :min-level nil :enabled? false :async? false
-           :max-message-per-msecs nil
-           :fn (fn [{:keys [ap-config prefix message more]}]
+           :min-level nil :enabled? false :async? false :limit-per-msecs nil
+           :fn (fn [{:keys [ap-config prefix throwable message]}]
                  (when-let [filename (:spit-filename ap-config)]
                    (try (spit filename
-                              (with-out-str (apply str-println prefix "-"
-                                                   message more))
+                              (with-out-str
+                                (str-println prefix "-" message
+                                             (stacktrace throwable)))
                               :append true)
                         (catch java.io.IOException _))))}}}))
 
@@ -132,53 +137,49 @@
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional runtime capabilities
   controlled by compile-time config."
-  [{apfn :fn :keys [async? max-message-per-msecs prefix-fn] :as appender}]
-  (->> ; Wrapping applies capabilities bottom-to-top
-   apfn
+  [{apfn :fn :keys [async? limit-per-msecs prefix-fn] :as appender}]
+  (let [limit-per-msecs (or (:max-message-per-msecs appender)
+                            limit-per-msecs)] ; Backwards-compatibility
+    (->> ; Wrapping applies per appender, bottom-to-top
+     apfn
 
-   ;; Wrap for per-appender prefix-fn support
-   ((fn [apfn]
-      (if-not prefix-fn
-        apfn
-        (fn [apfn-args]
-          (apfn (assoc apfn-args
-                  :prefix (prefix-fn apfn-args)))))))
+     ;; Per-appender prefix-fn support (cmp. default prefix-fn)
+     ;; TODO Currently undocumented, candidate for removal
+     ((fn [apfn]
+        (if-not prefix-fn
+          apfn
+          (fn [apfn-args]
+            (apfn (assoc apfn-args
+                    :prefix (prefix-fn apfn-args)))))))
 
-   ;; Wrap for runtime flood-safety support
-   ((fn [apfn]
-      (if-not max-message-per-msecs
-        apfn
-        (let [;; {:hash last-appended-time-msecs ...}
-              flood-timers (atom {})]
+     ;; Rate limit support
+     ((fn [apfn]
+        (if-not limit-per-msecs
+          apfn
+          (let [timers (atom {})] ; {:hash last-appended-time-msecs ...}
+            (fn [{ns :ns [x1 & _] :args :as apfn-args}]
+              (let [now    (System/currentTimeMillis)
+                    hash   (str ns "/" x1)
+                    limit? (fn [last-msecs]
+                             (and last-msecs (<= (- now last-msecs)
+                                                 limit-per-msecs)))]
 
-          (fn [{:keys [ns message] :as apfn-args}]
-            (let [now    (System/currentTimeMillis)
-                  hash   (str ns "/" message)
-                  allow? (fn [last-msecs]
-                           (or (not last-msecs)
-                               (> (- now last-msecs) max-message-per-msecs)))]
+                (when-not (limit? (@timers hash))
+                  (apfn apfn-args)
+                  (swap! timers assoc hash now))
 
-              (when (allow? (@flood-timers hash))
-                (apfn apfn-args)
-                (swap! flood-timers assoc hash now))
+                (when (< (rand) 0.001) ; Occasionally garbage collect
+                  (when-let [expired-timers (->> (keys @timers)
+                                                 (remove #(limit? (@timers %)))
+                                                 (seq))]
+                    (apply swap! timers dissoc expired-timers)))))))))
 
-              ;; Occassionally garbage-collect all expired timers. Note
-              ;; that due to snapshotting, garbage-collection can cause
-              ;; some appenders to re-append prematurely.
-              (when (< (rand) 0.001)
-                (let [timers-snapshot @flood-timers
-                      expired-timers
-                      (->> (keys timers-snapshot)
-                           (filter #(allow? (timers-snapshot %))))]
-                  (when (seq expired-timers)
-                    (apply swap! flood-timers dissoc expired-timers))))))))))
-
-   ;; Wrap for async (agent) support
-   ((fn [apfn]
-      (if-not async?
-        apfn
-        (let [agent (agent nil :error-mode :continue)]
-          (fn [apfn-args] (send-off agent (fn [_] (apfn apfn-args))))))))))
+     ;; Async (agent) support
+     ((fn [apfn]
+        (if-not async?
+          apfn
+          (let [agent (agent nil :error-mode :continue)]
+            (fn [apfn-args] (send-off agent (fn [_] (apfn apfn-args)))))))))))
 
 (defn- make-timestamp-fn
   "Returns a unary fn that formats instants using given pattern string and an
@@ -202,10 +203,10 @@
   (incl. middleware) controlled by compile-time config. Like `wrap-appender-fn`
   but operates on the entire juxt at once."
   [juxtfn]
-  (->> ; Wrapping applies capabilities bottom-to-top
+  (->> ; Wrapping applies per juxt, bottom-to-top
    juxtfn
 
-   ;; Wrap to add middleware transforms/filters
+   ;; Middleware transforms/filters support
    ((fn [juxtfn]
       (if-let [middleware (seq (:middleware @config))]
         (let [composed-middleware
@@ -216,7 +217,7 @@
               (juxtfn juxtfn-args))))
         juxtfn)))
 
-   ;; Wrap to add compile-time stuff to runtime appender arguments
+   ;; Add compile-time stuff to runtime appender args
    ((fn [juxtfn]
       (let [{ap-config :shared-appender-config
              :keys [timestamp-pattern timestamp-locale prefix-fn]} @config
@@ -233,14 +234,13 @@
 ;;; Appender-fns
 
 (def appenders-juxt-cache
-  "Per-level, combined relevant appender-fns to allow for fast runtime
+  "Per-level, combined level-relevant appender-fns to allow for fast runtime
   appender-fn dispatch:
   {:level (wrapped-juxt wrapped-appender-fn wrapped-appender-fn ...) or nil
     ...}"
   (atom {}))
 
-(defn- relevant-appenders
-  [level]
+(defn- relevant-appenders [level]
   (->> (:appenders @config)
        (filter #(let [{:keys [enabled? min-level]} (val %)]
                   (and enabled? (>= (compare-levels level min-level) 0))))
@@ -249,8 +249,7 @@
 (comment (relevant-appenders :debug)
          (relevant-appenders :trace))
 
-(defn- cache-appenders-juxt!
-  []
+(defn- cache-appenders-juxt! []
   (->>
    (zipmap
     ordered-levels
@@ -269,13 +268,11 @@
 (def ns-filter-cache "@ns-filter-cache => (fn relevant-ns? [ns] ...)"
   (atom (constantly true)))
 
-(defn- ns-match?
-  [ns match]
+(defn- ns-match? [ns match]
   (-> (str "^" (-> (str match) (.replace "." "\\.") (.replace "*" "(.*)")) "$")
       re-pattern (re-find (str ns)) boolean))
 
-(defn- cache-ns-filter!
-  []
+(defn- cache-ns-filter! []
   (->>
    (let [{:keys [ns-whitelist ns-blacklist]} @config]
      (memoize
@@ -304,41 +301,63 @@
 (defn logging-enabled?
   "Returns true when current logging level is sufficient and current namespace
   is unfiltered."
-  [level]
-  (and (sufficient-level? level) (@ns-filter-cache *ns*)))
+  [level] (and (sufficient-level? level) (@ns-filter-cache *ns*)))
 
 (defmacro log*
-  "Prepares given arguments for, and then dispatches to all relevant
-  appender-fns."
-  [level base-args & sigs]
-  `(when-let [juxt-fn# (@appenders-juxt-cache ~level)] ; Any relevant appenders?
-     (let [[x1# & xs#] (list ~@sigs)
+  "Implementation detail - subject to change..
+  Prepares given arguments for, and then dispatches to all level-relevant
+  appender-fns. "
 
-           has-throwable?# (instance? Throwable x1#)
-           appender-args#
-           (conj
-            ~base-args ; Allow flexibility to inject exta args
-            {:level   ~level
-             :error?  (error-level? ~level)
-             :instant (Date.)
-             :ns      ~(str *ns*)
-             :message (if has-throwable?# (or (first xs#) x1#) x1#)
-             :more    (if has-throwable?#
-                        (conj (vec (rest xs#))
-                              (str "\nStacktrace:\n"
-                                   (stacktrace/pst-str x1#)))
-                        (vec xs#))})]
+  ;; For tools.logging.impl/Logger support
+  ([base-appender-args level log-vargs ns throwable message juxt-fn]
+     `(when-let [juxt-fn# (or ~juxt-fn (@appenders-juxt-cache ~level))]
+        (juxt-fn#
+         (conj (or ~base-appender-args {})
+           {:instant   (Date.)
+            :ns        ~ns
+            :level     ~level
+            :error?    (error-level? ~level)
+            :args      ~log-vargs ; No native tools.logging support
+            :throwable ~throwable
+            :message   ~message}))
+        true))
 
-       (juxt-fn# appender-args#)
-       nil)))
+  ([base-appender-args level log-args message-fn]
+     `(when-let [juxt-fn# (@appenders-juxt-cache ~level)]
+        (let [[x1# & xn# :as xs#] (vector ~@log-args)
+              has-throwable?# (and xn# (instance? Throwable x1#))
+              log-vargs# (vec (if has-throwable?# xn# xs#))]
+          (log* ~base-appender-args
+                ~level
+                log-vargs#
+                ~(str *ns*)
+                (when has-throwable?# x1#)
+                (when-let [mf# ~message-fn] (apply mf# log-vargs#))
+                juxt-fn#)))))
 
 (defmacro log
-  "When logging is enabled, actually logs given arguments with relevant
-  appender-fns. Generic form of standard level-loggers (trace, info, etc.)."
-  {:arglists '([level message & more] [level throwable message & more])}
+  "When logging is enabled, actually logs given arguments with level-relevant
+  appender-fns."
+  {:arglists '([level & args] [level throwable & args])}
   [level & sigs]
   `(when (logging-enabled? ~level)
-     (log* ~level {} ~@sigs)))
+     (log* {} ~level ~sigs nil)))
+
+(defmacro logp
+  "When logging is enabled, actually logs given arguments with level-relevant
+  appender-fns using print-style :message."
+  {:arglists '([level & message] [level throwable & message])}
+  [level & sigs]
+  `(when (logging-enabled? ~level)
+     (log* {} ~level ~sigs print-str)))
+
+(defmacro logf
+  "When logging is enabled, actually logs given arguments with level-relevant
+  appender-fns using format-style :message."
+  {:arglists '([level fmt & fmt-args] [level throwable fmt & fmt-args])}
+  [level & sigs]
+  `(when (logging-enabled? ~level)
+     (log* {} ~level ~sigs format)))
 
 (defmacro spy
   "Evaluates named expression and logs its result. Always returns the result.
@@ -347,36 +366,41 @@
   ([level expr] `(spy ~level '~expr ~expr))
   ([level name expr]
      `(try
-        (let [result# ~expr] (log ~level ~name result#) result#)
+        (let [result# ~expr] (logp ~level ~name result#) result#)
         (catch Exception e#
-          (log ~level '~expr (str "\n" (stacktrace/pst-str e#)))
+          (logp ~level '~expr (str "\n" (stacktrace/pst-str e#)))
           (throw e#)))))
 
 (defmacro s ; Alias
   {:arglists '([expr] [level expr] [level name expr])}
   [& args] `(spy ~@args))
 
-(defmacro ^:private def-logger
-  [level]
+(defmacro ^:private def-logger [level]
   (let [level-name (name level)]
-    `(defmacro ~(symbol level-name)
-       ~(str "Log given arguments at " (str/capitalize level-name) " level.")
-       ~'{:arglists '([message & more] [throwable message & more])}
-       [& sigs#]
-       `(log ~~level ~@sigs#))))
+    `(do
+       (defmacro ~(symbol level-name)
+         ~(str "Log given arguments at " level " level using print-style args.")
+         ~'{:arglists '([& message] [throwable & message])}
+         [& sigs#] `(logp ~~level ~@sigs#))
 
-(defmacro ^:private def-loggers
-  [] `(do ~@(map (fn [level] `(def-logger ~level)) ordered-levels)))
+       (defmacro ~(symbol (str level-name "f"))
+         ~(str "Log given arguments at " level " level using format-style args.")
+         ~'{:arglists '([fmt & fmt-args] [throwable fmt & fmt-args])}
+         [& sigs#] `(logf ~~level ~@sigs#)))))
+
+(defmacro ^:private def-loggers []
+  `(do ~@(map (fn [level] `(def-logger ~level)) ordered-levels)))
 
 (def-loggers) ; Actually define a logger for each logging level
 
-(defmacro log-errors
-  [& body] `(try ~@body (catch Exception e# (error e#))))
+(defmacro log-errors [& body]
+  `(try ~@body (catch Exception e# (error e#))))
 
-(defmacro log-and-rethrow-errors
-  [& body] `(try ~@body (catch Exception e# (error e#) (throw e#))))
+(defmacro log-and-rethrow-errors [& body]
+  `(try ~@body (catch Exception e# (error e#) (throw e#))))
 
-(defmacro logged-future [& body] `(future (log-errors ~@body)))
+(defmacro logged-future [& body]
+  `(future (log-errors ~@body)))
 
 (comment (log-errors (/ 0))
          (log-and-rethrow-errors (/ 0))
@@ -385,13 +409,15 @@
 ;;;; Dev/tests
 
 (comment
-  (log :fatal "arg1")
-  (log :debug "arg1" "arg2")
-  (log :debug (Exception.) "arg1" "arg2")
-  (log :debug (Exception.))
-  (log :trace "arg1")
+  (info)
+  (info "a")
+  (info "a" "b" "c")
+  (info "a" (Exception. "b") "c")
+  (info (Exception. "a") "b" "c")
+  (logp (or nil :info) "Booya")
 
-  (log (or nil :info) "Booya")
+  (info  "a%s" "b")
+  (infof "a%s" "b")
 
   (set-config! [:ns-blacklist] [])
   (set-config! [:ns-blacklist] ["taoensso.timbre*"])
