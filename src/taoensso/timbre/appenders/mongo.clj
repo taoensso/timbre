@@ -5,12 +5,21 @@
 
 (def conn (atom nil))
 
-(def default-keys [:level :instant :ns :throwable :message])
+;; Note: including :throwable will fail with:
+;;   IllegalArgumentException: can't serialize class java.lang.Exception
+(def default-keys [:hostname :ns :level :error? :instant :message :args])
+
 (def default-args {:host "127.0.0.1" :port 27017})
 
-(defn ensure-conn [{:keys [db server]}]
-  (let [args (merge default-args server)]
-    (swap! conn #(or % (mongo/make-connection db args)))))
+(defn connect [{:keys [db server write-concern]}]
+  (let [args (merge default-args server)
+        c (mongo/make-connection db args)]
+    (when write-concern
+      (mongo/set-write-concern c write-concern))
+    c))
+
+(defn ensure-conn [config]
+  (swap! conn #(or % (connect config))))
 
 (defn log-message [params {:keys [collection logged-keys]
                            :or {logged-keys default-keys}
@@ -28,6 +37,7 @@
              {:db \"logs\"
               :collection \"myapp\"
               :logged-keys [:instant :level :message]
+              :write-concern :acknowledged
               :server {:host \"127.0.0.1\"
                        :port 27017}}")
    :min-level :warn :enabled? true :async? true
