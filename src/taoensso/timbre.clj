@@ -320,7 +320,7 @@
             :args      ~log-vargs ; No native tools.logging support
             :throwable ~throwable
             :message   ~message}))
-        true))
+        nil))
 
   ([base-appender-args level log-args message-fn]
      `(when-let [juxt-fn# (@appenders-juxt-cache ~level)]
