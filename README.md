@@ -164,7 +164,6 @@ Filter logging output by namespaces:
 (timbre/set-config! [:shared-appender-config :mongo]
                     {:db          "logs"
                      :collection  "myapp"
-                     :logged-keys [:level :instant :ns :message]
                      :server      {:host "127.0.0.1" :port 27017}})
 ```
 
