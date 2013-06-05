@@ -154,6 +154,20 @@ Filter logging output by namespaces:
                      :chan "#logs"})
 ```
 
+#### MongoDB ([congomongo](https://github.com/aboekhoff/congomongo)) appender
+
+```clojure
+;; [congomongo "0.4.1"] ; Add to project.clj dependencies
+;; (:require [taoensso.timbre.appenders (mongo :as mongo-appender)]) ; Add to ns
+
+(timbre/set-config! [:appenders :mongo] mongo-appender/mongo-appender)
+(timbre/set-config! [:shared-appender-config :mongo]
+                    {:db          "logs"
+                     :collection  "myapp"
+                     :logged-keys [:level :instant :ns :message]
+                     :server      {:host "127.0.0.1" :port 27017}})
+```
+
 ### Custom appenders
 
 Writing a custom appender is dead-easy:
@@ -179,7 +193,7 @@ See the `timbre/config` docstring for more information on appenders.
 
 The usual recommendation for Clojure profiling is: use a good **JVM profiler** like [YourKit](http://www.yourkit.com/), [JProfiler](http://www.ej-technologies.com/products/jprofiler/overview.html), or [VisualVM](http://docs.oracle.com/javase/6/docs/technotes/guides/visualvm/index.html).
 
-And these certainly do the job. But as with many Java tools, they can be a little hairy and often heavy-handed - especially when applied to Clojure. Timbre includes an alternative. 
+And these certainly do the job. But as with many Java tools, they can be a little hairy and often heavy-handed - especially when applied to Clojure. Timbre includes an alternative.
 
 Let's add it to our app's `ns` declaration:
 
