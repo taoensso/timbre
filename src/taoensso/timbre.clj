@@ -40,7 +40,7 @@
 
 (defn stacktrace [throwable & [separator]]
   (when throwable
-    (str separator (when-let [d (ex-data throwable)] (str d separator))
+    (str separator (when-let [d (ex-data throwable)] (str d " "))
          (stacktrace/pst-str throwable))))
 
 ;;;; Default configuration and appenders
