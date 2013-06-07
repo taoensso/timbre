@@ -13,7 +13,7 @@
   "Like `println` but prints all objects to output stream as a single
   atomic string. This is faster and avoids interleaving race conditions."
   [& xs]
-  (print (str (str/join \space xs) \newline))
+  (print (str/join \space (filter identity xs)) \newline)
   (flush))
 
 (defn color-str [color & xs]
@@ -40,8 +40,8 @@
 
 (defn stacktrace [throwable & [separator]]
   (when throwable
-    (str separator (when-let [d (ex-data throwable)] (str d " "))
-         (stacktrace/pst-str throwable))))
+    (str separator throwable ; (str throwable) incl. ex-data for Clojure 1.4+
+         "\n\n" (stacktrace/pst-str throwable))))
 
 ;;;; Default configuration and appenders
 
@@ -326,14 +326,16 @@
   ([base-appender-args level log-args message-fn]
      `(when-let [juxt-fn# (@appenders-juxt-cache ~level)]
         (let [[x1# & xn# :as xs#] (vector ~@log-args)
-              has-throwable?# (and xn# (instance? Throwable x1#))
+              has-throwable?# (instance? Throwable x1#)
               log-vargs# (vec (if has-throwable?# xn# xs#))]
           (log* ~base-appender-args
                 ~level
                 log-vargs#
                 ~(str *ns*)
                 (when has-throwable?# x1#)
-                (when-let [mf# ~message-fn] (apply mf# log-vargs#))
+                (when-let [mf# ~message-fn]
+                  (when-not (empty? log-vargs#)
+                    (apply mf# log-vargs#)))
                 juxt-fn#)))))
 
 (defmacro log
