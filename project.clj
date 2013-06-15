@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure     "1.4.0"]
-                 [org.clojure/tools.macro "0.1.1"]
+                 [org.clojure/tools.macro "0.1.2"]
                  [clj-stacktrace          "0.2.5"]]
   :profiles {:1.4  {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
