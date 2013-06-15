@@ -154,6 +154,19 @@ Filter logging output by namespaces:
                      :chan "#logs"})
 ```
 
+#### MongoDB ([congomongo](https://github.com/aboekhoff/congomongo)) appender
+
+```clojure
+;; [congomongo "0.4.1"] ; Add to project.clj dependencies
+;; (:require [taoensso.timbre.appenders (mongo :as mongo-appender)]) ; Add to ns
+
+(timbre/set-config! [:appenders :mongo] mongo-appender/mongo-appender)
+(timbre/set-config! [:shared-appender-config :mongo]
+                    {:db          "logs"
+                     :collection  "myapp"
+                     :server      {:host "127.0.0.1" :port 27017}})
+```
+
 ### Custom appenders
 
 Writing a custom appender is dead-easy:
