@@ -154,6 +154,25 @@ Filter logging output by namespaces:
                      :chan "#logs"})
 ```
 
+#### Socket ([server-socket](https://github.com/technomancy/server-socket)) appender
+
+Listens on the specified interface (use :all for all interfaces, defaults to localhost if unspecified) and port. Connect with either of:
+
+```
+telnet localhost 9000
+netcat localhost 9000
+```
+
+```clojure
+;; [server-socket "1.0.0"] ; Add to project.clj dependencies
+;; (:require [taoensso.timbre.appenders (socket :as socket-appender)]) ; Add to ns
+
+(timbre/set-config! [:appenders :socket] socket-appender/socket-appender)
+(timbre/set-config! [:shared-appender-config :socket]
+                    {:listen-addr :all
+                     :port 9000})
+```
+
 ### Custom appenders
 
 Writing a custom appender is dead-easy:
@@ -179,7 +198,7 @@ See the `timbre/config` docstring for more information on appenders.
 
 The usual recommendation for Clojure profiling is: use a good **JVM profiler** like [YourKit](http://www.yourkit.com/), [JProfiler](http://www.ej-technologies.com/products/jprofiler/overview.html), or [VisualVM](http://docs.oracle.com/javase/6/docs/technotes/guides/visualvm/index.html).
 
-And these certainly do the job. But as with many Java tools, they can be a little hairy and often heavy-handed - especially when applied to Clojure. Timbre includes an alternative. 
+And these certainly do the job. But as with many Java tools, they can be a little hairy and often heavy-handed - especially when applied to Clojure. Timbre includes an alternative.
 
 Let's add it to our app's `ns` declaration:
 
