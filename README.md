@@ -1,4 +1,4 @@
-Current [semantic](http://semver.org/) version:
+**[API docs](http://ptaoussanis.github.io/timbre/)** | [contact & contributing](#contact--contributing) | [other Clojure libs](https://www.taoensso.com/clojure-libraries) | [Twitter](https://twitter.com/#!/ptaoussanis) | current [semantic](http://semver.org/) version:
 
 ```clojure
 [com.taoensso/timbre "2.1.2"] ; See commit history for breaking changes since 1.x
@@ -246,16 +246,11 @@ And since `p` and `profile` **always return their body's result** regardless of 
 
 A simple **sampling profiler** is also available: `taoensso.timbre.profiling/sampling-profile`.
 
-## Project links
+## This project supports the CDS and ClojureWerkz goals
 
-  * [API documentation](http://ptaoussanis.github.io/timbre/).
-  * My other [Clojure libraries](https://www.taoensso.com/clojure-libraries) (Redis & DynamoDB clients, logging+profiling, i18n+L10n, serialization, A/B testing).
+  * [CDS](http://clojure-doc.org/), the **Clojure Documentation Site**, is a **contributer-friendly** community project aimed at producing top-notch, **beginner-friendly** Clojure tutorials and documentation. Awesome resource.
 
-##### This project supports the **CDS and ClojureWerkz project goals**:
-
-  * [CDS](http://clojure-doc.org/), the **Clojure Documentation Site**, is a contributer-friendly community project aimed at producing top-notch Clojure tutorials and documentation.
-
-  * [ClojureWerkz](http://clojurewerkz.org/) is a growing collection of open-source, batteries-included **Clojure libraries** that emphasise modern targets, great documentation, and thorough testing.
+  * [ClojureWerkz](http://clojurewerkz.org/) is a growing collection of open-source, **batteries-included Clojure libraries** that emphasise modern targets, great documentation, and thorough testing. They've got a ton of great stuff, check 'em out!
 
 ## Contact & contribution
 

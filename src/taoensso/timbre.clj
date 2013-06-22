@@ -116,6 +116,7 @@
 (defn merge-config! [& maps] (apply swap! config utils/deep-merge maps))
 (defn set-level!    [level]  (set-config! [:current-level] level))
 
+
 ;;;; Define and sort logging levels
 
 (def ^:private ordered-levels [:trace :debug :info :warn :error :fatal :report])
