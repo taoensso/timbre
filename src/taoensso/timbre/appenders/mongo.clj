@@ -5,10 +5,6 @@
 
 (def conn (atom nil))
 
-;; Note: including :throwable will fail with:
-;;   IllegalArgumentException: can't serialize class java.lang.Exception
-(def default-keys [:hostname :ns :level :error? :instant :message :args])
-
 (def default-args {:host "127.0.0.1" :port 27017})
 
 (defn connect [{:keys [db server write-concern]}]
@@ -22,10 +18,15 @@
   (swap! conn #(or % (connect config))))
 
 (defn log-message [params {:keys [collection logged-keys]
-                           :or {logged-keys default-keys}
                            :as config}]
-  (mongo/with-mongo (ensure-conn config)
-    (mongo/insert! collection (select-keys params logged-keys))))
+  (let [selected-params (if logged-keys
+                          (select-keys params logged-keys)
+                          (dissoc params :ap-config))
+        logged-params (if-let [t (:throwable selected-params)]
+                        (assoc selected-params :throwable (str t))
+                        selected-params)]
+    (mongo/with-mongo (ensure-conn config)
+      (mongo/insert! collection logged-params))))
 
 (defn appender-fn [{:keys [ap-config] :as params}]
   (when-let [mongo-config (:mongo ap-config)]
