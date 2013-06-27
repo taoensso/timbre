@@ -171,6 +171,18 @@ netcat localhost 9000
 (timbre/set-config! [:shared-appender-config :socket]
                     {:listen-addr :all
                      :port 9000})
+
+#### MongoDB ([congomongo](https://github.com/aboekhoff/congomongo)) appender
+
+```clojure
+;; [congomongo "0.4.1"] ; Add to project.clj dependencies
+;; (:require [taoensso.timbre.appenders (mongo :as mongo-appender)]) ; Add to ns
+
+(timbre/set-config! [:appenders :mongo] mongo-appender/mongo-appender)
+(timbre/set-config! [:shared-appender-config :mongo]
+                    {:db          "logs"
+                     :collection  "myapp"
+                     :server      {:host "127.0.0.1" :port 27017}})
 ```
 
 ### Custom appenders
