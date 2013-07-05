@@ -113,7 +113,7 @@
                         (catch java.io.IOException _))))}}}))
 
 (defn set-config!   [ks val] (swap! config assoc-in ks val))
-(defn merge-config! [& maps] (apply swap! config utils/deep-merge maps))
+(defn merge-config! [& maps] (apply swap! config utils/merge-deep maps))
 (defn set-level!    [level]  (set-config! [:current-level] level))
 
 
