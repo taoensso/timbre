@@ -1,3 +1,7 @@
+## v2.1.2 → v2.2.0
+  * Add socket, MongoDB appenders (thanks to emlyn).
+
+
 ## v2.0.0 → v2.1.2
   * Added appenders: socket, IRC, MongoDB (CongoMongo). See [README](https://github.com/ptaoussanis/timbre#built-in-appenders) for details.
   * Add `ex-data` output to `stacktrace` fn.

@@ -1,7 +1,7 @@
 **[API docs](http://ptaoussanis.github.io/timbre/)** | **[CHANGELOG](https://github.com/ptaoussanis/timbre/blob/master/CHANGELOG.md)** | [contact & contributing](#contact--contributing) | [other Clojure libs](https://www.taoensso.com/clojure-libraries) | [Twitter](https://twitter.com/#!/ptaoussanis) | current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "2.1.2"] ; See CHANGELOG for breaking changes since 1.x
+[com.taoensso/timbre "2.2.0"] ; See CHANGELOG for breaking changes since 1.x
 ```
 
 # Timbre, a (sane) Clojure logging & profiling library
@@ -26,7 +26,7 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 Add the necessary dependency to your [Leiningen](http://leiningen.org/) `project.clj` and `require` the library in your ns:
 
 ```clojure
-[com.taoensso/timbre "2.1.2"] ; project.clj
+[com.taoensso/timbre "2.2.0"] ; project.clj
 (ns my-app (:require [taoensso.timbre :as timbre
                       :refer (trace debug info warn error fatal spy)])) ; ns
 ```
