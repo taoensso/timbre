@@ -258,7 +258,7 @@ And since `p` and `profile` **always return their body's result** regardless of 
 
 A simple **sampling profiler** is also available: `taoensso.timbre.profiling/sampling-profile`.
 
-## This project supports the CDS and ClojureWerkz goals
+## This project supports the CDS and ![ClojureWerkz](https://raw.github.com/clojurewerkz/clojurewerkz.org/master/assets/images/logos/clojurewerkz_long_h_50.png) goals
 
   * [CDS](http://clojure-doc.org/), the **Clojure Documentation Site**, is a **contributer-friendly** community project aimed at producing top-notch, **beginner-friendly** Clojure tutorials and documentation. Awesome resource.
 
