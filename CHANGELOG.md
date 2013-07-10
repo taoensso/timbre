@@ -1,3 +1,7 @@
+## v2.2.0 → v2.3.0
+  * Added `with-log-level` for thread-local logging levels: `(with-level :trace (trace "This will log!"))`. Esp. useful for developing & unit tests, etc.
+
+
 ## v2.1.2 → v2.2.0
   * Add socket, MongoDB appenders (thanks to emlyn).
 

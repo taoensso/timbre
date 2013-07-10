@@ -45,6 +45,11 @@
 
 ;;;; Default configuration and appenders
 
+(def ^:dynamic *current-level* nil)
+(defmacro with-log-level
+  "Allows thread-local config logging level override. Useful for dev & testing."
+  [level & body] `(binding [*current-level* ~level] ~@body))
+
 (utils/defonce* config
   "This map atom controls everything about the way Timbre operates.
 
@@ -68,7 +73,7 @@
 
   See source code for examples. See `set-config!`, `merge-config!`, `set-level!`
   for convenient config editing."
-  (atom {:current-level :debug
+  (atom {:current-level :debug ; See also `with-log-level`
 
          ;;; Control log filtering by namespace patterns (e.g. ["my-app.*"]).
          ;;; Useful for turning off logging in noisy libraries, etc.
@@ -132,7 +137,7 @@
   (memoize (fn [x y] (- (checked-level-score x) (checked-level-score y)))))
 
 (defn sufficient-level?
-  [level] (>= (compare-levels level (:current-level @config)) 0))
+  [level] (>= (compare-levels level (or *current-level* (:current-level @config))) 0))
 
 ;;;; Appender-fn decoration
 
@@ -434,6 +439,9 @@
   (spy :debug :factorial6 (* 6 5 4 3 2 1))
   (info (Exception. "noes!") "bar")
   (spy (/ 4 0))
+
+  (with-log-level :trace (trace "foo"))
+  (with-log-level :debug (trace "foo"))
 
   ;; Middleware
   (info {:name "Robert Paulson" :password "Super secret"})
