@@ -52,11 +52,12 @@
     `(if-not *pdata*
        (do ~@body)
        (let [name#       ~name
-             start-time# (System/nanoTime)
-             result#     (do ~@body)
-             elapsed#    (- (System/nanoTime) start-time#)]
-         (swap! *pdata* #(assoc % name# (conj (% name# []) elapsed#)))
-         result#))))
+             start-time# (System/nanoTime)]
+         (try
+           ~@body
+           (finally
+            (let [elapsed# (- (System/nanoTime) start-time#)]
+              (swap! *pdata* #(assoc % name# (conj (% name# []) elapsed#))))))))))
 
 (defmacro p [name & body] `(pspy ~name ~@body)) ; Alias
 
