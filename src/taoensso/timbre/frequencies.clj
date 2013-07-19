@@ -69,9 +69,8 @@
              sorted-fvs (sorted-fvals form-stats)]
          (str fname " "
               (str/join " "
-                ;;  TODO mapv Clojure 1.4+
-                (vec (map (fn [v] (vector v (get form-stats v 0)))
-                          sorted-fvs)))))))))
+                (mapv (fn [v] (vector v (get form-stats v 0)))
+                      sorted-fvs))))))))
 
 (comment (format-fdata {:name1 {:a 10 :b 4 :c 20}
                         :name2 {33 8 12 2 false 6}}))

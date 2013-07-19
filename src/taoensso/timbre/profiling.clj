@@ -66,20 +66,21 @@
   For performance, stats are calculated once only after all data have been
   collected."
   [pdata]
-  (reduce (fn [m [pname times]] ; TODO reduce-kv for Clojure 1.4+
-            (let [count (count times)
-                  time  (reduce + times)
-                  mean  (long (/ time count))
-                  mad   (long (/ (reduce + (map #(Math/abs (long (- % mean)))
-                                                times)) ; Mean absolute deviation
-                                 count))]
-              (assoc m pname {:count count
-                              :min   (apply min times)
-                              :max   (apply max times)
-                              :mean  mean
-                              :mad   mad
-                              :time  time})))
-          {} pdata))
+  (reduce-kv
+   (fn [m pname times]
+     (let [count (max 1 (count times))
+           time  (reduce + times)
+           mean  (long (/ time count))
+           mad   (long (/ (reduce + (map #(Math/abs (long (- % mean)))
+                                         times)) ; Mean absolute deviation
+                          count))]
+       (assoc m pname {:count count
+                       :min   (apply min times)
+                       :max   (apply max times)
+                       :mean  mean
+                       :mad   mad
+                       :time  time})))
+   {} (or pdata {})))
 
 (defn format-pdata
   [stats & [sort-field]]
