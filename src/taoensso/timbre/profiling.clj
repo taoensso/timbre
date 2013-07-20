@@ -54,7 +54,7 @@
        (let [name#       ~name
              start-time# (System/nanoTime)]
          (try
-           ~@body
+           (do ~@body)
            (finally
             (let [elapsed# (- (System/nanoTime) start-time#)]
               (swap! *pdata* #(assoc % name# (conj (% name# []) elapsed#))))))))))
