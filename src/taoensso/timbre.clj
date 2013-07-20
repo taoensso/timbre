@@ -346,19 +346,14 @@
 
 (defmacro log
   "When logging is enabled, actually logs given arguments with level-relevant
-  appender-fns."
+  appender-fns using print-style :message."
   {:arglists '([level & args] [level throwable & args])}
   [level & sigs]
   `(when (logging-enabled? ~level)
      (log* {} ~level ~sigs nil)))
 
-(defmacro logp
-  "When logging is enabled, actually logs given arguments with level-relevant
-  appender-fns using print-style :message."
-  {:arglists '([level & message] [level throwable & message])}
-  [level & sigs]
-  `(when (logging-enabled? ~level)
-     (log* {} ~level ~sigs print-str)))
+(defmacro logp {:arglists '([level & message] [level throwable & message])}
+  [& sigs] `(log ~@sigs)) ; Alias
 
 (defmacro logf
   "When logging is enabled, actually logs given arguments with level-relevant
