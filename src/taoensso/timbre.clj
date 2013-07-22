@@ -389,14 +389,11 @@
 
 (def-loggers) ; Actually define a logger for each logging level
 
-(defmacro log-errors [& body]
-  `(try ~@body (catch Exception e# (error e#))))
-
+(defmacro log-errors [& body] `(try ~@body (catch Exception e# (error e#))))
 (defmacro log-and-rethrow-errors [& body]
   `(try ~@body (catch Exception e# (error e#) (throw e#))))
 
-(defmacro logged-future [& body]
-  `(future (log-errors ~@body)))
+(defmacro logged-future [& body] `(future (log-errors ~@body)))
 
 (comment (log-errors (/ 0))
          (log-and-rethrow-errors (/ 0))
