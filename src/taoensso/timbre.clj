@@ -10,10 +10,11 @@
 ;;;; Public utils
 
 (defn str-println
-  "Like `println` but prints all objects to output stream as a single
-  atomic string. This is faster and avoids interleaving race conditions."
+  "Like `prn` but prints all objects to output stream as a single atomic
+  string. Strings are printed with print, other objects are printed with
+  pr. This is faster and avoids interleaving race conditions. "
   [& xs]
-  (print (str/join \space (filter identity xs)) \newline)
+  (print (str/join \space (map #(if (string? %) % (with-out-str pr %)) xs)) \newline)
   (flush))
 
 (defn color-str [color & xs]
