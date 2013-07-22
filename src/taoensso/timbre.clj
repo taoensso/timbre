@@ -121,7 +121,6 @@
 (defn merge-config! [& maps] (apply swap! config utils/merge-deep maps))
 (defn set-level!    [level]  (set-config! [:current-level] level))
 
-
 ;;;; Define and sort logging levels
 
 (def ^:private ordered-levels [:trace :debug :info :warn :error :fatal :report])
@@ -352,9 +351,6 @@
   `(when (logging-enabled? ~level)
      (log* {} ~level ~sigs print-str)))
 
-(defmacro logp {:arglists '([level & message] [level throwable & message])}
-  [& sigs] `(log ~@sigs)) ; Alias
-
 (defmacro logf
   "When logging is enabled, actually logs given arguments with level-relevant
   appender-fns using format-style :message."
@@ -370,14 +366,10 @@
   ([level expr] `(spy ~level '~expr ~expr))
   ([level name expr]
      `(try
-        (let [result# ~expr] (logp ~level ~name result#) result#)
+        (let [result# ~expr] (log ~level ~name result#) result#)
         (catch Exception e#
-          (logp ~level '~expr (str "\n" (stacktrace/pst-str e#)))
+          (log ~level '~expr (str "\n" (stacktrace/pst-str e#)))
           (throw e#)))))
-
-(defmacro s ; Alias
-  {:arglists '([expr] [level expr] [level name expr])}
-  [& args] `(spy ~@args))
 
 (defmacro ^:private def-logger [level]
   (let [level-name (name level)]
@@ -385,7 +377,7 @@
        (defmacro ~(symbol level-name)
          ~(str "Log given arguments at " level " level using print-style args.")
          ~'{:arglists '([& message] [throwable & message])}
-         [& sigs#] `(logp ~~level ~@sigs#))
+         [& sigs#] `(log ~~level ~@sigs#))
 
        (defmacro ~(symbol (str level-name "f"))
          ~(str "Log given arguments at " level " level using format-style args.")
@@ -418,6 +410,16 @@
   (require '[taoensso.timbre :as timbre
              :refer (trace debug info warn error fatal report spy with-log-level)]))
 
+;;;; Deprecated
+
+(defmacro logp "DEPRECATED: Use `log` instead."
+  {:arglists '([level & message] [level throwable & message])}
+  [& sigs] `(log ~@sigs)) ; Alias
+
+(defmacro s "DEPRECATED: Use `spy` instead."
+  {:arglists '([expr] [level expr] [level name expr])}
+  [& args] `(spy ~@args))
+
 ;;;; Dev/tests
 
 (comment
@@ -426,7 +428,7 @@
   (info "a" "b" "c")
   (info "a" (Exception. "b") "c")
   (info (Exception. "a") "b" "c")
-  (logp (or nil :info) "Booya")
+  (log (or nil :info) "Booya")
 
   (info  "a%s" "b")
   (infof "a%s" "b")
