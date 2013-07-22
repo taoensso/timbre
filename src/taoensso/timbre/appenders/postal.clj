@@ -17,6 +17,6 @@
            (let [[subject & body] args]
              (postal/send-message
               (assoc postal-config
-                :subject (str prefix " - " subject)
+                :subject (str prefix " - " (or subject throwable))
                 :body    (str (str/join \space body)
                               (timbre/stacktrace throwable "\n")))))))})
