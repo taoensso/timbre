@@ -359,17 +359,24 @@
   `(when (logging-enabled? ~level)
      (log* {} ~level ~sigs format)))
 
+(defmacro log-errors [& body] `(try ~@body (catch Throwable t# (error t#))))
+(defmacro log-and-rethrow-errors [& body]
+  `(try ~@body (catch Throwable t# (error t#) (throw t#))))
+
+(defmacro logged-future [& body] `(future (log-errors ~@body)))
+
+(comment (log-errors (/ 0))
+         (log-and-rethrow-errors (/ 0))
+         (logged-future (/ 0)))
+
 (defmacro spy
   "Evaluates named expression and logs its result. Always returns the result.
   Defaults to :debug logging level and unevaluated expression as name."
   ([expr] `(spy :debug ~expr))
   ([level expr] `(spy ~level '~expr ~expr))
   ([level name expr]
-     `(try
-        (let [result# ~expr] (log ~level ~name result#) result#)
-        (catch Exception e#
-          (log ~level '~expr (str "\n" (stacktrace/pst-str e#)))
-          (throw e#)))))
+     `(log-and-rethrow-errors
+       (let [result# ~expr] (log ~level ~name result#) result#))))
 
 (defmacro ^:private def-logger [level]
   (let [level-name (name level)]
@@ -388,16 +395,6 @@
   `(do ~@(map (fn [level] `(def-logger ~level)) ordered-levels)))
 
 (def-loggers) ; Actually define a logger for each logging level
-
-(defmacro log-errors [& body] `(try ~@body (catch Exception e# (error e#))))
-(defmacro log-and-rethrow-errors [& body]
-  `(try ~@body (catch Exception e# (error e#) (throw e#))))
-
-(defmacro logged-future [& body] `(future (log-errors ~@body)))
-
-(comment (log-errors (/ 0))
-         (log-and-rethrow-errors (/ 0))
-         (logged-future (/ 0)))
 
 (defn refer-timbre
   "Shorthand for:
