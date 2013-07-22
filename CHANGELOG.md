@@ -1,4 +1,8 @@
-## v2.2.0 → v2.3.0
+## v2.3.4 → v2.4.0
+  * Added `refer-timbre` for conveniently `require`ing standard timbre vars.
+
+
+## v2.2.0 → v2.3.4
   * Added `with-log-level` for thread-local logging levels: `(with-level :trace (trace "This will log!"))`. Esp. useful for developing & unit tests, etc.
 
 

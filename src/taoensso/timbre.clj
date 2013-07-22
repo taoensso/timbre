@@ -410,6 +410,14 @@
          (log-and-rethrow-errors (/ 0))
          (logged-future (/ 0)))
 
+(defn refer-timbre
+  "Shorthand for:
+  (require '[taoensso.timbre :as timbre
+             :refer (trace debug info warn error fatal report spy with-log-level)])"
+  []
+  (require '[taoensso.timbre :as timbre
+             :refer (trace debug info warn error fatal report spy with-log-level)]))
+
 ;;;; Dev/tests
 
 (comment
