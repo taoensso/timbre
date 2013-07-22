@@ -1,5 +1,7 @@
-## v2.3.4 → v2.4.0
+## v2.3.4 → v2.4.1
   * Added `refer-timbre` for conveniently `require`ing standard timbre vars.
+  * Postal appender now uses throwable as subject when no other args given.
+  * `log-errors`, `log-and-rethrow-errors` now catch Throwable instead of Exception.
 
 
 ## v2.2.0 → v2.3.4
