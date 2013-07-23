@@ -88,7 +88,7 @@
          :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
          :timestamp-locale  nil ; A Locale object, or nil
 
-         ;; Control :prefix format
+         ;; Control :prefix format ; TODO Generalize to output pattern
          :prefix-fn
          (fn [{:keys [level timestamp hostname ns]}]
            (str timestamp " " hostname " " (-> level name str/upper-case)
