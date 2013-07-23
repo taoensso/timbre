@@ -50,11 +50,12 @@
   (let [name (utils/fq-keyword name)]
     `(if-not *fdata*
        (do ~@body)
-       (let [name#   ~name
-             result# (do ~@body)]
-         (swap! *fdata* #(assoc-in % [name# result#]
-                                   (inc (get-in % [name# result#] 0))))
-         result#))))
+       (let [name#      ~name
+             result#    (try (do ~@body) (catch Throwable t# {::throwable t#}))
+             throwable# (and (map? result#) (::throwable result#))]
+         (swap! *fdata* #(assoc-in % [name# (or throwable# result#)]
+           (inc (get-in % [name# (or throwable# result#)] 0))))
+         (if throwable# (throw throwable#) result#)))))
 
 (defmacro f [name & body] `(fspy name ~@body)) ; Alias
 
