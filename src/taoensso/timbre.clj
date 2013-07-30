@@ -402,7 +402,8 @@
              :refer (trace debug info warn error fatal report spy with-log-level)])"
   []
   (require '[taoensso.timbre :as timbre
-             :refer (trace debug info warn error fatal report spy with-log-level)]))
+             :refer (log trace debug info warn error fatal report spy with-log-level
+                     logf tracef debugf infof warnf errorf fatalf reportf)]))
 
 ;;;; Deprecated
 
