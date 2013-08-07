@@ -1,3 +1,8 @@
+## v2.4.1 → v2.5.0
+  * Added `:file` and `:line` appender args.
+  * Fixed `make-timestamp-fn` thread safety.
+
+
 ## v2.3.4 → v2.4.1
   * Added `refer-timbre` for conveniently `require`ing standard timbre vars.
   * Postal appender now uses throwable as subject when no other args given.
