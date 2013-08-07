@@ -190,11 +190,14 @@
 (defn- make-timestamp-fn
   "Returns a unary fn that formats instants using given pattern string and an
   optional Locale."
+  ;; Thread safe SimpleDateTime soln. from instant.clj, Ref. http://goo.gl/CEBJnQ
   [^String pattern ^Locale locale]
-  (let [format (if locale
-                 (SimpleDateFormat. pattern locale)
-                 (SimpleDateFormat. pattern))]
-    (fn [^Date instant] (.format ^SimpleDateFormat format instant))))
+  (let [format (proxy [ThreadLocal] [] ; For thread safety
+                   (initialValue []
+                     (if locale
+                       (SimpleDateFormat. pattern locale)
+                       (SimpleDateFormat. pattern))))]
+    (fn [^Date instant] (.format ^SimpleDateFormat (.get format) instant))))
 
 (comment ((make-timestamp-fn "yyyy-MMM-dd" nil) (Date.)))
 
