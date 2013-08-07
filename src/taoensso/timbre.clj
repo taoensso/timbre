@@ -310,7 +310,7 @@
   [level] (and (sufficient-level? level) (@ns-filter-cache *ns*)))
 
 (defmacro log*
-  "Implementation detail - subject to change..
+  "Implementation detail - subject to change.
   Prepares given arguments for, and then dispatches to all level-relevant
   appender-fns. "
 
@@ -321,6 +321,8 @@
          (conj (or ~base-appender-args {})
            {:instant   (Date.)
             :ns        ~ns
+            :file      ~*file*
+            :line      ~(:line (meta &form))
             :level     ~level
             :error?    (error-level? ~level)
             :args      ~log-vargs ; No native tools.logging support
