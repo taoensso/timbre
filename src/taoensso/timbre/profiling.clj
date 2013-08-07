@@ -29,11 +29,9 @@
   (let [name (utils/fq-keyword name)]
     `(let [{result# :result stats# :stats} (with-pdata ~level ~@body)]
        (when stats#
-         (timbre/log* {:profile-stats stats#}
-                      ~level
-                      [(str "Profiling " ~name)
-                       (str "\n" (format-pdata stats#))]
-                      print-str))
+         (timbre/log* print-str ~level {:profile-stats stats#}
+                      (str "Profiling " ~name)
+                      (str "\n" (format-pdata stats#))))
        result#)))
 
 (defmacro sampling-profile

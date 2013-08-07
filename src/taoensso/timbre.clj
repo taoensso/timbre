@@ -307,62 +307,55 @@
 
 ;;;; Define logging macros
 
+(defn send-to-appenders! "Implementation detail - subject to change."
+  [level base-appender-args log-vargs ns throwable message & [juxt-fn file line]]
+  (when-let [juxt-fn (or juxt-fn (@appenders-juxt-cache level))]
+    (juxt-fn
+     (conj (or base-appender-args {})
+       {:instant   (Date.)
+        :ns        ns
+        :file      file ; No tools.logging support
+        :line      line ; No tools.logging support
+        :level     level
+        :error?    (error-level? level)
+        :args      log-vargs ; No tools.logging support
+        :throwable throwable
+        :message   message}))
+    nil))
+
 (defn logging-enabled?
-  "Returns true when current logging level is sufficient and current namespace
-  is unfiltered."
+  "Returns true iff current logging level is sufficient and current namespace
+  unfiltered."
   [level] (and (sufficient-level? level) (@ns-filter-cache *ns*)))
 
-(defmacro log*
-  "Implementation detail - subject to change.
-  Prepares given arguments for, and then dispatches to all level-relevant
-  appender-fns. "
+(defmacro log* "Implementation detail - subject to change."
+  [message-fn level base-appender-args & log-args]
+  `(when (logging-enabled? ~level)
+     (when-let [juxt-fn# (@appenders-juxt-cache ~level)]
+       (let [[x1# & xn# :as xs#] (vector ~@log-args)
+             has-throwable?# (instance? Throwable x1#)
+             log-vargs# (vec (if has-throwable?# xn# xs#))]
+         (send-to-appenders!
+          ~level
+          ~base-appender-args
+          log-vargs#
+          ~(str *ns*)
+          (when has-throwable?# x1#)
+          (when-let [mf# ~message-fn]
+            (when-not (empty? log-vargs#)
+              (apply mf# log-vargs#)))
+          juxt-fn#
+          (let [file# ~*file*] (when (not= file# "NO_SOURCE_PATH") file#))
+          ;; TODO Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
+          ~(:line (meta &form)))))))
 
-  ;; For tools.logging.impl/Logger support
-  ([base-appender-args level log-vargs ns throwable message juxt-fn]
-     `(when-let [juxt-fn# (or ~juxt-fn (@appenders-juxt-cache ~level))]
-        (juxt-fn#
-         (conj (or ~base-appender-args {})
-           {:instant   (Date.)
-            :ns        ~ns
-            :file      ~*file*
-            ;; :line   ~(:line (meta &form))
-            :level     ~level
-            :error?    (error-level? ~level)
-            :args      ~log-vargs ; No native tools.logging support
-            :throwable ~throwable
-            :message   ~message}))
-        nil))
-
-  ([base-appender-args level log-args message-fn]
-     `(when-let [juxt-fn# (@appenders-juxt-cache ~level)]
-        (let [[x1# & xn# :as xs#] (vector ~@log-args)
-              has-throwable?# (instance? Throwable x1#)
-              log-vargs# (vec (if has-throwable?# xn# xs#))]
-          (log* ~base-appender-args
-                ~level
-                log-vargs#
-                ~(str *ns*)
-                (when has-throwable?# x1#)
-                (when-let [mf# ~message-fn]
-                  (when-not (empty? log-vargs#)
-                    (apply mf# log-vargs#)))
-                juxt-fn#)))))
-
-(defmacro log
-  "When logging is enabled, actually logs given arguments with level-relevant
-  appender-fns using print-style :message."
+(defmacro log "Logs using print-style args."
   {:arglists '([level & message] [level throwable & message])}
-  [level & sigs]
-  `(when (logging-enabled? ~level)
-     (log* {} ~level ~sigs print-str)))
+  [level & sigs] `(log* print-str ~level {} ~@sigs))
 
-(defmacro logf
-  "When logging is enabled, actually logs given arguments with level-relevant
-  appender-fns using format-style :message."
+(defmacro logf "Logs using format-style args."
   {:arglists '([level fmt & fmt-args] [level throwable fmt & fmt-args])}
-  [level & sigs]
-  `(when (logging-enabled? ~level)
-     (log* {} ~level ~sigs format)))
+  [level & sigs] `(log* format ~level {} ~@sigs))
 
 (defmacro log-errors [& body] `(try ~@body (catch Throwable t# (error t#))))
 (defmacro log-and-rethrow-errors [& body]
@@ -387,12 +380,12 @@
   (let [level-name (name level)]
     `(do
        (defmacro ~(symbol level-name)
-         ~(str "Log given arguments at " level " level using print-style args.")
+         ~(str "Logs at " level " level using print-style args.")
          ~'{:arglists '([& message] [throwable & message])}
          [& sigs#] `(log ~~level ~@sigs#))
 
        (defmacro ~(symbol (str level-name "f"))
-         ~(str "Log given arguments at " level " level using format-style args.")
+         ~(str "Logs at " level " level using format-style args.")
          ~'{:arglists '([fmt & fmt-args] [throwable fmt & fmt-args])}
          [& sigs#] `(logf ~~level ~@sigs#)))))
 

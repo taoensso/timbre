@@ -11,8 +11,8 @@
     ;; `write!`, the best we can do is `[message]`. This inconsistency means
     ;; that :args consumers (like the rate limiter and Postal appender) will
     ;; necessarily behave differently under tools.logging.
-    (timbre/log* {} level [message] logger-ns throwable
-      (when (string? message) message) nil)))
+    (timbre/send-to-appenders! level {} [message] logger-ns throwable
+      (when (string? message) message))))
 
 (deftype LoggerFactory []
   clojure.tools.logging.impl/LoggerFactory
