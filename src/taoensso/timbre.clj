@@ -325,7 +325,7 @@
            {:instant   (Date.)
             :ns        ~ns
             :file      ~*file*
-            :line      ~(:line (meta &form))
+            ;; :line   ~(:line (meta &form))
             :level     ~level
             :error?    (error-level? ~level)
             :args      ~log-vargs ; No native tools.logging support
