@@ -11,7 +11,8 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 ## What's in the box™?
  * Small, uncomplicated **all-Clojure** library.
  * **Super-simple map-based config**: no arcane XML or properties files!
- * **Decent performance** (low overhead).
+ * **Low overhead** with dynamic logging level.
+ * **No overhead** with compile-time logging level. (v2.6+)
  * Flexible **fn-centric appender model** with **middleware**.
  * Sensible built-in appenders including simple **email appender**.
  * Tunable **rate limit** and **asynchronous** logging support.
@@ -56,6 +57,16 @@ There's little overhead for checking logging levels:
 
 (time (when false))
 %> "Elapsed time: 0.051 msecs"
+```
+
+And _no_ overhead when using a compile-time logging level (set `TIMBRE_LOG_LEVEL` environment variable):
+
+```clojure
+(time (dotimes [_ 1000000000] (trace (Thread/sleep 5000))))
+%> "Elapsed time: 387.159 msecs"
+
+(time (dotimes [_ 1000000000] nil))
+%> "Elapsed time: 389.231 msecs"
 ```
 
 First-argument exceptions generate a stack trace:

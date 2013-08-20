@@ -1,3 +1,8 @@
+## v2.5.0 → v2.6.0
+  * Perf: make ns filtering a compile-time check.
+  * Perf: add support for a compile-time logging level environment variable (`TIMBRE_LOG_LEVEL`). See `timbre/compile-time-level` docstring for details.
+
+
 ## v2.4.1 → v2.5.0
   * Added `:file` and `:line` appender args.
   * Fixed `make-timestamp-fn` thread safety.
