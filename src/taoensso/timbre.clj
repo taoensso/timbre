@@ -45,6 +45,13 @@
 
 ;;;; Default configuration and appenders
 
+(def compile-time-level
+  "Constant, compile-time logging level determined by the `TIMBRE_LOG_LEVEL`
+  environment variable. When set, overrules dynamically-configurable logging
+  level as a performance optimization (e.g. for use in performance sensitive
+  production environments)."
+  (keyword (System/getenv "TIMBRE_LOG_LEVEL")))
+
 (def ^:dynamic *current-level* nil)
 (defmacro with-log-level
   "Allows thread-local config logging level override. Useful for dev & testing."
@@ -136,7 +143,9 @@
   (memoize (fn [x y] (- (checked-level-score x) (checked-level-score y)))))
 
 (defn sufficient-level?
-  [level] (>= (compare-levels level (or *current-level* (:current-level @config))) 0))
+  [level] (>= (compare-levels level (or compile-time-level
+                                        *current-level*
+                                        (:current-level @config))) 0))
 
 ;;;; Appender-fn decoration
 
@@ -305,7 +314,7 @@
      (cache-appenders-juxt!)
      (cache-ns-filter!))))
 
-;;;; Define logging macros
+;;;; Logging macros
 
 (defn send-to-appenders! "Implementation detail - subject to change."
   [level base-appender-args log-vargs ns throwable message & [juxt-fn file line]]
@@ -323,10 +332,20 @@
         :message   message}))
     nil))
 
-(defn logging-enabled?
+(defmacro logging-enabled?
   "Returns true iff current logging level is sufficient and current namespace
-  unfiltered."
-  [level] (and (sufficient-level? level) (@ns-filter-cache *ns*)))
+  unfiltered. The namespace test is compile-time, the logging-level test
+  compile-time iff a compile-time logging level was specified."
+  [level & body]
+  (when (@ns-filter-cache *ns*)
+    (if compile-time-level
+      (sufficient-level? level)
+      `(sufficient-level? ~level))))
+
+(comment
+  (def compile-time-level :info)
+  (def compile-time-level nil)
+  (macroexpand-1 '(logging-enabled? :debug)))
 
 (defmacro log* "Implementation detail - subject to change."
   [message-fn level base-appender-args & log-args]
