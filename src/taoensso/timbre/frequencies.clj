@@ -1,5 +1,6 @@
 (ns taoensso.timbre.frequencies
-  "Frequency logger for Timbre. ALPHA quality."
+  "DEPRECATED.
+  Frequency logger for Timbre. ALPHA quality."
   {:author "Peter Taoussanis"}
   (:require [clojure.string        :as str]
             [taoensso.timbre       :as timbre]
