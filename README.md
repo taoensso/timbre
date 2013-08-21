@@ -1,7 +1,7 @@
 **[API docs](http://ptaoussanis.github.io/timbre/)** | **[CHANGELOG](https://github.com/ptaoussanis/timbre/blob/master/CHANGELOG.md)** | [contact & contributing](#contact--contributing) | [other Clojure libs](https://www.taoensso.com/clojure-libraries) | [Twitter](https://twitter.com/#!/ptaoussanis) | current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "2.5.0"] ; See CHANGELOG for breaking changes since 1.x
+[com.taoensso/timbre "2.6.0"] ; See CHANGELOG for breaking changes since 1.x
 ```
 
 # Timbre, a (sane) Clojure logging & profiling library
@@ -11,7 +11,8 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 ## What's in the box™?
  * Small, uncomplicated **all-Clojure** library.
  * **Super-simple map-based config**: no arcane XML or properties files!
- * **Decent performance** (low overhead).
+ * **Low overhead** with dynamic logging level.
+ * **No overhead** with compile-time logging level. (v2.6+)
  * Flexible **fn-centric appender model** with **middleware**.
  * Sensible built-in appenders including simple **email appender**.
  * Tunable **rate limit** and **asynchronous** logging support.
@@ -26,7 +27,7 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 Add the necessary dependency to your [Leiningen](http://leiningen.org/) `project.clj` and `require` the library in your ns:
 
 ```clojure
-[com.taoensso/timbre "2.5.0"] ; project.clj
+[com.taoensso/timbre "2.6.0"] ; project.clj
 (ns my-app (:require [taoensso.timbre :as timbre
                       :refer (trace debug info warn error fatal spy with-log-level)])) ; ns
 ```
@@ -56,6 +57,16 @@ There's little overhead for checking logging levels:
 
 (time (when false))
 %> "Elapsed time: 0.051 msecs"
+```
+
+And _no_ overhead when using a compile-time logging level (set `TIMBRE_LOG_LEVEL` environment variable):
+
+```clojure
+(time (dotimes [_ 1000000000] (trace (Thread/sleep 5000))))
+%> "Elapsed time: 387.159 msecs"
+
+(time (dotimes [_ 1000000000] nil))
+%> "Elapsed time: 389.231 msecs"
 ```
 
 First-argument exceptions generate a stack trace:
