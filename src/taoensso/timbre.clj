@@ -334,13 +334,13 @@
 
 (defmacro logging-enabled?
   "Returns true iff current logging level is sufficient and current namespace
-  unfiltered. The namespace test is compile-time, the logging-level test
-  compile-time iff a compile-time logging level was specified."
-  [level & body]
-  (when (@ns-filter-cache *ns*)
-    (if compile-time-level
-      (sufficient-level? level)
-      `(sufficient-level? ~level))))
+  unfiltered. The namespace test is runtime, the logging-level test compile-time
+  iff a compile-time logging level was specified."
+  [level]
+  (if compile-time-level
+    (when (sufficient-level? level)
+      `(@ns-filter-cache *ns*))
+    `(and (sufficient-level? ~level) (@ns-filter-cache *ns*))))
 
 (comment
   (def compile-time-level :info)

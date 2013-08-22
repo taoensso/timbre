@@ -1,5 +1,4 @@
-## v2.5.0 → v2.6.0
-  * Perf: make ns filtering a compile-time check.
+## v2.5.0 → v2.6.1
   * Perf: add support for a compile-time logging level environment variable (`TIMBRE_LOG_LEVEL`). See `timbre/compile-time-level` docstring for details.
 
 
