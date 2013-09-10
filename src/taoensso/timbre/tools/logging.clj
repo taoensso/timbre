@@ -20,5 +20,5 @@
   (get-logger [_ logger-ns] (->Logger logger-ns)))
 
 (defn use-timbre []
-  (alter-var-root clojure.tools.logging/*logger-factory*
+  (alter-var-root (var clojure.tools.logging/*logger-factory*)
                   (constantly (->LoggerFactory))))
