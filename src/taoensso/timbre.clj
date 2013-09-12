@@ -13,7 +13,7 @@
   "Like `println` but prints all objects to output stream as a single
   atomic string. This is faster and avoids interleaving race conditions."
   [& xs]
-  (print (str/join \space (filter identity xs)) \newline)
+  (print (str (str/join \space (filter identity xs)) \newline))
   (flush))
 
 (defn color-str [color & xs]
