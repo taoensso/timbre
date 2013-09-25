@@ -4,9 +4,9 @@
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure     "1.4.0"]
-                 [org.clojure/tools.macro "0.1.2"]
+                 [org.clojure/tools.macro "0.1.5"]
                  [clj-stacktrace          "0.2.6"]
-                 [expectations            "1.4.49"]]
+                 [expectations            "1.4.55"]]
   :profiles {:1.4  {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
              :1.6  {:dependencies [[org.clojure/clojure "1.6.0-master-SNAPSHOT"]]}
@@ -17,9 +17,9 @@
             "start-dev" ["with-profile" "dev,test,bench" "repl" ":headless"]
             "codox"     ["with-profile" "test" "doc"]}
   :plugins [[lein-expectations "0.0.8"]
-            [lein-autoexpect   "0.2.5"]
-            [lein-ancient      "0.4.2"]
-            [codox             "0.6.4"]]
+            [lein-autoexpect   "1.0"]
+            [lein-ancient      "0.4.4"]
+            [codox             "0.6.6"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
   :repositories
