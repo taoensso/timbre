@@ -1,5 +1,6 @@
-## v2.5.0 → v2.6.1
+## v2.5.0 → v2.6.2
   * Perf: add support for a compile-time logging level environment variable (`TIMBRE_LOG_LEVEL`). See `timbre/compile-time-level` docstring for details.
+  * Fix: `use-timbre`, `str-println` bugs.
 
 
 ## v2.4.1 → v2.5.0
