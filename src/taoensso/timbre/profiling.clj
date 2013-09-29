@@ -59,10 +59,15 @@
 
 (defmacro p [name & body] `(pspy ~name ~@body)) ; Alias
 
-(defmacro defnp [name args & body]
-  "Create a regular defn but with a profiling wrapper."
-  (let [profkey (keyword (format "%s/%s" (str *ns*) name))]
-    `(defn ~name ~args (p ~profkey ~@body))))
+(defmacro defnp [name & decls]
+  "Create a regular defn but with a profiling wrapper. Only supports these formats:
+   (defnp foo [a b] (+ a b))
+   (defnp \"my foo\" foo [a b] (+ a b))"
+  (let [profkey (keyword (format "%s/%s" (str *ns*) name))
+        comment (if (string? (first decls)) (first decls) "")
+        args (if (vector? (first decls)) (first decls) (second decls))
+        body (if (string? (first decls)) (drop 2 decls) (rest decls))]
+    `(defn ~name ~comment ~args (p ~profkey ~@body))))
 
 (defn pdata-stats
   "{::pname [time1 time2 ...] ...} => {::pname {:min <min-time> ...} ...}
