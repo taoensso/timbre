@@ -11,10 +11,10 @@
              :1.6  {:dependencies [[org.clojure/clojure "1.6.0-master-SNAPSHOT"]]}
              :dev  {:dependencies []}
              :test {:dependencies [[expectations "1.4.56"]]}}
-  :aliases {"test-all"  ["with-profile" "test,1.4:test,1.5:test,1.6" "expectations"]
-            "test-auto" ["with-profile" "test" "autoexpect"]
-            "start-dev" ["with-profile" "dev,test,bench" "repl" ":headless"]
-            "codox"     ["with-profile" "test" "doc"]}
+  :aliases {"test-all"  ["with-profile" "+test,+1.4:+test,+1.5:+test,+1.6" "expectations"]
+            "test-auto" ["with-profile" "+test" "autoexpect"]
+            "start-dev" ["with-profile" "+dev,+test,+bench" "repl" ":headless"]
+            "codox"     ["with-profile" "+test" "doc"]}
   :plugins [[lein-expectations "0.0.8"]
             [lein-autoexpect   "1.0"]
             [lein-ancient      "0.4.4"]
