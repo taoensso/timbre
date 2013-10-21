@@ -26,13 +26,12 @@
   the raw profiling stats under a special :profiling-stats key (useful for
   queryable db logging)."
   [level name & body]
-  (let [name (utils/fq-keyword name)]
-    `(let [{result# :result stats# :stats} (with-pdata ~level ~@body)]
-       (when stats#
-         (timbre/log* print-str ~level {:profile-stats stats#}
-                      (str "Profiling " ~name)
-                      (str "\n" (format-pdata stats#))))
-       result#)))
+  `(let [{result# :result stats# :stats} (with-pdata ~level ~@body)]
+     (when stats#
+       (timbre/log* print-str ~level {:profile-stats stats#}
+                    (str "Profiling " (utils/fq-keyword ~name))
+                    (str "\n" (format-pdata stats#))))
+     result#))
 
 (defmacro sampling-profile
   "Like `profile`, but only enables profiling every 1/`proportion` calls.
@@ -46,16 +45,15 @@
   "Profile spy. When in the context of a *pdata* binding, records execution time
   of named body. Always returns the body's result."
   [name & body]
-  (let [name (utils/fq-keyword name)]
-    `(if-not *pdata*
-       (do ~@body)
-       (let [name#       ~name
-             start-time# (System/nanoTime)]
-         (try
-           (do ~@body)
-           (finally
-            (let [elapsed# (- (System/nanoTime) start-time#)]
-              (swap! *pdata* #(assoc % name# (conj (% name# []) elapsed#))))))))))
+  `(if-not *pdata*
+     (do ~@body)
+     (let [name#       (utils/fq-keyword ~name)
+           start-time# (System/nanoTime)]
+       (try
+         (do ~@body)
+         (finally
+           (let [elapsed# (- (System/nanoTime) start-time#)]
+             (swap! *pdata* #(assoc % name# (conj (% name# []) elapsed#)))))))))
 
 (defmacro p [name & body] `(pspy ~name ~@body)) ; Alias
 
