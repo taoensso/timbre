@@ -13,13 +13,13 @@
 (defn memoize-ttl
   "Like `memoize` but invalidates the cache for a set of arguments after TTL
   msecs has elapsed."
-  [ttl f]
+  [ttl-ms f]
   (let [cache (atom {})]
     (fn [& args]
       (let [{:keys [time-cached d-result]} (@cache args)
             now (System/currentTimeMillis)]
 
-        (if (and time-cached (< (- now time-cached) ttl))
+        (if (and time-cached (< (- now time-cached) ttl-ms))
           @d-result
           (let [d-result (delay (apply f args))]
             (swap! cache assoc args {:time-cached now :d-result d-result})

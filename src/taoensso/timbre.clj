@@ -174,7 +174,7 @@
           (let [timers (atom {})] ; {:hash last-appended-time-msecs ...}
             (fn [{ns :ns [x1 & _] :args :as apfn-args}]
               (let [now    (System/currentTimeMillis)
-                    hash   (str ns "/" x1)
+                    hash   (str ns "/" x1) ; TODO Alternatives?
                     limit? (fn [last-msecs]
                              (and last-msecs (<= (- now last-msecs)
                                                  limit-per-msecs)))]
