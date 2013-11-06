@@ -7,16 +7,28 @@
 
 (def ^:dynamic *pdata* "{::pname [time1 time2 ...]}" nil)
 
-(declare p)
+(defmacro pspy
+  "Profile spy. When in the context of a *pdata* binding, records execution time
+  of named body. Always returns the body's result."
+  [name & body]
+  `(if-not *pdata* (do ~@body)
+     (let [name# (utils/fq-keyword ~name)
+           start-time# (System/nanoTime)]
+       (try (do ~@body)
+            (finally
+              (let [elapsed# (- (System/nanoTime) start-time#)]
+                (swap! *pdata* #(assoc % name# (conj (% name# []) elapsed#)))))))))
 
-(defmacro with-pdata
-  [level & body]
+(defmacro p [name & body] `(pspy ~name ~@body)) ; Alias
+
+(declare pdata-stats format-pdata)
+
+(defmacro with-pdata [level & body]
   `(if-not (timbre/logging-enabled? ~level)
      {:result (do ~@body)}
      (binding [*pdata* (atom {})]
-       {:result (p ::clock-time ~@body) :stats (pdata-stats @*pdata*)})))
-
-(declare pdata-stats format-pdata)
+       {:result (p ::clock-time ~@body)
+        :stats  (pdata-stats @*pdata*)})))
 
 (defmacro profile
   "When logging is enabled, executes named body with profiling enabled. Body
@@ -35,32 +47,13 @@
      result#))
 
 (defmacro sampling-profile
-  "Like `profile`, but only enables profiling every 1/`proportion` calls.
-  Always returns body's result."
+  "Like `profile`, but only enables profiling every 1/`proportion` calls."
   [level proportion name & body]
-  `(if-not (> ~proportion (rand))
-     (do ~@body)
+  `(if-not (> ~proportion (rand)) (do ~@body)
      (profile ~level ~name ~@body)))
-
-(defmacro pspy
-  "Profile spy. When in the context of a *pdata* binding, records execution time
-  of named body. Always returns the body's result."
-  [name & body]
-  `(if-not *pdata*
-     (do ~@body)
-     (let [name#       (utils/fq-keyword ~name)
-           start-time# (System/nanoTime)]
-       (try
-         (do ~@body)
-         (finally
-           (let [elapsed# (- (System/nanoTime) start-time#)]
-             (swap! *pdata* #(assoc % name# (conj (% name# []) elapsed#)))))))))
-
-(defmacro p [name & body] `(pspy ~name ~@body)) ; Alias
 
 (defn pdata-stats
   "{::pname [time1 time2 ...] ...} => {::pname {:min <min-time> ...} ...}
-
   For performance, stats are calculated once only after all data have been
   collected."
   [pdata]
@@ -69,8 +62,8 @@
      (let [count (max 1 (count times))
            time  (reduce + times)
            mean  (long (/ time count))
-           mad   (long (/ (reduce + (map #(Math/abs (long (- % mean)))
-                                         times)) ; Mean absolute deviation
+           mad   (long (/ (reduce + (mapv #(Math/abs (long (- % mean)))
+                                          times)) ; Mean absolute deviation
                           count))]
        (assoc m pname {:count count
                        :min   (apply min times)
@@ -80,19 +73,15 @@
                        :time  time})))
    {} (or pdata {})))
 
-(defn format-pdata
-  [stats & [sort-field]]
-  (let [;; How long entire (profile) body took
-        clock-time (-> stats ::clock-time :time)
+(defn format-pdata [stats & [sort-field]]
+  (let [clock-time (-> stats ::clock-time :time) ; How long entire profile body took
         stats      (dissoc stats ::clock-time)
-
-        accounted (reduce + (map :time (vals stats)))
-        max-name-width (apply max (map (comp count str)
-                                       (conj (keys stats) "Accounted Time")))
+        accounted      (reduce + (mapv :time (vals stats)))
+        max-name-width (apply max (mapv (comp count str)
+                                        (conj (keys stats) "Accounted Time")))
         pattern   (str "%" max-name-width "s %6d %9s %10s %9s %9s %7d %1s%n")
         s-pattern (.replace pattern \d \s)
-
-        perc #(Math/round (/ %1 %2 0.01))
+        perc      #(Math/round (/ %1 %2 0.01))
         ft (fn [nanosecs]
              (let [pow     #(Math/pow 10 %)
                    ok-pow? #(>= nanosecs (pow %))
@@ -104,29 +93,28 @@
 
     (with-out-str
       (printf s-pattern "Name" "Calls" "Min" "Max" "MAD" "Mean" "Time%" "Time")
-
       (doseq [pname (->> (keys stats)
                          (sort-by #(- (get-in stats [% (or sort-field :time)]))))]
         (let [{:keys [count min max mean mad time]} (stats pname)]
           (printf pattern pname count (ft min) (ft max) (ft mad)
                   (ft mean) (perc time clock-time) (ft time))))
 
-      (printf s-pattern "[Clock] Time" "" "" "" "" "" 100 (ft clock-time))
+      (printf s-pattern "Clock Time" "" "" "" "" "" 100 (ft clock-time))
       (printf s-pattern "Accounted Time" "" "" "" "" ""
               (perc accounted clock-time) (ft accounted)))))
 
 (defmacro defnp "Like `defn` but wraps body in `p` macro."
   {:arglists '([name doc-string? attr-map? [params] prepost-map? body])}
   [name & sigs]
-  (let [[name more] (macro/name-with-attributes name sigs)
-        body (last    more)
-        more (butlast more)]
-    `(defn ~name ~@more
+  (let [[name [params & sigs]] (macro/name-with-attributes name sigs)
+        prepost-map (when (and (map? (first sigs)) (next sigs)) (first sigs))
+        body (if prepost-map (next sigs) sigs)]
+    `(defn ~name ~params ~prepost-map
        (p ~(clojure.core/name name)
-          ~body))))
+          ~@body))))
 
-(comment (defnp foo "Docstring "[x] (* x x))
-         (macroexpand '(defnp foo "Docstring "[x] (* x x)))
+(comment (defnp foo "Docstring "[x] "boo" (* x x))
+         (macroexpand '(defnp foo "Docstring "[x] "boo" (* x x)))
          (profile :info :defnp-test (foo 5)))
 
 (comment
