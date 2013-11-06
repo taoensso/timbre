@@ -211,10 +211,15 @@
 (comment ((make-timestamp-fn "yyyy-MMM-dd" nil) (Date.)))
 
 (def get-hostname
-  (utils/memoize-ttl
-   60000 (fn [] (try (.. java.net.InetAddress getLocalHost getHostName)
-                    (catch java.net.UnknownHostException _
-                      "UnknownHost")))))
+  (utils/memoize-ttl 60000
+    (fn []
+      (let [p (promise)]
+        (future ; Android doesn't like this on the main thread
+          (deliver p
+            (try (.. java.net.InetAddress getLocalHost getHostName)
+                 (catch java.net.UnknownHostException _
+                   "UnknownHost"))))
+        @p))))
 
 (defn- wrap-appender-juxt
   "Wraps compile-time appender juxt with additional runtime capabilities
