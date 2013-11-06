@@ -1,7 +1,8 @@
 (ns taoensso.timbre.profiling
   "Logging profiler for Timbre, adapted from clojure.contrib.profile."
   {:author "Peter Taoussanis"}
-  (:require [taoensso.timbre       :as timbre]
+  (:require [clojure.tools.macro   :as macro]
+            [taoensso.timbre       :as timbre]
             [taoensso.timbre.utils :as utils]))
 
 (def ^:dynamic *pdata* "{::pname [time1 time2 ...]}" nil)
@@ -113,6 +114,20 @@
       (printf s-pattern "[Clock] Time" "" "" "" "" "" 100 (ft clock-time))
       (printf s-pattern "Accounted Time" "" "" "" "" ""
               (perc accounted clock-time) (ft accounted)))))
+
+(defmacro defnp "Like `defn` but wraps body in `p` macro."
+  {:arglists '([name doc-string? attr-map? [params] prepost-map? body])}
+  [name & sigs]
+  (let [[name more] (macro/name-with-attributes name sigs)
+        body (last    more)
+        more (butlast more)]
+    `(defn ~name ~@more
+       (p ~(clojure.core/name name)
+          ~body))))
+
+(comment (defnp foo "Docstring "[x] (* x x))
+         (macroexpand '(defnp foo "Docstring "[x] (* x x)))
+         (profile :info :defnp-test (foo 5)))
 
 (comment
   (profile :info :Sleepy-threads
