@@ -1,6 +1,14 @@
-## v2.5.0 → v2.6.2
+## v2.6.3 → v2.7.0
+  * Core: `getHostName` no longer runs on the main thread for better Android compatibility (AdamClements).
+  * Profiling: added `defnp` macro.
+  * Profiling: fix compile-time name creation: now runtime (aperiodic).
+  * Appenders: added rotating file appender (mopemope).
+
+
+## v2.5.0 → v2.6.3
   * Perf: add support for a compile-time logging level environment variable (`TIMBRE_LOG_LEVEL`). See `timbre/compile-time-level` docstring for details.
   * Fix: `use-timbre`, `str-println` bugs.
+  * Fix: Null Pointer Exception in clj-stacktrace (bitemyapp).
 
 
 ## v2.4.1 → v2.5.0
