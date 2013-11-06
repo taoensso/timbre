@@ -1,4 +1,4 @@
-## v2.6.3 → v2.7.0
+## v2.6.3 → v2.7.1
   * Core: `getHostName` no longer runs on the main thread for better Android compatibility (AdamClements).
   * Profiling: added `defnp` macro.
   * Profiling: fix compile-time name creation: now runtime (aperiodic).
