@@ -17,7 +17,7 @@
             "codox"     ["with-profile" "+test" "doc"]}
   :plugins [[lein-expectations "0.0.8"]
             [lein-autoexpect   "1.0"]
-            [lein-ancient      "0.4.4"]
+            [lein-ancient      "0.5.3"]
             [codox             "0.6.6"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
