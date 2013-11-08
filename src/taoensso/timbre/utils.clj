@@ -10,20 +10,28 @@
   (let [[name [expr]] (macro/name-with-attributes name sigs)]
     `(clojure.core/defonce ~name ~expr)))
 
-(defn memoize-ttl
-  "Like `memoize` but invalidates the cache for a set of arguments after TTL
-  msecs has elapsed."
+(defn memoize-ttl "Low-overhead, common-case `memoize*`."
   [ttl-ms f]
   (let [cache (atom {})]
     (fn [& args]
-      (let [{:keys [time-cached d-result]} (@cache args)
-            now (System/currentTimeMillis)]
-
-        (if (and time-cached (< (- now time-cached) ttl-ms))
-          @d-result
-          (let [d-result (delay (apply f args))]
-            (swap! cache assoc args {:time-cached now :d-result d-result})
-            @d-result))))))
+      (when (<= (rand) 0.001) ; GC
+        (let [now (System/currentTimeMillis)]
+          (->> @cache
+               (reduce-kv (fn [exp-ks k [dv ms :as cv]]
+                            (if (< (- now ms) ttl-ms) exp-ks
+                                (conj exp-ks k))) [])
+               (apply swap! cache dissoc))))
+      (let [[dv ms] (@cache args)]
+        (if (and dv (< (- (System/currentTimeMillis) ms) ttl-ms))
+          @dv
+          (locking cache ; For thread racing
+            (let [[dv ms] (@cache args)] ; Retry after lock acquisition!
+              (if (and dv (< (- (System/currentTimeMillis) ms) ttl-ms))
+                @dv
+                (let [dv (delay (apply f args))
+                      cv [dv (System/currentTimeMillis)]]
+                  (swap! cache assoc args cv)
+                  @dv)))))))))
 
 (defn merge-deep-with ; From clojure.contrib.map-utils
   "Like `merge-with` but merges maps recursively, applying the given fn
