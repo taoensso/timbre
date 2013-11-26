@@ -420,12 +420,23 @@
 
 (defn refer-timbre
   "Shorthand for:
-  (require '[taoensso.timbre :as timbre
-             :refer (trace debug info warn error fatal report spy with-log-level)])"
+  (require
+    '[taoensso.timbre :as timbre
+      :refer (log  trace  debug  info  warn  error  fatal  report
+              logf tracef debugf infof warnf errorf fatalf reportf
+              spy logged-future with-log-level)])
+  (require '[taoensso.timbre.utils :refer (sometimes)])
+  (require
+    '[taoensso.timbre.profiling :as profiling :refer (pspy profile defnp)])"
   []
-  (require '[taoensso.timbre :as timbre
-             :refer (log trace debug info warn error fatal report spy with-log-level
-                     logf tracef debugf infof warnf errorf fatalf reportf)]))
+  (require
+   '[taoensso.timbre :as timbre
+     :refer (log  trace  debug  info  warn  error  fatal  report
+             logf tracef debugf infof warnf errorf fatalf reportf
+             spy logged-future with-log-level)])
+  (require '[taoensso.timbre.utils :refer (sometimes)])
+  (require
+   '[taoensso.timbre.profiling :as profiling :refer (pspy profile defnp)]))
 
 ;;;; Deprecated
 
