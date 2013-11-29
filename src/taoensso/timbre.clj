@@ -67,13 +67,17 @@
       (throw (Exception. (format "Invalid logging level: %s" level)))))
 
 (def ^:private levels-compare (memoize (fn [x y] (- (level-checked-score x)
-                                                   (level-checked-score y)))))
+                                                    (level-checked-score y)))))
 
 (declare config)
-(defn- level-sufficient? [level]
+;; Used in macros, must be public:
+(defn level-sufficient? [level ; & [config] ; Deprecated
+                          ]
   (>= (levels-compare level
         (or level-compile-time
             *level-dynamic*
+            ;; Deprecate config-specified level:
+            ;;(:current-level (or config @config)) ; Don't need compile here
             (:current-level @config) ; DEPRECATED, here for backwards comp
             @level-atom)) 0))
 
@@ -155,7 +159,7 @@
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional runtime capabilities
   controlled by compile-time config."
-  [{apfn :fn :keys [async? rate-limit] :as appender}]
+  [config {apfn :fn :keys [async? rate-limit] :as appender}]
   (let [rate-limit (or rate-limit ; Backwards comp:
                        (if-let [x (:max-message-per-msecs appender)] [1 x]
                          (when-let [x (:limit-per-msecs   appender)] [1 x])))]
@@ -218,7 +222,7 @@
   "Wraps compile-time appender juxt with additional runtime capabilities
   (incl. middleware) controlled by compile-time config. Like `wrap-appender-fn`
   but operates on the entire juxt at once."
-  [juxtfn]
+  [config juxtfn]
   (->> ; Wrapping applies per juxt, bottom-to-top
    juxtfn
 
@@ -227,7 +231,7 @@
       ;; Compile-time:
       (let [{ap-config :shared-appender-config
              :keys [timestamp-pattern timestamp-locale
-                    prefix-fn fmt-output-fn]} @config
+                    prefix-fn fmt-output-fn]} config
             timestamp-fn (make-timestamp-fn timestamp-pattern timestamp-locale)]
         (fn [juxtfn-args]
           ;; Runtime:
@@ -240,18 +244,18 @@
                                         (case msg-type
                                           :format    (apply format    args)
                                           :print-str (apply print-str args)
-                                          :nil    nil)))))]
-              (juxtfn
-               (merge juxtfn-args
-                 {:timestamp      (timestamp-fn instant)
-                  ;; DEPRECATED, here for backwards comp:
-                  :prefix         (when-let [f prefix-fn]     (f juxtfn-args))
-                  :default-output (when-let [f fmt-output-fn] (f juxtfn-args))}))))))))
+                                          :nil    nil)))))
+                  juxtfn-args (assoc juxtfn-args :timestamp (timestamp-fn instant))
+                  juxtfn-args (assoc juxtfn-args
+                    ;; DEPRECATED, here for backwards comp:
+                    :prefix         (when-let [f prefix-fn]     (f juxtfn-args))
+                    :default-output (when-let [f fmt-output-fn] (f juxtfn-args)))]
+              (juxtfn juxtfn-args)))))))
 
    ;; Middleware transforms/filters support
    ((fn [juxtfn]
       ;; Compile-time:
-      (if-let [middleware (seq (:middleware @config))]
+      (if-let [middleware (seq (:middleware config))]
         (let [composed-middleware
               (apply comp (map (fn [mf] (fn [args] (when args (mf args))))
                                middleware))]
@@ -264,78 +268,55 @@
    ;; Pre-middleware stuff
    ((fn [juxtfn]
       ;; Compile-time:
-      (let [{ap-config :shared-appender-config} @config]
+      (let [{ap-config :shared-appender-config} config]
         (fn [juxtfn-args]
           ;; Runtime:
           (juxtfn (merge juxtfn-args {:ap-config ap-config
                                       :hostname  (get-hostname)}))))))))
 
-;;;; Caching
+;;;; Config compilation
 
-;;; Appender-fns
-
-(def appenders-juxt-cache
-  "Per-level, combined level-relevant appender-fns to allow for fast runtime
-  appender-fn dispatch:
-  {:level (wrapped-juxt wrapped-appender-fn wrapped-appender-fn ...) or nil
-    ...}"
-  (atom {}))
-
-(defn- relevant-appenders [level]
-  (->> (:appenders @config)
+(defn- relevant-appenders [appenders level]
+  (->> appenders
        (filter #(let [{:keys [enabled? min-level]} (val %)]
                   (and enabled? (>= (levels-compare level min-level) 0))))
        (into {})))
-
-(comment (relevant-appenders :debug)
-         (relevant-appenders :trace))
-
-(defn- cache-appenders-juxt! []
-  (->>
-   (zipmap
-    levels-ordered
-    (->> levels-ordered
-         (map (fn [l] (let [rel-aps (relevant-appenders l)]
-                       ;; Return nil if no relevant appenders
-                       (when-let [ap-ids (keys rel-aps)]
-                         (->> ap-ids
-                              (map #(wrap-appender-fn (rel-aps %)))
-                              (apply juxt)
-                              (wrap-appender-juxt))))))))
-   (reset! appenders-juxt-cache)))
-
-;;; Namespace filter
-
-(def ns-filter-cache "@ns-filter-cache => (fn relevant-ns? [ns] ...)"
-  (atom (constantly true)))
 
 (defn- ns-match? [ns match]
   (-> (str "^" (-> (str match) (.replace "." "\\.") (.replace "*" "(.*)")) "$")
       re-pattern (re-find (str ns)) boolean))
 
-(defn- cache-ns-filter! []
-  (->>
-   (let [{:keys [ns-whitelist ns-blacklist]} @config]
-     (memoize
-      (fn relevant-ns? [ns]
-        (and (or (empty? ns-whitelist)
-                 (some (partial ns-match? ns) ns-whitelist))
-             (or (empty? ns-blacklist)
-                 (not-any? (partial ns-match? ns) ns-blacklist))))))
-   (reset! ns-filter-cache)))
+(def compile-config ; Used in macros, must be public
+  "Returns {:appenders-juxt {<level> <wrapped-juxt or nil>}
+            :ns-filter      (fn relevant-ns? [ns])}."
+  (memoize
+   ;; Careful. The presence of fns actually means that inline config's won't
+   ;; actually be identified as samey. In practice not a major (?) problem
+   ;; since configs will usually be assigned to a var for which we have proper
+   ;; identity.
+   (fn [{:keys [appenders] :as config}]
+     {:appenders-juxt
+      (zipmap levels-ordered
+         (->> levels-ordered
+              (map (fn [l] (let [rel-aps (relevant-appenders appenders l)]
+                             ;; Return nil if no relevant appenders
+                             (when-let [ap-ids (keys rel-aps)]
+                               (->> ap-ids
+                                    (map #(wrap-appender-fn config (rel-aps %)))
+                                    (apply juxt)
+                                    (wrap-appender-juxt config))))))))
+      :ns-filter
+      (let [{:keys [ns-whitelist ns-blacklist]} config]
+        (if (and (empty? ns-whitelist) (empty? ns-blacklist))
+          (fn relevant-ns? [ns] true)
+          (memoize
+           (fn relevant-ns? [ns]
+             (and (or (empty? ns-whitelist)
+                      (some (partial ns-match? ns) ns-whitelist))
+                  (or (empty? ns-blacklist)
+                      (not-any? (partial ns-match? ns) ns-blacklist)))))))})))
 
-;;; Prime initial caches and re-cache on config change
-
-(cache-appenders-juxt!)
-(cache-ns-filter!)
-
-(add-watch
- config "config-cache-watch"
- (fn [key ref old-state new-state]
-   (when (not= (dissoc old-state :current-level)
-               (dissoc new-state :current-level))
-     (cache-appenders-juxt!)
-     (cache-ns-filter!))))
+(comment (compile-config example-config))
 
 ;;;; Logging macros
 
@@ -343,22 +324,26 @@
   "Returns true iff current logging level is sufficient and current namespace
   unfiltered. The namespace test is runtime, the logging-level test compile-time
   iff a compile-time logging level was specified."
-  [level]
+  [level & [config]]
   (if level-compile-time
     (when (level-sufficient? level)
-      `(@ns-filter-cache ~(str *ns*)))
-    `(and (level-sufficient? ~level) (@ns-filter-cache ~(str *ns*)))))
+      `(let [ns-filter# (:ns-filter (compile-config (or ~config @config)))]
+         (ns-filter# ~(str *ns*))))
+    `(and (level-sufficient? ~level)
+          (let [ns-filter# (:ns-filter (compile-config (or ~config @config)))]
+            (ns-filter# ~(str *ns*))))))
 
 (comment (def compile-time-level :info)
          (def compile-time-level nil)
          (macroexpand-1 '(logging-enabled? :debug)))
 
-(defn send-to-appenders! "Implementation detail - subject to change."
+(defn send-to-appenders! "Implementation detail."
   [;; Args provided by both Timbre, tools.logging:
    level base-appender-args log-vargs ns throwable message
    ;; Additional args provided by Timbre only:
    & [juxt-fn msg-type file line]]
-  (when-let [juxt-fn (or juxt-fn (@appenders-juxt-cache level))]
+  (when-let [juxt-fn (or juxt-fn (get-in (compile-config @config)
+                                         [:appenders-juxt level]))]
     (juxt-fn
      (conj (or base-appender-args {})
        {:instant   (Date.)
@@ -374,34 +359,51 @@
         }))
     nil))
 
-(defmacro log* "Implementation detail - subject to change."
-  [msg-type level base-appender-args & log-args]
+(defmacro log* "Implementation detail."
+  {:arglists '([base-appender-args msg-type level & log-args]
+               [base-appender-args msg-type config level & log-args])}
+  [base-appender-args msg-type & [s1 s2 :as sigs]]
   {:pre [(#{:nil :print-str :format} msg-type)]}
-  `(when (logging-enabled? ~level)
-     (when-let [juxt-fn# (@appenders-juxt-cache ~level)]
-       (let [[x1# & xn# :as xs#] (vector ~@log-args)
-             has-throwable?# (instance? Throwable x1#)
-             log-vargs# (vec (if has-throwable?# xn# xs#))]
-         (send-to-appenders!
-          ~level
-          ~base-appender-args
-          log-vargs#
-          ~(str *ns*)
-          (when has-throwable?# x1#)
-          nil ; Timbre generates msg only after middleware
-          juxt-fn#
-          ~msg-type
-          (let [file# ~*file*] (when (not= file# "NO_SOURCE_PATH") file#))
-          ;; TODO Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
-          ~(:line (meta &form)))))))
+  `(let [;;; Support [level & log-args], [config level & log-args] sigs:
+         s1# ~s1
+         default-config?# (keyword? s1#)
+         config# (if default-config?# @config s1#)
+         level#  (if default-config?# s1#     ~s2)]
 
-(defmacro log "Logs using print-style args."
-  {:arglists '([level & message] [level throwable & message])}
-  [level & sigs] `(log* :print-str ~level {} ~@sigs))
+     (when (logging-enabled? level# config#)
+       (when-let [juxt-fn# (get-in (compile-config config#)
+                                   [:appenders-juxt level#])]
+         (let [[x1# & xn# :as xs#] (if default-config?#
+                                     (vector ~@(next  sigs))
+                                     (vector ~@(nnext sigs)))
+               has-throwable?# (instance? Throwable x1#)
+               log-vargs# (vec (if has-throwable?# xn# xs#))]
+           (send-to-appenders!
+            level#
+            ~base-appender-args
+            log-vargs#
+            ~(str *ns*)
+            (when has-throwable?# x1#)
+            nil ; Timbre generates msg only after middleware
+            juxt-fn#
+            ~msg-type
+            (let [file# ~*file*] (when (not= file# "NO_SOURCE_PATH") file#))
+            ;; TODO Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
+            ~(:line (meta &form))))))))
 
-(defmacro logf "Logs using format-style args."
-  {:arglists '([level fmt & fmt-args] [level throwable fmt & fmt-args])}
-  [level & sigs] `(log* :format ~level {} ~@sigs))
+(defmacro log
+  "Logs using print-style args. Takes optional logging config (defaults to
+  `timbre/@config`.)"
+  {:arglists '([level & message] [level throwable & message]
+               [config level & message] [config level throwable & message])}
+  [& sigs] `(log* {} :print-str ~@sigs))
+
+(defmacro logf
+  "Logs using format-style args. Takes optional logging config (defaults to
+  `timbre/@config`.)"
+  {:arglists '([level fmt & fmt-args] [level throwable fmt & fmt-args]
+               [config level fmt & fmt-args] [config level throwable fmt & fmt-args])}
+  [& sigs] `(log* {} :format ~@sigs))
 
 (defmacro log-errors [& body] `(try ~@body (catch Throwable t# (error t#))))
 (defmacro log-and-rethrow-errors [& body]
@@ -487,12 +489,17 @@
   (info  "a%s" "b")
   (infof "a%s" "b")
 
+  (info {} "a")
+  (log {}             :info "a")
+  (log example-config :info "a")
+
   (set-config! [:ns-blacklist] [])
   (set-config! [:ns-blacklist] ["taoensso.timbre*"])
 
   (info "foo" "bar")
   (trace (Thread/sleep 5000))
-  (time (dotimes [n 10000] (trace "This won't log"))) ; Overhead 5ms/10ms
+  (time (dotimes [n 10000] (trace "This won't log"))) ; Overhead 5ms->15ms
+  (time (dotimes [n 10000] (when false)))
   (time (dotimes [n 5] (info "foo" "bar")))
   (spy :info (* 6 5 4 3 2 1))
   (spy :info :factorial6 (* 6 5 4 3 2 1))
