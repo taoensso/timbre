@@ -344,8 +344,8 @@
   [level]
   (if compile-time-level
     (when (sufficient-level? level)
-      `(@ns-filter-cache *ns*))
-    `(and (sufficient-level? ~level) (@ns-filter-cache *ns*))))
+      `(@ns-filter-cache ~*ns*))
+    `(and (sufficient-level? ~level) (@ns-filter-cache ~*ns*))))
 
 (comment
   (def compile-time-level :info)
