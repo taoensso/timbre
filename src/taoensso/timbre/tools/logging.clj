@@ -9,8 +9,8 @@
     ;; tools.logging message may be a string (for `logp`/`logf` calls) or raw
     ;; argument (for `log` calls). Note that without an :args equivalent for
     ;; `write!`, the best we can do is `[message]`. This inconsistency means
-    ;; that :args consumers (like the rate limiter and Postal appender) will
-    ;; necessarily behave differently under tools.logging.
+    ;; that :args consumers will necessarily behave differently under
+    ;; tools.logging.
     (timbre/send-to-appenders! level {} [message] logger-ns throwable
       (when (string? message) message))))
 
