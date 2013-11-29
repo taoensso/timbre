@@ -1,7 +1,7 @@
 (ns taoensso.timbre "Simple, flexible, all-Clojure logging. No XML!"
   {:author "Peter Taoussanis"}
   (:require [clojure.string        :as str]
-            [clj-stacktrace.repl   :as stacktrace]
+            [io.aviso.exception    :as aviso-ex]
             [taoensso.timbre.utils :as utils])
   (:import  [java.util Date Locale]
             [java.text SimpleDateFormat]))
@@ -36,10 +36,10 @@
 (defmacro with-err-as-out "Evaluates body with *err* bound to *out*."
   [& body] `(binding [*err* *out*] ~@body))
 
-(defn stacktrace [throwable & [separator]]
+(defn stacktrace "Default stacktrace formatter for use by appenders, etc."
+  [throwable & [separator]]
   (when throwable
-    (str separator throwable ; (str throwable) incl. ex-data for Clojure 1.4+
-         "\n\n" (stacktrace/pst-str throwable))))
+    (str separator (aviso-ex/format-exception throwable))))
 
 ;;;; Default configuration and appenders
 

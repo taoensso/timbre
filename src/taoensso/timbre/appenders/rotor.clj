@@ -2,7 +2,6 @@
   (:import
    [java.io File FilenameFilter])
   (:require
-   [clj-stacktrace.repl   :as stacktrace]
    [clojure.java.io :as io]
    [taoensso.timbre :as t]))
 
