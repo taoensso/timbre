@@ -15,19 +15,16 @@
   (let [cache (atom {})]
     (fn [& args]
       (when (<= (rand) 0.001) ; GC
-        (let [now (System/currentTimeMillis)]
-          (->> @cache
-               (reduce-kv (fn [exp-ks k [dv ms :as cv]]
-                            (if (< (- now ms) ttl-ms) exp-ks
-                                (conj exp-ks k))) [])
-               (apply swap! cache dissoc))))
-      (let [[dv ms] (@cache args)]
-        (if (and dv (< (- (System/currentTimeMillis) ms) ttl-ms))
-          @dv
+        (let [instant (System/currentTimeMillis)]
+          (swap! cache
+            (fn [m] (reduce-kv (fn [m* k [dv udt :as cv]]
+                                (if (> (- instant udt) ttl-ms) m*
+                                    (assoc m* k cv))) {} m)))))
+      (let [[dv udt] (@cache args)]
+        (if (and dv (< (- (System/currentTimeMillis) udt) ttl-ms)) @dv
           (locking cache ; For thread racing
-            (let [[dv ms] (@cache args)] ; Retry after lock acquisition!
-              (if (and dv (< (- (System/currentTimeMillis) ms) ttl-ms))
-                @dv
+            (let [[dv udt] (@cache args)] ; Retry after lock acquisition!
+              (if (and dv (< (- (System/currentTimeMillis) udt) ttl-ms)) @dv
                 (let [dv (delay (apply f args))
                       cv [dv (System/currentTimeMillis)]]
                   (swap! cache assoc args cv)
