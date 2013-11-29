@@ -151,16 +151,15 @@ Filter logging output by namespaces:
 ;; [com.draines/postal "1.9.2"] ; Add to project.clj dependencies
 ;; (:require [taoensso.timbre.appenders (postal :as postal-appender)]) ; Add to ns
 
-(timbre/set-config! [:appenders :postal] postal-appender/postal-appender)
-(timbre/set-config! [:shared-appender-config :postal]
-                    ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
-                    {:from "me@draines.com" :to "foo@example.com"})
-
-;; Rate limit to one email per message per minute
-(timbre/set-config! [:appenders :postal :limit-per-msecs] 60000)
-
-;; Make sure emails are sent asynchronously
-(timbre/set-config! [:appenders :postal :async?] true)
+(timbre/set-config! [:appenders :postal]
+  (postal-appender/make-postal-appender
+   {:enabled?   true
+    :rate-limit [1 60000] ; 1 msg / 60,000 msecs (1 min)
+    :async?     true ; Don't block waiting for email to send
+   }
+   {:postal-config
+    ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
+    {:from "me@draines.com" :to "foo@example.com"}}))
 ```
 
 #### Other included appenders
