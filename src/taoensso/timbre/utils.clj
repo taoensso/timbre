@@ -30,7 +30,7 @@
                   (swap! cache assoc args cv)
                   @dv)))))))))
 
-(defn rate-limit
+(defn rate-limiter
   "Returns a `(fn [& [id]])` that returns either `nil` (limit okay) or number of
   msecs until next rate limit window (rate limited)."
   [ncalls-limit window-ms]

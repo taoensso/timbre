@@ -74,6 +74,4 @@
               :backlog 5}")
    :min-level nil
    :enabled? true
-   :async? false
-   :limit-per-msecs nil
    :fn appender-fn})

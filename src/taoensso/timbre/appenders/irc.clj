@@ -41,6 +41,6 @@
              "Needs :irc config map in :shared-appender-config, e.g.:
              {:host \"irc.example.org\" :port 6667 :nick \"logger\"
               :name \"My Logger\" :chan \"#logs\"")
-   :min-level :info :enabled? true :async? false :limit-per-msecs nil
+   :min-level :info :enabled? true
    :prefix-fn (fn [{:keys [level]}] (-> level name str/upper-case))
    :fn appender-fn})

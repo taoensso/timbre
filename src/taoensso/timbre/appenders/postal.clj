@@ -11,7 +11,7 @@
              ^{:host \"mail.isp.net\" :user \"jsmith\" :pass \"sekrat!!1\"}
              {:from \"Bob's logger <me@draines.com>\" :to \"foo@example.com\"}")
    :min-level :error :enabled? true :async? true
-   :limit-per-msecs (* 1000 60 10) ; 1 subject / 10 mins
+   :rate-limit [5 (* 1000 60 2)] ; 5 calls / 2 mins
    :fn (fn [{:keys [ap-config prefix throwable args]}]
          (when-let [postal-config (:postal ap-config)]
            (let [[subject & body] args]

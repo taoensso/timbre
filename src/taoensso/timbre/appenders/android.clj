@@ -11,8 +11,6 @@
              "timestamps, etc.")
    :min-level :debug
    :enabled? true
-   :async? false
-   :limit-per-msecs nil
    :prefix-fn :ns
    :fn (fn [{:keys [level prefix throwable message]}]
          (if throwable

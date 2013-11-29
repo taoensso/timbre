@@ -42,5 +42,5 @@
               :server {:host \"127.0.0.1\"
                        :port 27017}}")
    :min-level :warn :enabled? true :async? true
-   :max-message-per-msecs 1000 ; 1 entry / sec
+   :rate-limit [1 1000] ; 1 entry / sec
    :fn appender-fn})

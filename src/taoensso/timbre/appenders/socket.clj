@@ -44,6 +44,5 @@
              "Needs :socket config map in :shared-appender-config, e.g.:
              {:listen-addr :all
               :port 9000}")
-   :min-level :trace :enabled? true :async? false
-   :max-message-per-msecs nil ; no rate limit by default
+   :min-level :trace :enabled? true
    :fn appender-fn})
