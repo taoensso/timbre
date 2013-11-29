@@ -53,8 +53,7 @@
 (comment (merge-deep {:a {:b {:c {:d :D :e :E}}}}
                      {:a {:b {:g :G :c {:c {:f :F}}}}}))
 
-(defn round-to
-  "Rounds argument to given number of decimal places."
+(defn round-to "Rounds argument to given number of decimal places."
   [places x]
   (if (zero? places)
     (Math/round (double x))
@@ -64,11 +63,14 @@
 (comment (round-to 0 10)
          (round-to 2 10.123))
 
-(defmacro fq-keyword
-  "Returns namespaced keyword for given name."
+(defmacro fq-keyword "Returns namespaced keyword for given name."
   [name]
-  `(if (and (keyword? ~name) (namespace ~name))
-     ~name
+  `(if (and (keyword? ~name) (namespace ~name)) ~name
      (keyword (str ~*ns*) (clojure.core/name ~name))))
 
 (comment (map #(fq-keyword %) ["foo" :foo :foo/bar]))
+
+(defmacro sometimes "Executes body with probability e/o [0,1]."
+  [probability & body]
+  `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
+       (when (< (rand) ~probability) ~@body)))

@@ -47,10 +47,11 @@
      result#))
 
 (defmacro sampling-profile
-  "Like `profile`, but only enables profiling every 1/`proportion` calls."
-  [level proportion name & body]
-  `(if-not (> ~proportion (rand)) (do ~@body)
-     (profile ~level ~name ~@body)))
+  "Like `profile`, but only enables profiling with given probability."
+  [level probability name & body]
+  `(do (assert (<= 0 ~probability 1) "Probability: 0<=p<=1")
+       (if-not (< (rand) ~probability) (do ~@body)
+               (profile ~level ~name ~@body))))
 
 (defn pdata-stats
   "{::pname [time1 time2 ...] ...} => {::pname {:min <min-time> ...} ...}
@@ -62,8 +63,8 @@
      (let [count (max 1 (count times))
            time  (reduce + times)
            mean  (long (/ time count))
-           mad   (long (/ (reduce + (mapv #(Math/abs (long (- % mean)))
-                                          times)) ; Mean absolute deviation
+           mad   (long (/ (reduce + (map #(Math/abs (long (- % mean)))
+                                         times)) ; Mean absolute deviation
                           count))]
        (assoc m pname {:count count
                        :min   (apply min times)
@@ -75,10 +76,10 @@
 
 (defn format-pdata [stats & [sort-field]]
   (let [clock-time (-> stats ::clock-time :time) ; How long entire profile body took
-        stats      (dissoc stats ::clock-time)
-        accounted      (reduce + (mapv :time (vals stats)))
-        max-name-width (apply max (mapv (comp count str)
-                                        (conj (keys stats) "Accounted Time")))
+        stats          (dissoc stats ::clock-time)
+        accounted      (reduce + (map :time (vals stats)))
+        max-name-width (apply max (map (comp count str)
+                                       (conj (keys stats) "Accounted Time")))
         pattern   (str "%" max-name-width "s %6d %9s %10s %9s %9s %7d %1s%n")
         s-pattern (.replace pattern \d \s)
         perc      #(Math/round (/ %1 %2 0.01))

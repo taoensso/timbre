@@ -1,5 +1,4 @@
-(ns taoensso.timbre
-  "Simple, flexible, all-Clojure logging. No XML!"
+(ns taoensso.timbre "Simple, flexible, all-Clojure logging. No XML!"
   {:author "Peter Taoussanis"}
   (:require [clojure.string        :as str]
             [clj-stacktrace.repl   :as stacktrace]
@@ -12,15 +11,15 @@
 (defn str-println
   "Like `println` but prints all objects to output stream as a single
   atomic string. This is faster and avoids interleaving race conditions."
-  [& xs]
-  (print (str (str/join \space (filter identity xs)) \newline))
-  (flush))
+  [& xs] (print (str (str/join \space (filter identity xs)) \newline))
+         (flush))
 
 (defn color-str [color & xs]
-  (let [ansi-color #(str "\u001b[" (case % :reset  "0"  :black  "30" :red   "31"
-                                           :green  "32" :yellow "33" :blue  "34"
-                                           :purple "35" :cyan   "36" :white "37"
-                                           "0") "m")]
+  (let [ansi-color #(format "\u001b[%sm"
+                      (case % :reset  "0"  :black  "30" :red   "31"
+                              :green  "32" :yellow "33" :blue  "34"
+                              :purple "35" :cyan   "36" :white "37"
+                              "0"))]
     (str (ansi-color color) (apply str xs) (ansi-color :reset))))
 
 (def red    (partial color-str :red))
@@ -34,8 +33,7 @@
   "Evaluates body with Clojure's default *out* and *err* bindings."
   [& body] `(binding [*out* default-out *err* default-err] ~@body))
 
-(defmacro with-err-as-out
-  "Evaluates body with *err* bound to *out*."
+(defmacro with-err-as-out "Evaluates body with *err* bound to *out*."
   [& body] `(binding [*err* *out*] ~@body))
 
 (defn stacktrace [throwable & [separator]]
@@ -70,7 +68,7 @@
         :args,           ; Raw logging macro args (`info`, etc.)
         :ap-config       ; `shared-appender-config`
         :prefix          ; Output of `prefix-fn`
-        :profiling-stats ; From `profile` macro
+        :profile-stats   ; From `profile` macro
         And also: :instant, :timestamp, :hostname, :ns, :error?
 
     MIDDLEWARE
