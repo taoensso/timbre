@@ -30,6 +30,42 @@
                   (swap! cache assoc args cv)
                   @dv)))))))))
 
+(defn rate-limit
+  "Returns a `(fn [& [id]])` that returns either `nil` (limit okay) or number of
+  msecs until next rate limit window (rate limited)."
+  [ncalls-limit window-ms]
+  (let [state (atom [nil {}])] ; [<pull> {<id> {[udt-window-start ncalls]}}]
+    (fn [& [id]]
+
+      (when (<= (rand) 0.001) ; GC
+        (let [instant (System/currentTimeMillis)]
+          (swap! state
+            (fn [[_ m]]
+              [nil (reduce-kv
+                    (fn [m* id [udt-window-start ncalls]]
+                      (if (> (- instant udt-window-start) window-ms) m*
+                          (assoc m* id [udt-window-start ncalls]))) {} m)]))))
+
+      (->
+       (let [instant (System/currentTimeMillis)]
+         (swap! state
+           (fn [[_ m]]
+             (if-let [[udt-window-start ncalls] (m id)]
+               (if (> (- instant udt-window-start) window-ms)
+                 [nil (assoc m id [instant 1])]
+                 (if (< ncalls ncalls-limit)
+                   [nil (assoc m id [udt-window-start (inc ncalls)])]
+                   [(- (+ udt-window-start window-ms) instant) m]))
+               [nil (assoc m id [instant 1])]))))
+       (nth 0)))))
+
+(comment
+  (def rl (rate-limit 10 10000))
+  (repeatedly 10 #(rl (rand-nth [:a :b :c])))
+  (rl :a)
+  (rl :b)
+  (rl :c))
+
 (defn merge-deep-with ; From clojure.contrib.map-utils
   "Like `merge-with` but merges maps recursively, applying the given fn
   only when there's a non-map at a particular level.
