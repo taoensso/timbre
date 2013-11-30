@@ -395,7 +395,7 @@
   {:pre [(#{:nil :print-str :format} msg-type)]}
   `(let [;;; Support [level & log-args], [config level & log-args] sigs:
          s1# ~s1
-         default-config?# (keyword? s1#)
+         default-config?# (or (keyword? s1#) (nil? s1#))
          config# (if default-config?# @config s1#)
          level#  (if default-config?# s1#     ~s2)]
 
