@@ -1,6 +1,7 @@
 (ns taoensso.timbre.tools.logging
   "clojure.tools.logging.impl/Logger implementation"
-  (:require [taoensso.timbre :as timbre]))
+  (:require [clojure.tools.logging]
+            [taoensso.timbre :as timbre]))
 
 (deftype Logger [logger-ns]
   clojure.tools.logging.impl/Logger
