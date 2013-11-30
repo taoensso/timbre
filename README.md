@@ -1,13 +1,14 @@
 **[API docs](http://ptaoussanis.github.io/timbre/)** | **[CHANGELOG](https://github.com/ptaoussanis/timbre/blob/master/CHANGELOG.md)** | [contact & contributing](#contact--contribution) | [other Clojure libs](https://www.taoensso.com/clojure-libraries) | [Twitter](https://twitter.com/#!/ptaoussanis) | current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "2.7.1"] ; Stable
-[com.taoensso/timbre "3.0.0-beta1"] ; Development, non-breaking - see CHANGELOG for details
+[com.taoensso/timbre "3.0.0-RC1"] ; Non-breaking upgrade - see CHANGELOG for details
 ```
+
+Appender authors: please see [here](https://github.com/ptaoussanis/timbre/issues/41) about migrating Timbre 2.x appenders to 3.x's recommended style.
 
 # Timbre, a (sane) Clojure logging & profiling library
 
-Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out-the-box*. Timbre is an attempt to bring functional, Clojure-y goodness to all your logging needs. **No XML!**
+Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out-the-box*. Timbre brings functional, Clojure-y goodness to all your logging needs. **No XML!**
 
 ## What's in the box™?
  * Small, uncomplicated **all-Clojure** library.
@@ -18,7 +19,7 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
  * Sensible built-in appenders including simple **email appender**.
  * Tunable **rate limit** and **asynchronous** logging support.
  * Robust **namespace filtering**.
- * **[tools.logging](https://github.com/clojure/tools.logging) support** (optional).
+ * [tools.logging](https://github.com/clojure/tools.logging) support (optional, useful when integrating with legacy logging systems).
  * Dead-simple, logging-level-aware **logging profiler**.
 
 ## Getting started
@@ -28,13 +29,13 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 Add the necessary dependency to your [Leiningen](http://leiningen.org/) `project.clj` and use the supplied ns-import helper:
 
 ```clojure
-[com.taoensso/timbre "2.7.1"] ; project.clj
+[com.taoensso/timbre "3.0.0-RC1"] ; project.clj
 
 (ns my-app (:require [taoensso.timbre :as timbre])) ; Your ns
 (timbre/refer-timbre) ; Provides useful Timbre aliases in this ns
 ```
 
-The `refer-timbre` call is a convenience fn and executes:
+The `refer-timbre` call is a convenience fn that executes:
 ```clojure
 (require '[taoensso.timbre :as timbre
            :refer (log  trace  debug  info  warn  error  fatal  report
@@ -49,39 +50,16 @@ The `refer-timbre` call is a convenience fn and executes:
 By default, Timbre gives you basic print output to `*out*`/`*err*` at a `debug` logging level:
 
 ```clojure
-(info "This will print")
-=> nil
+(info "This will print") => nil
 %> 2012-May-28 17:26:11:444 +0700 localhost INFO [my-app] - This will print
 
-(spy :info (* 5 4 3 2 1))
-=> 120
+(spy :info (* 5 4 3 2 1)) => 120
 %> 2012-May-28 17:26:14:138 +0700 localhost INFO [my-app] - (* 5 4 3 2 1) 120
 
-(trace "This won't print due to insufficient logging level")
-=> nil
+(trace "This won't print due to insufficient logging level") => nil
 ```
 
-There's little overhead for checking logging levels:
-
-```clojure
-(time (trace (Thread/sleep 5000)))
-%> "Elapsed time: 0.054 msecs"
-
-(time (when false))
-%> "Elapsed time: 0.051 msecs"
-```
-
-And _no_ overhead when using a compile-time logging level (set `TIMBRE_LOG_LEVEL` environment variable):
-
-```clojure
-(time (dotimes [_ 1000000000] (trace (Thread/sleep 5000))))
-%> "Elapsed time: 387.159 msecs"
-
-(time (dotimes [_ 1000000000] nil))
-%> "Elapsed time: 389.231 msecs"
-```
-
-First-argument exceptions generate a stack trace:
+First-argument exceptions generate a nicely cleaned-up stack trace using [io.aviso.exception](https://github.com/AvisoNovate/pretty).
 
 ```clojure
 (info (Exception. "Oh noes") "arg1" "arg2")
@@ -94,47 +72,100 @@ java.lang.Exception: Oh noes
 
 ### Configuration
 
-Configuring Timbre is a breeze. Let's check out (some of) the defaults:
+This is the biggest win over Java logging utilities IMO. Here's `timbre/example-config` (also Timbre's default config):
 
 ```clojure
-@timbre/config
-=>
-{:ns-whitelist [] ; Use patterns like "my-app.*"
- :ns-blacklist []
+(def example-config
+  "APPENDERS
+     An appender is a map with keys:
+      :doc             ; (Optional) string.
+      :min-level       ; (Optional) keyword, or nil (no minimum level).
+      :enabled?        ; (Optional).
+      :async?          ; (Optional) dispatch using agent (good for slow appenders).
+      :rate-limit      ; (Optional) [ncalls-limit window-ms].
+      :fmt-output-opts ; (Optional) extra opts passed to `fmt-output-fn`.
+      :fn              ; (fn [appender-args-map]), with keys described below.
 
- ;; Fns to transform/filter appender fn args before dispatching to appenders:
- :middleware []
+     An appender's fn takes a single map with keys:
+      :level         ; Keyword.
+      :error?        ; Is level an 'error' level?.
+      :throwable     ; java.lang.Throwable.
+      :args          ; Raw logging macro args (as given to `info`, etc.).
+      :message       ; Stringified logging macro args, or nil.
+      :output        ; Output of `fmt-output-fn`, used by built-in appenders
+                     ; as final, formatted appender output. Appenders may (but
+                     ; are not obligated to) use this as their output.
+      :ap-config     ; `shared-appender-config`.
+      :profile-stats ; From `profile` macro.
+      :instant       ; java.util.Date.
+      :timestamp     ; String generated from :timestamp-pattern, :timestamp-locale.
+      :hostname      ; String.
+      :ns            ; String.
 
- :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
- :timestamp-locale  nil ; A Locale object, or nil
+   MIDDLEWARE
+     Middleware are fns (applied right-to-left) that transform the map
+     dispatched to appender fns. If any middleware returns nil, no dispatching
+     will occur (i.e. the event will be filtered).
 
- :appenders
- {:standard-out        { <...> }
-  :spit                { <...> }
-  <...> }
+  The `example-config` code contains further settings and details.
+  See also `set-config!`, `merge-config!`, `set-level!`."
 
- :shared-appender-config {}}
+  {;;; Control log filtering by namespace patterns (e.g. ["my-app.*"]).
+   ;;; Useful for turning off logging in noisy libraries, etc.
+   :ns-whitelist []
+   :ns-blacklist []
+
+   ;; Fns (applied right-to-left) to transform/filter appender fn args.
+   ;; Useful for obfuscating credentials, pattern filtering, etc.
+   :middleware []
+
+   ;;; Control :timestamp format
+   :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
+   :timestamp-locale  nil ; A Locale object, or nil
+
+   ;; Output formatter used by built-in appenders. Custom appenders may (but are
+   ;; not required to use) its output (:output). Extra per-appender opts can be
+   ;; supplied as an optional second (map) arg.
+   :fmt-output-fn
+   (fn [{:keys [level throwable message timestamp hostname ns]}
+       ;; Any extra appender-specific opts:
+       & [{:keys [nofonts?] :as appender-fmt-output-opts}]]
+     ;; <timestamp> <hostname> <LEVEL> [<ns>] - <message> <throwable>
+     (format "%s %s %s [%s] - %s%s"
+       timestamp hostname (-> level name str/upper-case) ns (or message "")
+       (or (stacktrace throwable "\n" (when nofonts? {})) "")))
+
+   :shared-appender-config {} ; Provided to all appenders via :ap-config key
+   :appenders
+   {:standard-out
+    {:doc "Prints to *out*/*err*. Enabled by default."
+     :min-level nil :enabled? true :async? false :rate-limit nil
+     :fn (fn [{:keys [error? output]}]
+           (binding [*out* (if error? *err* *out*)]
+             (str-println output)))}
+
+    :spit
+    {:doc "Spits to `(:spit-filename :shared-appender-config)` file."
+     :min-level nil :enabled? false :async? false :rate-limit nil
+     :fn (fn [{:keys [ap-config output]}]
+           (when-let [filename (:spit-filename ap-config)]
+             (try (spit filename output :append true)
+                  (catch java.io.IOException _))))}}})
 ```
 
-Easily adjust the current logging level:
+A few things to note:
 
-```clojure
-(timbre/set-level! :warn)
-```
+ * Appenders are trivial to write & configure - **they're just fns**. It's Timbre's job to dispatch useful args to appenders when appropriate, it's their job to do something interesting with them.
+ * Being 'just fns', appenders have basically limitless potential: write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
 
-And the default timestamp formatting for log messages:
+The **logging level** may be set:
+ * At compile-time: (`TIMBRE_LOG_LEVEL` environment variable).
+ * Via an atom: `(timbre/set-level! <level>)`. (Usual method).
+ * Via dynamic thread-level binding: `(timbre/with-log-level <level> ...)`.
 
-```clojure
-(timbre/set-config! [:timestamp-pattern] "yyyy-MMM-dd HH:mm:ss ZZ")
-(timbre/set-config! [:timestamp-locale] (java.util.Locale/GERMAN))
-```
+A compile-time level offers _zero-overhead_ performance since it'll cause insufficient logging calls to disappear completely at compile-time. Usually you won't need/want to bother: Timbre offers very decent performance with runtime level checks (~15msecs/10k checks on my Macbook Air).
 
-Filter logging output by namespaces:
-```clojure
-(timbre/set-config! [:ns-whitelist] ["some.library.core" "my-app.*"])
-```
-
-**The source code includes a fully-annotated example config** (as `timbre/example-config`) that gives further details on these and other features.
+For common-case ease-of-use, **all logging utils use a global atom for their config**. This is configurable with `timbre/set-config!`, `timbre/merge-config!`. The lower-level `log` and `logf` macros also take an optional first-arg config map for greater flexibility (e.g. **during testing**).
 
 ### Built-in appenders
 
@@ -148,7 +179,7 @@ Filter logging output by namespaces:
 #### Email ([Postal](https://github.com/drewr/postal)) appender
 
 ```clojure
-;; [com.draines/postal "1.9.2"] ; Add to project.clj dependencies
+;; [com.draines/postal "1.9.2"] ; Add to project.clj deps
 ;; (:require [taoensso.timbre.appenders (postal :as postal-appender)]) ; Add to ns
 
 (timbre/set-config! [:appenders :postal]
@@ -162,32 +193,27 @@ Filter logging output by namespaces:
     {:from "me@draines.com" :to "foo@example.com"}}))
 ```
 
-#### Other included appenders
-
-A number of appenders are included out-the-box for: Android, Carmine (Redis), IRC, sockets, MongoDB, and rotating files.
-
-These are all located in the `taoensso.timbre.appenders.x` namespaces - please see the relevant docstrings for details.
-
-### Custom appenders
-
-Writing a custom appender is (really) very easy:
+#### Redis ([Carmine](https://github.com/ptaoussanis/carmine)) appender
 
 ```clojure
-(timbre/set-config!
- [:appenders :my-appender]
- {:doc        "Hello-world appender"
-  :min-level  :debug
-  :enabled?   true
-  :async?     false
-  :rate-limit nil
-  :fn (fn [{:keys [ap-config level throwable output] :as args}]
-        (when-not (:my-production-mode? ap-config)
-          (println "Hello world!:" output)))
+;; [com.taoensso/carmine "2.4.0"] ; Add to project.clj deps
+;; (:require [taoensso.timbre.appenders (:carmine :as car-appender)]) ; Add to ns
+
+(timbre/set-config! [:appenders :carmine] (postal-appenders/make-carmine-appender))
 ```
 
-And because appender fns are just regular Clojure fns, you have *unlimited power*: write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
+This gives us an appender that logs serialized entries as follows:
+ * Logs only the most recent instance of each unique entry.
+ * Limits the number of entries per level (configurable).
+ * Sorts entries by date of most recent occurence.
 
-See the `timbre/example-config` annotated code for lots more information on appenders.
+Entries are serialized with their raw logging arguments and so well suited for Clojure's usual seq tools (`filter`, `map`, `group-by`, etc.). Even exceptions are maintained and queryable later. A simple query utility is provided: `car-appender/query-entries`.
+
+#### Other included appenders
+
+A number of 3rd-party appenders are included out-the-box for: Android, IRC, sockets, MongoDB, and rotating files. These are all located in the `taoensso.timbre.appenders.x` namespaces - **please see the relevant docstrings for details**.
+
+Thanks to their respective authors! Just give me a shout if you've got an appender you'd like to have added.
 
 ## Profiling
 
@@ -208,15 +234,13 @@ Wrap forms that you'd like to profile with the `p` macro and give them a name:
        (p :mult (reduce * nums))
        (p :div  (reduce / nums)))))
 
-(my-fn)
-=> 42
+(my-fn) => 42
 ```
 
 The `profile` macro can now be used to log times for any wrapped forms:
 
 ```clojure
-(profile :info :Arithmetic (dotimes [n 100] (my-fn)))
-=> "Done!"
+(profile :info :Arithmetic (dotimes [n 100] (my-fn))) => "Done!"
 %> 2012-Jul-03 20:46:17 +0700 localhost INFO [my-app] - Profiling my-app/Arithmetic
               Name  Calls       Min        Max       MAD      Mean  Total% Total
  my-app/slow-sleep    100       2ms        2ms      31μs       2ms      57 231ms

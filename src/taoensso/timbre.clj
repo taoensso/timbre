@@ -100,19 +100,20 @@
       :fn              ; (fn [appender-args-map]), with keys described below.
 
      An appender's fn takes a single map with keys:
-      :level         ; Keyword
+      :level         ; Keyword.
       :error?        ; Is level an 'error' level?
-      :throwable     ; java.lang.Throwable
+      :throwable     ; java.lang.Throwable.
       :args          ; Raw logging macro args (as given to `info`, etc.).
       :message       ; Stringified logging macro args, or nil.
       :output        ; Output of `fmt-output-fn`, used by built-in appenders
-                     ; as final, formatted appender output.
+                     ; as final, formatted appender output. Appenders may (but
+                     ; are not obligated to) use this as their output.
       :ap-config     ; `shared-appender-config`.
       :profile-stats ; From `profile` macro.
-      :instant       ; java.util.Date
-      :timestamp     ; String generated from :timestamp-pattern, :timestamp-locale
-      :hostname      ; String
-      :ns            ; String
+      :instant       ; java.util.Date.
+      :timestamp     ; String generated from :timestamp-pattern, :timestamp-locale.
+      :hostname      ; String.
+      :ns            ; String.
 
    MIDDLEWARE
      Middleware are fns (applied right-to-left) that transform the map
