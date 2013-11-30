@@ -1,4 +1,5 @@
 (ns taoensso.timbre.appenders.rotor
+  {:author "Yutaka Matsubara"}
   (:import
    [java.io File FilenameFilter])
   (:require

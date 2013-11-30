@@ -62,7 +62,7 @@
 
 ;;;
 
-(def ^:private levels-ordered [:trace :debug :info :warn :error :fatal :report])
+(def levels-ordered [:trace :debug :info :warn :error :fatal :report])
 (def ^:private levels-scored  (assoc (zipmap levels-ordered (next (range))) nil 0))
 
 (defn error-level? [level] (boolean (#{:error :fatal} level))) ; For appenders, etc.
