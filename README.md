@@ -2,6 +2,7 @@
 
 ```clojure
 [com.taoensso/timbre "3.0.0-RC1"] ; Non-breaking upgrade - see CHANGELOG for details
+[com.taoensso/timbre "2.7.1"] ; Stable
 ```
 
 Appender authors: please see [here](https://github.com/ptaoussanis/timbre/issues/41) about migrating Timbre 2.x appenders to 3.x's recommended style.
