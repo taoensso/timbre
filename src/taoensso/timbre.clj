@@ -92,13 +92,15 @@
   "APPENDERS
      An appender is a map with keys:
       :doc, :min-level, :enabled?, :async?, :fn,
-      :rate-limit ([ncalls-limit window-ms] form).
+      :rate-limit      ; [ncalls-limit window-ms],
+      :fmt-output-opts ; Extra opts passed to `fmt-output-fn`.
 
      An appender's fn takes a single map with keys:
       :level, :throwable
       :args,          ; Raw logging macro args (as given to `info`, etc.).
       :message,       ; Stringified logging macro args, or nil.
-      :default-output ; Output of `fmt-output-fn`, used by built-in appenders.
+      :output         ; Output of `fmt-output-fn`, used by built-in appenders
+                      ; as final, formatted appender output.
       :ap-config      ; `shared-appender-config`.
       :profile-stats  ; From `profile` macro.
       And also: :instant, :timestamp, :hostname, :ns, :error?
@@ -129,30 +131,33 @@
      (str timestamp " " hostname " " (-> level name str/upper-case)
           " [" ns "]"))
 
-   ;; Default output formatter used by built-in appenders. Custom appenders
-   ;; may (but are not required to use) its output (:default-output).
+   ;; Output formatter used by built-in appenders. Custom appenders may (but are
+   ;; not required to use) its output (:output). Extra per-appender opts can be
+   ;; supplied as an optional second (map) arg.
    :fmt-output-fn
-   (fn [{:keys [level throwable message timestamp hostname ns]}]
+   (fn [{:keys [level throwable message timestamp hostname ns]}
+       ;; Any extra appender-specific opts:
+       & [{:keys [nofonts?] :as appender-fmt-output-opts}]]
      ;; <timestamp> <hostname> <LEVEL> [<ns>] - <message> <throwable>
      (format "%s %s %s [%s] - %s%s"
        timestamp hostname (-> level name str/upper-case) ns (or message "")
-       (or (stacktrace throwable "\n") "")))
+       (or (stacktrace throwable "\n" (when nofonts? {})) "")))
 
    :shared-appender-config {} ; Provided to all appenders via :ap-config key
    :appenders
    {:standard-out
     {:doc "Prints to *out*/*err*. Enabled by default."
      :min-level nil :enabled? true :async? false :rate-limit nil
-     :fn (fn [{:keys [error? default-output]}]
+     :fn (fn [{:keys [error? output]}]
            (binding [*out* (if error? *err* *out*)]
-             (str-println default-output)))}
+             (str-println output)))}
 
     :spit
     {:doc "Spits to `(:spit-filename :shared-appender-config)` file."
      :min-level nil :enabled? false :async? false :rate-limit nil
-     :fn (fn [{:keys [ap-config default-output]}]
+     :fn (fn [{:keys [ap-config output]}]
            (when-let [filename (:spit-filename ap-config)]
-             (try (spit filename default-output :append true)
+             (try (spit filename output :append true)
                   (catch java.io.IOException _))))}}})
 
 (utils/defonce* config (atom example-config))
@@ -164,7 +169,7 @@
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional runtime capabilities
   controlled by compile-time config."
-  [config {apfn :fn :keys [async? rate-limit] :as appender}]
+  [config {apfn :fn :keys [async? rate-limit fmt-output-opts] :as appender}]
   (let [rate-limit (or rate-limit ; Backwards comp:
                        (if-let [x (:max-message-per-msecs appender)] [1 x]
                          (when-let [x (:limit-per-msecs   appender)] [1 x])))]
@@ -173,6 +178,14 @@
 
     (->> ; Wrapping applies per appender, bottom-to-top
      apfn
+
+     ;; Custom appender-level fmt-output-opts
+     ((fn [apfn] ; Compile-time:
+        (if-not fmt-output-opts apfn ; Common case (no appender-level fmt opts)
+          (fn [apfn-args] ; Runtime:
+            ;; Replace default (juxt-level) output:
+            (apfn (assoc apfn-args :output
+                    ((:fmt-output-fn config) apfn-args fmt-output-opts)))))))
 
      ;; Rate limit support
      ((fn [apfn]
@@ -253,8 +266,8 @@
                   juxtfn-args (assoc juxtfn-args :timestamp (timestamp-fn instant))
                   juxtfn-args (assoc juxtfn-args
                     ;; DEPRECATED, here for backwards comp:
-                    :prefix         (when-let [f prefix-fn]     (f juxtfn-args))
-                    :default-output (when-let [f fmt-output-fn] (f juxtfn-args)))]
+                    :prefix (when-let [f prefix-fn]     (f juxtfn-args))
+                    :output (when-let [f fmt-output-fn] (f juxtfn-args)))]
               (juxtfn juxtfn-args)))))))
 
    ;; Middleware transforms/filters support
@@ -300,6 +313,7 @@
    ;; since configs will usually be assigned to a var for which we have proper
    ;; identity.
    (fn [{:keys [appenders] :as config}]
+     (assert (map? appenders))
      {:appenders-juxt
       (zipmap levels-ordered
          (->> levels-ordered
@@ -525,4 +539,13 @@
            (mapv (fn [arg] (if-not (map? arg) arg
                             (if-not (contains? arg :password) arg
                               (assoc arg :password "****"))))
-                 args))))]))
+                 args))))])
+
+  ;; fmt-output-opts
+  (-> (merge example-config
+        {:appenders
+         {:fmt-output-opts-test
+          {:min-level :error :enabled? true
+           :fmt-output-opts {:nofonts? true}
+           :fn (fn [{:keys [output]}] (str-println output))}}})
+      (log :report (Exception. "Oh noes") "Hello")))

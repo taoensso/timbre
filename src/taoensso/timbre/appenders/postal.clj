@@ -17,11 +17,11 @@
              ^{:host \"mail.isp.net\" :user \"jsmith\" :pass \"sekrat!!1\"}
              {:from \"Bob's logger <me@draines.com>\" :to \"foo@example.com\"}")
    :min-level :error :enabled? true :async? true
+   :fmt-output-opts {:nofonts? true}
    :rate-limit [5 (* 1000 60 2)] ; 5 calls / 2 mins
-   :fn (fn [{:keys [ap-config default-output]}]
+   :fn (fn [{:keys [ap-config output]}]
          (when-let [postal-config (:postal ap-config)]
            (postal/send-message
             (assoc postal-config
-              :subject (-> default-output (str/trim) (str-trunc 150)
-                           (str/replace #"\s+" " "))
-              :body    default-output))))})
+              :subject (-> output (str/trim) (str-trunc 150) (str/replace #"\s+" " "))
+              :body    output))))})
