@@ -33,9 +33,14 @@
   [& body] `(binding [*err* *out*] ~@body))
 
 (defn stacktrace "Default stacktrace formatter for use by appenders, etc."
-  [throwable & [separator]]
+  [throwable & [separator stacktrace-fonts]]
   (when throwable
-    (str separator (aviso-ex/format-exception throwable))))
+    (str separator
+      (if-let [fonts stacktrace-fonts]
+        (binding [aviso-ex/*fonts* fonts] (aviso-ex/format-exception throwable))
+        (aviso-ex/format-exception throwable)))))
+
+(comment (stacktrace (Exception. "foo") nil {}))
 
 ;;;; Logging levels
 ;; Level precendence: compile-time > dynamic > atom
