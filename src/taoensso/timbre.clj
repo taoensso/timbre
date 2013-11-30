@@ -91,26 +91,35 @@
 (def example-config
   "APPENDERS
      An appender is a map with keys:
-      :doc, :min-level, :enabled?, :async?, :fn,
-      :rate-limit      ; [ncalls-limit window-ms],
-      :fmt-output-opts ; Extra opts passed to `fmt-output-fn`.
+      :doc             ; (Optional) string.
+      :min-level       ; (Optional) keyword, or nil (no minimum level).
+      :enabled?        ; (Optional).
+      :async?          ; (Optional) dispatch using agent (good for slow appenders).
+      :rate-limit      ; (Optional) [ncalls-limit window-ms].
+      :fmt-output-opts ; (Optional) extra opts passed to `fmt-output-fn`.
+      :fn              ; (fn [appender-args-map]), with keys described below.
 
      An appender's fn takes a single map with keys:
-      :level, :throwable
-      :args,          ; Raw logging macro args (as given to `info`, etc.).
-      :message,       ; Stringified logging macro args, or nil.
-      :output         ; Output of `fmt-output-fn`, used by built-in appenders
-                      ; as final, formatted appender output.
-      :ap-config      ; `shared-appender-config`.
-      :profile-stats  ; From `profile` macro.
-      And also: :instant, :timestamp, :hostname, :ns, :error?
+      :level         ; Keyword
+      :error?        ; Is level an 'error' level?
+      :throwable     ; java.lang.Throwable
+      :args          ; Raw logging macro args (as given to `info`, etc.).
+      :message       ; Stringified logging macro args, or nil.
+      :output        ; Output of `fmt-output-fn`, used by built-in appenders
+                     ; as final, formatted appender output.
+      :ap-config     ; `shared-appender-config`.
+      :profile-stats ; From `profile` macro.
+      :instant       ; java.util.Date
+      :timestamp     ; String generated from :timestamp-pattern, :timestamp-locale
+      :hostname      ; String
+      :ns            ; String
 
    MIDDLEWARE
      Middleware are fns (applied right-to-left) that transform the map
      dispatched to appender fns. If any middleware returns nil, no dispatching
      will occur (i.e. the event will be filtered).
 
-  The `example-config` code contains more details.
+  The `example-config` code contains further settings and details.
   See also `set-config!`, `merge-config!`, `set-level!`."
 
   {;;; Control log filtering by namespace patterns (e.g. ["my-app.*"]).
