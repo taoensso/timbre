@@ -1,12 +1,13 @@
 **[API docs](http://ptaoussanis.github.io/timbre/)** | **[CHANGELOG](https://github.com/ptaoussanis/timbre/blob/master/CHANGELOG.md)** | [contact & contributing](#contact--contribution) | [other Clojure libs](https://www.taoensso.com/clojure-libraries) | [Twitter](https://twitter.com/#!/ptaoussanis) | current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "2.7.1"] ; See CHANGELOG for breaking changes since 1.x
+[com.taoensso/timbre "2.7.1"] ; Stable
+[com.taoensso/timbre "3.0.0-beta1"] ; Development, non-breaking - see CHANGELOG for details
 ```
 
 # Timbre, a (sane) Clojure logging & profiling library
 
-Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out-the-box*. Timbre is an attempt to make **simple logging simple** and more **complex logging reasonable**. No XML!
+Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out-the-box*. Timbre is an attempt to bring functional, Clojure-y goodness to all your logging needs. **No XML!**
 
 ## What's in the box™?
  * Small, uncomplicated **all-Clojure** library.
@@ -24,12 +25,23 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 
 ### Dependencies
 
-Add the necessary dependency to your [Leiningen](http://leiningen.org/) `project.clj` and `require` the library in your ns:
+Add the necessary dependency to your [Leiningen](http://leiningen.org/) `project.clj` and use the supplied ns-import helper:
 
 ```clojure
 [com.taoensso/timbre "2.7.1"] ; project.clj
-(ns my-app (:require [taoensso.timbre :as timbre
-                      :refer (trace debug info warn error fatal spy with-log-level)])) ; ns
+
+(ns my-app (:require [taoensso.timbre :as timbre])) ; Your ns
+(timbre/refer-timbre) ; Provides useful Timbre aliases in this ns
+```
+
+The `refer-timbre` call is a convenience fn and executes:
+```clojure
+(require '[taoensso.timbre :as timbre
+           :refer (log  trace  debug  info  warn  error  fatal  report
+                   logf tracef debugf infof warnf errorf fatalf reportf
+                   spy logged-future with-log-level)])
+(require '[taoensso.timbre.utils :refer (sometimes)])
+(require '[taoensso.timbre.profiling :as profiling :refer (pspy profile defnp)])
 ```
 
 ### Logging
@@ -82,20 +94,19 @@ java.lang.Exception: Oh noes
 
 ### Configuration
 
-Configuring Timbre couldn't be simpler. Let's check out (some of) the defaults:
+Configuring Timbre is a breeze. Let's check out (some of) the defaults:
 
 ```clojure
 @timbre/config
 =>
-{:current-level :debug
-
- :ns-whitelist []
+{:ns-whitelist [] ; Use patterns like "my-app.*"
  :ns-blacklist []
 
- :middleware [] ; As of Timbre 1.4.0, see source for details
+ ;; Fns to transform/filter appender fn args before dispatching to appenders:
+ :middleware []
 
- :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ"
- :timestamp-locale  nil
+ :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
+ :timestamp-locale  nil ; A Locale object, or nil
 
  :appenders
  {:standard-out        { <...> }
@@ -122,6 +133,8 @@ Filter logging output by namespaces:
 ```clojure
 (timbre/set-config! [:ns-whitelist] ["some.library.core" "my-app.*"])
 ```
+
+**The source code includes a fully-annotated example config** (as `timbre/example-config`) that gives further details on these and other features.
 
 ### Built-in appenders
 
@@ -150,85 +163,38 @@ Filter logging output by namespaces:
 (timbre/set-config! [:appenders :postal :async?] true)
 ```
 
-#### IRC ([irclj](https://github.com/flatland/irclj)) appender
+#### Other included appenders
 
-```clojure
-;; [irclj "0.5.0-alpha2"] ; Add to project.clj dependencies
-;; (:require [taoensso.timbre.appenders (irc :as irc-appender)]) ; Add to ns
+A number of appenders are included out-the-box for: Android, Carmine (Redis), IRC, sockets, MongoDB, and rotating files.
 
-(timbre/set-config! [:appenders :irc] irc-appender/irc-appender)
-(timbre/set-config! [:shared-appender-config :irc]
-                    {:host "irc.example.org"
-                     :port 6667
-                     :nick "logger"
-                     :name "Logger"
-                     :chan "#logs"})
-```
-
-#### Socket ([server-socket](https://github.com/technomancy/server-socket)) appender
-
-Listens on the specified interface (use :all for all interfaces, defaults to localhost if unspecified) and port. Connect with either of:
-
-```
-telnet localhost 9000
-netcat localhost 9000
-```
-
-```clojure
-;; [server-socket "1.0.0"] ; Add to project.clj dependencies
-;; (:require [taoensso.timbre.appenders (socket :as socket-appender)]) ; Add to ns
-
-(timbre/set-config! [:appenders :socket] socket-appender/socket-appender)
-(timbre/set-config! [:shared-appender-config :socket]
-                    {:listen-addr :all
-                     :port 9000})
-```
-
-#### MongoDB ([congomongo](https://github.com/aboekhoff/congomongo)) appender
-
-```clojure
-;; [congomongo "0.4.1"] ; Add to project.clj dependencies
-;; (:require [taoensso.timbre.appenders (mongo :as mongo-appender)]) ; Add to ns
-
-(timbre/set-config! [:appenders :mongo] mongo-appender/mongo-appender)
-(timbre/set-config! [:shared-appender-config :mongo]
-                    {:db          "logs"
-                     :collection  "myapp"
-                     :server      {:host "127.0.0.1" :port 27017}})
-```
+These are all located in the `taoensso.timbre.appenders.x` namespaces - please see the relevant docstrings for details.
 
 ### Custom appenders
 
-Writing a custom appender is dead-easy:
+Writing a custom appender is (really) very easy:
 
 ```clojure
 (timbre/set-config!
  [:appenders :my-appender]
- {:doc       "Hello-world appender"
-  :min-level :debug
-  :enabled?  true
-  :async?    false
-  :limit-per-msecs nil ; No rate limit
-  :fn (fn [{:keys [ap-config level prefix throwable message] :as args}]
+ {:doc        "Hello-world appender"
+  :min-level  :debug
+  :enabled?   true
+  :async?     false
+  :rate-limit nil
+  :fn (fn [{:keys [ap-config level throwable output] :as args}]
         (when-not (:my-production-mode? ap-config)
-          (println prefix "Hello world!" message)))
+          (println "Hello world!:" output)))
 ```
 
 And because appender fns are just regular Clojure fns, you have *unlimited power*: write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
 
-See the `timbre/config` docstring for more information on appenders.
+See the `timbre/example-config` annotated code for lots more information on appenders.
 
 ## Profiling
 
 The usual recommendation for Clojure profiling is: use a good **JVM profiler** like [YourKit](http://www.yourkit.com/), [JProfiler](http://www.ej-technologies.com/products/jprofiler/overview.html), or [VisualVM](http://docs.oracle.com/javase/6/docs/technotes/guides/visualvm/index.html).
 
 And these certainly do the job. But as with many Java tools, they can be a little hairy and often heavy-handed - especially when applied to Clojure. Timbre includes an alternative.
-
-Let's add it to our app's `ns` declaration:
-
-```clojure
-(:require [taoensso.timbre.profiling :as profiling :refer (p profile)])
-```
 
 Wrap forms that you'd like to profile with the `p` macro and give them a name:
 
@@ -263,6 +229,8 @@ The `profile` macro can now be used to log times for any wrapped forms:
        Unaccounted                                                       6 26ms
              Total                                                     100 405ms
 ```
+
+You can also use the `defnp` macro to conveniently wrap whole fns.
 
 It's important to note that Timbre profiling is fully **logging-level aware**: if the  level is insufficient, you *won't pay for profiling*. Likewise, normal namespace filtering applies. (Performance characteristics for both checks are inherited from Timbre itself).
 
