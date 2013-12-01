@@ -1,3 +1,34 @@
+## v3.0.0-RC1 / 2013-11-30
+
+Major update, non-breaking though users with custom appenders are encouraged to view the _Changes_ section below. This version polishes up the codebase and general design. Tightened up a few aspects of how appenders and appender middleware work. Also finally added facilities for ad hoc (non-atom) logging configuration.
+
+Overall quite happy with the state of Timbre as of this release. No major anticipated improvements/changes from here (modulo bugs).
+
+### Features
+ * Android appender, courtesy of AdamClements.
+ * Powerful, high-performance Carmine (Redis) appender: query-able, rotating serialized log entries by log level. See README or appender's docstring for details. (Recommended!)
+ * Appender rate limits now specified in a more flexible format: `[ncalls window-msecs]`, e.g. `[1 2000]` for 1 write / 2000 msecs.
+ * Appender rate limits now also apply (at 1/4 ncalls) to any _particular_ logging arguments in the same time window. This helps prevent a particular logging call from flooding the limiter and preventing other calls from getting through.
+ * `sometimes` macro that executes body with given probability. Useful for sampled logging (e.g. email a report for 0.01% of user logins in production).
+ * `log` and `logf` macros now take an optional logging config map as their first argument: `(log :info "hello") => use @timbre/config`, `(log <config> :info "hello") => use <config>`.
+ * Appenders can now specify an optional `:fmt-output-opts` that'll get passed to `fmt-output-fn` for any special formatting requirements they may have (e.g. the Postal email appender provides an arg to suppress ANSI colors in stacktrace output).
+
+### Changes
+ * EXPERIMENTAL: stacktraces now formatted with `io.aviso/pretty` rather than clj-stacktrace. Feedback on this (esp. coloring) welcome!
+ * DEPRECATED: `red`, `green`, `blue` -> use `color-str` instead.
+ * DEPRECATED: config `prefix-fn` has been replaced by the more flexible `fmt-output-fn`. Change is backwards compatible.
+ * REMOVED: Per-appender `:prefix` option dropped - was unnecessary. If an appender wants custom output formatting, it can do so w/o using an in-config formatter.
+ * Update `refer-timbre` (add profiling, logf variations, etc.).
+ * DEPRECATED: atom logging level is now located in `level-atom` rather than `config`. Old in-config levels will be respected (i.e. change is backwards compatible).
+ * DEPRECATED: appender rate limits are now specified as `:rate-limit [ncalls window-msecs]` rather than `:limit-per-msecs ncalls`. Change is backwards compatible.
+ * Built-in appenders have been simplified using the new `default-output` appender arg.
+ * Postal appender now generates a more useful subject in most cases.
+
+### Fixes
+ * [#38] Broken namespace filter (mlb-).
+ * [unreported] Messages are now generated _after_ middleware has been applied, allowing better filtering performance and more intuitive behaviour (e.g. changes to args in middleware will now automatically percolate to message content).
+
+
 ## v2.6.3 → v2.7.1
   * Core: `getHostName` no longer runs on the main thread for better Android compatibility (AdamClements).
   * Profiling: added `defnp` macro.
@@ -46,11 +77,8 @@
   * **BREAKING**: Stacktraces are no longer automatically generated at the `log`-macro level. Stacktraces are now left as an appender implementation detail. A `:throwable` appender argument has been added along with a `stacktrace` fn.
 
 
-## For older versions please see the [commit history][]
+### For older versions please see the [commit history][]
 
 [commit history]: https://github.com/ptaoussanis/timbre/commits/master
 [API docs]: http://ptaoussanis.github.io/timbre
 [Taoensso libs]: https://www.taoensso.com/clojure-libraries
-[Nippy GitHub]: https://github.com/ptaoussanis/nippy
-[Nippy CHANGELOG]: https://github.com/ptaoussanis/carmine/blob/master/CHANGELOG.md
-[Nippy API docs]: http://ptaoussanis.github.io/nippy

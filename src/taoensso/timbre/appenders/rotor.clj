@@ -1,8 +1,8 @@
 (ns taoensso.timbre.appenders.rotor
+  {:author "Yutaka Matsubara"}
   (:import
    [java.io File FilenameFilter])
   (:require
-   [clj-stacktrace.repl   :as stacktrace]
    [clojure.java.io :as io]
    [taoensso.timbre :as t]))
 
@@ -75,6 +75,4 @@
               :backlog 5}")
    :min-level nil
    :enabled? true
-   :async? false
-   :limit-per-msecs nil
    :fn appender-fn})
