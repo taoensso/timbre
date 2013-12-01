@@ -11,6 +11,7 @@ Appender authors: please see [here](https://github.com/ptaoussanis/timbre/issues
 Logging with Java can be maddeningly, unnecessarily hard. Particularly if all you want is something *simple that works out-the-box*. Timbre brings functional, Clojure-y goodness to all your logging needs. **No XML!**
 
 ## What's in the box™?
+ * [Logs as Clojure values](https://github.com/ptaoussanis/timbre/tree/dev#redis-carmine-appender-v3) (v3+).
  * Small, uncomplicated **all-Clojure** library.
  * **Super-simple map-based config**: no arcane XML or properties files!
  * **Low overhead** with dynamic logging level.
@@ -101,6 +102,9 @@ This is the biggest win over Java logging utilities IMO. Here's `timbre/example-
       :timestamp     ; String generated from :timestamp-pattern, :timestamp-locale.
       :hostname      ; String.
       :ns            ; String.
+      ;; Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
+      :file          ; String.
+      :line          ; Integer.
 
    MIDDLEWARE
      Middleware are fns (applied right-to-left) that transform the map
@@ -148,7 +152,7 @@ This is the biggest win over Java logging utilities IMO. Here's `timbre/example-
     {:doc "Spits to `(:spit-filename :shared-appender-config)` file."
      :min-level nil :enabled? false :async? false :rate-limit nil
      :fn (fn [{:keys [ap-config output]}] ; Use any appender args
-           (when-let [filename (:spit-filename ap-config)]
+           (when-let [filename (:spit-filename ap-config)]ar
              (try (spit filename output :append true)
                   (catch java.io.IOException _))))}}})
 ```
@@ -169,12 +173,22 @@ For common-case ease-of-use, **all logging utils use a global atom for their con
 
 ### Built-in appenders
 
-#### File appender
+#### Redis ([Carmine](https://github.com/ptaoussanis/carmine)) appender (v3+)
 
 ```clojure
-(timbre/set-config! [:appenders :spit :enabled?] true)
-(timbre/set-config! [:shared-appender-config :spit-filename] "/path/my-file.log")
+;; [com.taoensso/carmine "2.4.0"] ; Add to project.clj deps
+;; (:require [taoensso.timbre.appenders (:carmine :as car-appender)]) ; Add to ns
+
+(timbre/set-config! [:appenders :carmine] (postal-appenders/make-carmine-appender))
 ```
+
+This gives us a high-performance Redis appender:
+ * **All raw logging args are preserved** in serialized form (**even Throwables!**).
+ * Only the most recent instance of each **unique entry** is kept (hash fn used to determine uniqueness is configurable).
+ * Configurable number of entries to keep per logging level.
+ * **Log is just a value**: a vector of Clojure maps: **query+manipulate with standard seq fns**: group-by hostname, sort/filter by ns & severity, explore exception stacktraces, filter by raw arguments, etc.  **Datomic and `core.logic`** also offer interesting opportunities here.
+
+A simple query utility is provided: `car-appender/query-entries`.
 
 #### Email ([Postal](https://github.com/drewr/postal)) appender
 
@@ -193,21 +207,12 @@ For common-case ease-of-use, **all logging utils use a global atom for their con
     {:from "me@draines.com" :to "foo@example.com"}}))
 ```
 
-#### Redis ([Carmine](https://github.com/ptaoussanis/carmine)) appender
+#### File appender
 
 ```clojure
-;; [com.taoensso/carmine "2.4.0"] ; Add to project.clj deps
-;; (:require [taoensso.timbre.appenders (:carmine :as car-appender)]) ; Add to ns
-
-(timbre/set-config! [:appenders :carmine] (postal-appenders/make-carmine-appender))
+(timbre/set-config! [:appenders :spit :enabled?] true)
+(timbre/set-config! [:shared-appender-config :spit-filename] "/path/my-file.log")
 ```
-
-This gives us an appender that logs serialized entries as follows:
- * Logs only the most recent instance of each unique entry.
- * Limits the number of entries per level (configurable).
- * Sorts entries by date of most recent occurence.
-
-Entries are serialized with their raw logging arguments and so well suited for Clojure's usual seq tools (`filter`, `map`, `group-by`, etc.). Even exceptions are maintained and queryable later. A simple query utility is provided: `car-appender/query-entries`.
 
 #### Other included appenders
 

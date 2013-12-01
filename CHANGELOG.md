@@ -6,7 +6,7 @@ Overall quite happy with the state of Timbre as of this release. No major antici
 
 ### Features
  * Android appender, courtesy of AdamClements.
- * Carmine (Redis) appender: query-able, rotating serialized log entries by log level. See appender docstring for details.
+ * Powerful, high-performance Carmine (Redis) appender: query-able, rotating serialized log entries by log level. See README or appender's docstring for details. (Recommended!)
  * Appender rate limits now specified in a more flexible format: `[ncalls window-msecs]`, e.g. `[1 2000]` for 1 write / 2000 msecs.
  * Appender rate limits now also apply (at 1/4 ncalls) to any _particular_ logging arguments in the same time window. This helps prevent a particular logging call from flooding the limiter and preventing other calls from getting through.
  * `sometimes` macro that executes body with given probability. Useful for sampled logging (e.g. email a report for 0.01% of user logins in production).

@@ -114,6 +114,9 @@
       :timestamp     ; String generated from :timestamp-pattern, :timestamp-locale.
       :hostname      ; String.
       :ns            ; String.
+      ;; Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
+      :file          ; String.
+      :line          ; Integer.
 
    MIDDLEWARE
      Middleware are fns (applied right-to-left) that transform the map
