@@ -98,6 +98,7 @@
       :rate-limit      ; (Optional) [ncalls-limit window-ms].
       :fmt-output-opts ; (Optional) extra opts passed to `fmt-output-fn`.
       :fn              ; (fn [appender-args-map]), with keys described below.
+      :args-hash-fn    ; Experimental. Used by rate-limiter, etc.
 
      An appender's fn takes a single map with keys:
       :level         ; Keyword.
@@ -179,10 +180,28 @@
 
 ;;;; Appender-fn decoration
 
+(defn default-args-hash-fn
+  "Alpha - subject to change!!
+  Returns a hash identifier for given appender arguments in such a way that
+  (= (hash args-A) (hash args-B)) iff arguments A and B are \"the same\" by
+  some reasonable-in-the-general-case definition for logging arguments.
+
+  Useful in the context of rate limiting, deduplicating appenders, etc."
+
+  ;; Things like dates & user ids user ids will still trip us up.
+  ;; `[hostname ns line]` may be another idea?
+  ;; Waiting on http://dev.clojure.org/jira/browse/CLJ-865.
+
+  [{:keys [hostname ns args] :as apfn-args}]
+  (str (or (some #(and (map? %) (:timbre/hash %)) args) ; Explicit hash given
+           [hostname ns args])))
+
 (defn- wrap-appender-fn
   "Wraps compile-time appender fn with additional runtime capabilities
   controlled by compile-time config."
-  [config {apfn :fn :keys [async? rate-limit fmt-output-opts] :as appender}]
+  [config {:as appender apfn :fn
+           :keys [async? rate-limit fmt-output-opts args-hash-fn]
+           :or   {args-hash-fn default-args-hash-fn}}]
   (let [rate-limit (or rate-limit ; Backwards comp:
                        (if-let [x (:max-message-per-msecs appender)] [1 x]
                          (when-let [x (:limit-per-msecs   appender)] [1 x])))]
@@ -208,12 +227,13 @@
                 limiter-any      (utils/rate-limiter ncalls-limit window-ms)
                 ;; This is a little hand-wavy but it's a decent general
                 ;; strategy and helps us from making this overly complex to
-                ;; configure:
+                ;; configure.
                 limiter-specific (utils/rate-limiter (quot ncalls-limit 4)
                                                      window-ms)]
             (fn [{:keys [ns args] :as apfn-args}]
               ;; Runtime: (test smaller limit 1st):
-              (when-not (or (limiter-specific (str ns args)) (limiter-any))
+              (when-not (or (limiter-specific (args-hash-fn apfn-args))
+                            (limiter-any))
                 (apfn apfn-args)))))))
 
      ;; Async (agent) support
