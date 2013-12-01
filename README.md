@@ -95,7 +95,7 @@ This is the biggest win over Java logging utilities IMO. Here's `timbre/example-
       :output        ; Output of `fmt-output-fn`, used by built-in appenders
                      ; as final, formatted appender output. Appenders may (but
                      ; are not obligated to) use this as their output.
-      :ap-config     ; `shared-appender-config`.
+      :ap-config     ; Contents of config's :shared-appender-config key.
       :profile-stats ; From `profile` macro.
       :instant       ; java.util.Date.
       :timestamp     ; String generated from :timestamp-pattern, :timestamp-locale.
@@ -140,14 +140,14 @@ This is the biggest win over Java logging utilities IMO. Here's `timbre/example-
    {:standard-out
     {:doc "Prints to *out*/*err*. Enabled by default."
      :min-level nil :enabled? true :async? false :rate-limit nil
-     :fn (fn [{:keys [error? output]}]
+     :fn (fn [{:keys [error? output]}] ; Use any appender args
            (binding [*out* (if error? *err* *out*)]
              (str-println output)))}
 
     :spit
     {:doc "Spits to `(:spit-filename :shared-appender-config)` file."
      :min-level nil :enabled? false :async? false :rate-limit nil
-     :fn (fn [{:keys [ap-config output]}]
+     :fn (fn [{:keys [ap-config output]}] ; Use any appender args
            (when-let [filename (:spit-filename ap-config)]
              (try (spit filename output :append true)
                   (catch java.io.IOException _))))}}})
