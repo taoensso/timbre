@@ -106,7 +106,10 @@
                  []))
 
         entries-hash ; [{_} {_} ...]
-        (car/wcar conn (apply car/hmget k-hash (mapv :hash entries-zset)))]
+        (when-let [hashes (seq (mapv :hash entries-zset))]
+          (if-not (next hashes)
+            [(car/wcar conn (apply car/hget  k-hash hashes))] ; Careful!
+             (car/wcar conn (apply car/hmget k-hash hashes))))]
 
     (mapv (fn [m1 m2] (-> (merge m1 m2) (dissoc :hash)))
           entries-zset entries-hash)))
