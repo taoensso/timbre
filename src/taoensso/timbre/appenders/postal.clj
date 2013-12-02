@@ -20,8 +20,10 @@
    {:postal-config
     ^{:host \"mail.isp.net\" :user \"jsmith\" :pass \"sekrat!!1\"}
     {:from \"Bob's logger <me@draines.com>\" :to \"foo@example.com\"}})"
-  [& [appender-opts {:keys [postal-config subject-len]
-                     :or   {subject-len 150}}]]
+  [& [appender-opts {:keys [postal-config subject-len body-fn]
+                     :or   {subject-len 150
+                            body-fn (fn [output] [{:type "text/plain"
+                                                  :content output}])}}]]
 
   (let [default-appender-opts
         {:enabled?   true
@@ -41,7 +43,7 @@
                            (str/trim)
                            (str-trunc subject-len)
                            (str/replace #"\s+" " "))
-              :body output))))})))
+              :body (body-fn output)))))})))
 
 (def postal-appender "DEPRECATED: Use `make-postal-appender` instead."
   (make-postal-appender))
