@@ -88,6 +88,15 @@
 
 ;;;; Default configuration and appenders
 
+(defn default-fmt-output-fn
+  [{:keys [level throwable message timestamp hostname ns]}
+   ;; Any extra appender-specific opts:
+   & [{:keys [nofonts?] :as appender-fmt-output-opts}]]
+  ;; <timestamp> <hostname> <LEVEL> [<ns>] - <message> <throwable>
+  (format "%s %s %s [%s] - %s%s"
+    timestamp hostname (-> level name str/upper-case) ns (or message "")
+    (or (stacktrace throwable "\n" (when nofonts? {})) "")))
+
 (def example-config
   "APPENDERS
      An appender is a map with keys:
@@ -148,14 +157,7 @@
    ;; Output formatter used by built-in appenders. Custom appenders may (but are
    ;; not required to use) its output (:output). Extra per-appender opts can be
    ;; supplied as an optional second (map) arg.
-   :fmt-output-fn
-   (fn [{:keys [level throwable message timestamp hostname ns]}
-       ;; Any extra appender-specific opts:
-       & [{:keys [nofonts?] :as appender-fmt-output-opts}]]
-     ;; <timestamp> <hostname> <LEVEL> [<ns>] - <message> <throwable>
-     (format "%s %s %s [%s] - %s%s"
-       timestamp hostname (-> level name str/upper-case) ns (or message "")
-       (or (stacktrace throwable "\n" (when nofonts? {})) "")))
+   :fmt-output-fn default-fmt-output-fn
 
    :shared-appender-config {} ; Provided to all appenders via :ap-config key
    :appenders
