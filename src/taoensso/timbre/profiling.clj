@@ -119,7 +119,7 @@
          (profile :info :defnp-test (foo 5)))
 
 (comment
-  (profile :info :Sleepy-threads
+  (profile :info :sleepy-threads
            (dotimes [n 5]
              (Thread/sleep 100) ; Unaccounted
              (p :1ms  (Thread/sleep 1))
@@ -143,4 +143,4 @@
 
   (profile :info :Arithmetic (dotimes [n 100] (my-fn)))
 
-  (sampling-profile :info 0.2 :Sampling-test (p :string "Hello!")))
+  (sampling-profile :info 0.2 :sampling-test (p :string "Hello!")))

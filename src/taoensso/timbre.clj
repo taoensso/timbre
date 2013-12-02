@@ -72,7 +72,7 @@
       (throw (Exception. (format "Invalid logging level: %s" level)))))
 
 (def ^:private levels-compare (memoize (fn [x y] (- (level-checked-score x)
-                                                    (level-checked-score y)))))
+                                                   (level-checked-score y)))))
 
 (declare config)
 ;; Used in macros, must be public:
@@ -164,14 +164,14 @@
    {:standard-out
     {:doc "Prints to *out*/*err*. Enabled by default."
      :min-level nil :enabled? true :async? false :rate-limit nil
-     :fn (fn [{:keys [error? output]}] ; Use any appender args
+     :fn (fn [{:keys [error? output]}] ; Can use any appender args
            (binding [*out* (if error? *err* *out*)]
              (str-println output)))}
 
     :spit
     {:doc "Spits to `(:spit-filename :shared-appender-config)` file."
      :min-level nil :enabled? false :async? false :rate-limit nil
-     :fn (fn [{:keys [ap-config output]}] ; Use any appender args
+     :fn (fn [{:keys [ap-config output]}] ; Can use any appender args
            (when-let [filename (:spit-filename ap-config)]
              (try (spit filename output :append true)
                   (catch java.io.IOException _))))}}})
@@ -299,7 +299,7 @@
                                           :format    (if-not (next args) (str args)
                                                        (apply format args))
                                           :print-str (apply print-str args)
-                                          :nil    nil)))))
+                                          :nil       nil)))))
                   juxtfn-args (assoc juxtfn-args :timestamp (timestamp-fn instant))
                   juxtfn-args (assoc juxtfn-args
                     ;; DEPRECATED, here for backwards comp:
