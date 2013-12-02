@@ -296,7 +296,8 @@
                                     (assoc  :message
                                       (when-not (empty? args)
                                         (case msg-type
-                                          :format    (apply format    args)
+                                          :format    (if-not (next args) (str args)
+                                                       (apply format args))
                                           :print-str (apply print-str args)
                                           :nil    nil)))))
                   juxtfn-args (assoc juxtfn-args :timestamp (timestamp-fn instant))

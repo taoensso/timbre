@@ -27,6 +27,7 @@ Overall quite happy with the state of Timbre as of this release. No major antici
 ### Fixes
  * [#38] Broken namespace filter (mlb-).
  * [unreported] Messages are now generated _after_ middleware has been applied, allowing better filtering performance and more intuitive behaviour (e.g. changes to args in middleware will now automatically percolate to message content).
+ * [unreported] (logf <level> "hello %s") was throwing due to lack of formatting args.
 
 
 ## v2.6.3 → v2.7.1
