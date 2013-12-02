@@ -101,7 +101,7 @@
          (partition 2) ; Reconstitute :level, :instant keys:
          (reduce (fn [v [entry-hash score]]
            (conj v {:level   level
-                    :instant (car/as-long score)
+                    :instant (java.util.Date. (-> score car/as-long long))
                     :hash    entry-hash}))
                  []))
 
