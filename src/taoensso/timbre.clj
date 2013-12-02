@@ -246,7 +246,7 @@
             (fn [apfn-args] ; Runtime:
               (send-off agent (fn [_] (apfn apfn-args)))))))))))
 
-(defn- make-timestamp-fn
+(defn make-timestamp-fn
   "Returns a unary fn that formats instants using given pattern string and an
   optional Locale."
   ;; Thread safe SimpleDateTime soln. from instant.clj, Ref. http://goo.gl/CEBJnQ
