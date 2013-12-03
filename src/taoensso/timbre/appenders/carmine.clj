@@ -2,6 +2,7 @@
   "Carmine (Redis) appender. Requires https://github.com/ptaoussanis/carmine."
   {:author "Peter Taoussanis"}
   (:require [taoensso.carmine :as car]
+            [taoensso.nippy   :as nippy]
             [taoensso.timbre  :as timbre]))
 
 (defn- sha48
@@ -58,7 +59,8 @@
 
            (when (> nmax-entries 0)
              (car/wcar conn
-               (car/hset k-hash entry-hash entry)
+               (binding [nippy/*final-freeze-fallback* nippy/freeze-fallback-as-str]
+                 (car/hset k-hash entry-hash entry))
                (car/zadd k-zset udt entry-hash)
 
                (when (< (rand) 0.01) ; Occasionally GC
