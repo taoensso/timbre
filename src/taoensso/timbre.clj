@@ -175,6 +175,8 @@
 (defn set-config!   [ks val] (swap! config assoc-in ks val))
 (defn merge-config! [& maps] (apply swap! config utils/merge-deep maps))
 
+(def ^:dynamic *context* {})
+
 ;;;; Appender-fn decoration
 
 (defn default-args-hash-fn
@@ -398,6 +400,7 @@
         :throwable throwable
         :message   message  ; Timbre: nil,  tools.logging: nil or string
         :msg-type  msg-type ; Timbre: nnil, tools.logging: nil
+        :context *context*
         }))
     nil))
 
@@ -512,6 +515,32 @@
   (require
    '[taoensso.timbre.profiling :as profiling :refer (pspy profile defnp)]))
 
+
+(defmacro with-context*
+  [level append-context & body]
+  ;; Compile-time:
+  (if (or (nil? level-compile-time)
+            (nil? level) ; Also needs to be compile-time
+            (level-sufficient? level nil))
+    `(binding [*context* (merge *context* ~append-context)]
+       ~@body)
+    `(do ~@body)))
+
+(defmacro with-context
+  [append-context & body]
+  `(with-context* nil ~append-context ~@body))
+
+(defmacro def-context
+  [level]
+  `(defmacro ~(symbol (str "with-" (name level) "-context"))
+     [append-context# & body#]
+     `(with-context* ~~level ~append-context# ~@body#)))
+
+(defmacro ^:private def-contexts []
+  `(do ~@(map (fn [level] `(def-context ~level)) levels-ordered)))
+
+(def-contexts)
+
 ;;;; Deprecated
 
 (defmacro logp "DEPRECATED: Use `log` instead."
@@ -588,4 +617,23 @@
   (log :info "hello")      ; Discarded at compile-time
   (log {} :info)           ; Discarded at compile-time
   (log (or :info) "hello") ; Discarded at runtime
+
+  ;; contexts
+  (set-config!
+   [:appenders :context-out]
+   { :min-level nil :enabled? true :async? false :limit-per-msecs nil
+    :fn (fn [{:keys [context]}]
+          (prn "Context" context))})
+  
+  (with-context {:user 1}
+    (info "Log in"))
+
+  (with-context {:user 1}
+    (with-debug-context {:session 5}
+      (info "Log out")))
+
+  (def level-compile-time :info)
+  (with-context {:user 1}
+    (with-debug-context {:session 5}
+      (info "Log out")))
   )
