@@ -1,6 +1,6 @@
-## v3.0.0-RC1 / 2013-11-30
+## v3.0.0-RC2 / 2013-12-04
 
-Major update, non-breaking though users with custom appenders are encouraged to view the _Changes_ section below. This version polishes up the codebase and general design. Tightened up a few aspects of how appenders and appender middleware work. Also finally added facilities for ad hoc (non-atom) logging configuration.
+Major update, non-breaking though users with custom appenders are encouraged to view the _Changes_ section below. This version polishes up the codebase and general design. Tightened up a few aspects of how appenders and appender middleware work. Added a serializing Carmine appender (I use something similar in prod most of the time). Also finally added facilities for ad hoc (non-atom) logging configuration.
 
 Overall quite happy with the state of Timbre as of this release. No major anticipated improvements/changes from here (modulo bugs).
 

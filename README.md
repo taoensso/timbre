@@ -1,7 +1,7 @@
 **[API docs](http://ptaoussanis.github.io/timbre/)** | **[CHANGELOG](https://github.com/ptaoussanis/timbre/blob/master/CHANGELOG.md)** | [contact & contributing](#contact--contribution) | [other Clojure libs](https://www.taoensso.com/clojure-libraries) | [Twitter](https://twitter.com/#!/ptaoussanis) | current [semantic](http://semver.org/) version:
 
 ```clojure
-[com.taoensso/timbre "3.0.0-RC1"] ; Non-breaking upgrade - see CHANGELOG for details
+[com.taoensso/timbre "3.0.0-RC2"] ; Non-breaking upgrade - see CHANGELOG for details
 [com.taoensso/timbre "2.7.1"] ; Stable
 ```
 
@@ -31,7 +31,7 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 Add the necessary dependency to your [Leiningen](http://leiningen.org/) `project.clj` and use the supplied ns-import helper:
 
 ```clojure
-[com.taoensso/timbre "3.0.0-RC1"] ; project.clj
+[com.taoensso/timbre "3.0.0-RC2"] ; project.clj
 
 (ns my-app (:require [taoensso.timbre :as timbre])) ; Your ns
 (timbre/refer-timbre) ; Provides useful Timbre aliases in this ns
@@ -61,7 +61,7 @@ By default, Timbre gives you basic print output to `*out*`/`*err*` at a `debug` 
 (trace "This won't print due to insufficient logging level") => nil
 ```
 
-First-argument exceptions generate a nicely cleaned-up stack trace using [io.aviso.exception](https://github.com/AvisoNovate/pretty).
+First-argument exceptions generate a nicely cleaned-up stack trace using [io.aviso.exception](https://github.com/AvisoNovate/pretty):
 
 ```clojure
 (info (Exception. "Oh noes") "arg1" "arg2")
