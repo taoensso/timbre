@@ -22,7 +22,7 @@
     {:from \"Bob's logger <me@draines.com>\" :to \"foo@example.com\"}})"
   [& [appender-opts {:keys [postal-config subject-len body-fn]
                      :or   {subject-len 150
-                            body-fn (fn [output] [{:type "text/plain"
+                            body-fn (fn [output] [{:type "text/plain; charset=utf-8"
                                                   :content output}])}}]]
 
   (let [default-appender-opts
