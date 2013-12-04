@@ -2,6 +2,7 @@
   "Carmine (Redis) appender. Requires https://github.com/ptaoussanis/carmine."
   {:author "Peter Taoussanis"}
   (:require [taoensso.carmine :as car]
+            [taoensso.nippy   :as nippy]
             [taoensso.timbre  :as timbre]))
 
 (defn- sha48
@@ -17,14 +18,6 @@
 (defn default-keyfn [level] {:pre [(string? level)]}
   (format "carmine:timbre:default:%s" level))
 
-(defn default-entry-hash-fn [{:keys [hostname ns args] :as apfn-args}]
-  ;; We try choose a hashing strategy here that gives a reasonable
-  ;; definition of 'uniqueness' for general entries. Things like dates
-  ;; or user ids will still trip us up. `[hostname ns line]` may be another
-  ;; idea? Waiting on http://dev.clojure.org/jira/browse/CLJ-865.
-  (or (some #(and (map? %) (:timbre/id %)) args)
-      [hostname ns args]))
-
 (defn make-carmine-appender
   "Alpha - subject to change!
   Returns a Carmine Redis appender:
@@ -38,9 +31,9 @@
      also offer interesting opportunities here.
 
   See accompanying `query-entries` fn to return deserialized log entries."
-  [& [appender-opts {:keys [conn keyfn entry-hash-fn nentries-by-level]
-                     :or   {keyfn         default-keyfn
-                            entry-hash-fn default-entry-hash-fn
+  [& [appender-opts {:keys [conn keyfn args-hash-fn nentries-by-level]
+                     :or   {keyfn        default-keyfn
+                            args-hash-fn timbre/default-args-hash-fn
                             nentries-by-level {:trace    50
                                                :debug    50
                                                :info     50
@@ -56,7 +49,7 @@
     (merge default-appender-opts appender-opts
       {:fn
        (fn [{:keys [level instant] :as apfn-args}]
-         (let [entry-hash (sha48 (entry-hash-fn apfn-args))
+         (let [entry-hash (sha48 (args-hash-fn apfn-args))
                entry      (select-keys apfn-args [:hostname :ns :args :throwable
                                                   :profile-stats])
                k-zset (keyfn (name level))
@@ -66,7 +59,8 @@
 
            (when (> nmax-entries 0)
              (car/wcar conn
-               (car/hset k-hash entry-hash entry)
+               (binding [nippy/*final-freeze-fallback* nippy/freeze-fallback-as-str]
+                 (car/hset k-hash entry-hash entry))
                (car/zadd k-zset udt entry-hash)
 
                (when (< (rand) 0.01) ; Occasionally GC
@@ -109,12 +103,15 @@
          (partition 2) ; Reconstitute :level, :instant keys:
          (reduce (fn [v [entry-hash score]]
            (conj v {:level   level
-                    :instant (car/as-long score)
+                    :instant (java.util.Date. (-> score car/as-long long))
                     :hash    entry-hash}))
                  []))
 
         entries-hash ; [{_} {_} ...]
-        (car/wcar conn (apply car/hmget k-hash (mapv :hash entries-zset)))]
+        (when-let [hashes (seq (mapv :hash entries-zset))]
+          (if-not (next hashes)
+            [(car/wcar conn (apply car/hget  k-hash hashes))] ; Careful!
+             (car/wcar conn (apply car/hmget k-hash hashes))))]
 
     (mapv (fn [m1 m2] (-> (merge m1 m2) (dissoc :hash)))
           entries-zset entries-hash)))
