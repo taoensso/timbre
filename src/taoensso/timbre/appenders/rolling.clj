@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.daily "Daily rolling file appender."
+(ns taoensso.timbre.appenders.rolling "Rolling file appender."
   (:require [clojure.java.io :as io]
             [taoensso.timbre :as timbre])
   (:import [java.text SimpleDateFormat]
@@ -42,7 +42,7 @@
 
 (defn- appender-fn [{:keys [ap-config output instant]}]
   (let [{:keys [path pattern]
-         :or {pattern :daily}} (:daily ap-config)
+         :or {pattern :daily}} (:rolling ap-config)
         prev-cal (prev-period-end-cal instant pattern)
         log (io/file path)]
     (when log
@@ -54,12 +54,12 @@
         (spit path (with-out-str (timbre/str-println output)) :append true)
         (catch java.io.IOException _)))))
 
-(defn make-daily-appender
-  "Returns a Daily rolling file appender.
-  A Daily config map can be provided here as an argument, or as a :daily key
+(defn make-rolling-appender
+  "Returns a Rolling file appender.
+  A rolling config map can be provided here as an argument, or as a :rolling key
   in :shared-appender-config.
 
-  (make-daily-appender {:enabled? true}
+  (make-rolling-appender {:enabled? true}
     {:path \"log/app.log\"
      :pattern :daily})
   path: logfile path
