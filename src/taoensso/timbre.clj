@@ -371,13 +371,14 @@
 
 ;;;; Logging macros
 
-(defn ns-unfiltered? [config & [ns]] ((:ns-filter (compile-config config))
-                                      (or ns *ns*)))
+(defn ns-unfiltered? [config ns] ((:ns-filter (compile-config config)) ns))
 
 (defn logging-enabled? "For 3rd-party utils, etc."
-  [level] (let [config' @config]
-            (and (level-sufficient? level config')
-                 (ns-unfiltered? config'))))
+  [level & [compile-time-ns]]
+  (let [config' @config]
+    (and (level-sufficient? level config')
+         (or (nil? compile-time-ns)
+             (ns-unfiltered? config' compile-time-ns)))))
 
 (defn send-to-appenders! "Implementation detail."
   [;; Args provided by both Timbre, tools.logging:
@@ -417,10 +418,11 @@
            s1# ~s1
            default-config?# (levels-scored s1#)
            config# (if default-config?# @config s1#)
-           level#  (if default-config?# s1#     ~s2)]
+           level#  (if default-config?# s1#     ~s2)
+           compile-time-ns# ~(str *ns*)]
        ;; (println "DEBUG: Runtime level check")
        (when (and (level-sufficient? level# config#)
-                  (ns-unfiltered? config#))
+                  (ns-unfiltered? config# compile-time-ns#))
          (when-let [juxt-fn# (get-in (compile-config config#)
                                      [:appenders-juxt level#])]
            (let [[x1# & xn# :as xs#] (if default-config?#
@@ -432,7 +434,7 @@
               level#
               ~base-appender-args
               log-vargs#
-              ~(str *ns*)
+              compile-time-ns#
               (when has-throwable?# x1#)
               nil ; Timbre generates msg only after middleware
               juxt-fn#
