@@ -24,7 +24,7 @@
 (declare pdata-stats format-pdata)
 
 (defmacro with-pdata [level & body]
-  `(if-not (timbre/logging-enabled? ~level)
+  `(if-not (timbre/logging-enabled? ~level ~(str *ns*))
      {:result (do ~@body)}
      (binding [*pdata* (atom {})]
        {:result (p ::clock-time ~@body)

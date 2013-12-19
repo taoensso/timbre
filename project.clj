@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "3.0.0-RC2"
+(defproject com.taoensso/timbre "3.0.0-RC3"
   :description "Clojure logging & profiling library"
   :url "https://github.com/ptaoussanis/timbre"
   :license {:name "Eclipse Public License"
@@ -11,7 +11,7 @@
              :1.6  {:dependencies [[org.clojure/clojure "1.6.0-alpha2"]]}
              :dev  {:dependencies [[com.draines/postal        "1.11.1"]
                                    [com.taoensso/carmine      "2.4.0"]
-                                   [com.taoensso/nippy        "2.5.1"] ; nb .1
+                                   [com.taoensso/nippy        "2.5.2"] ; nb .1+
                                    [org.clojure/tools.logging "0.2.6"]]}
              :test {:dependencies [[expectations "1.4.56"]]}}
   :aliases {"test-all"  ["with-profile" "+test,+1.4:+test,+1.5:+test,+1.6" "expectations"]

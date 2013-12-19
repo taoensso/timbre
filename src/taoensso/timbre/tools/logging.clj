@@ -1,5 +1,12 @@
 (ns taoensso.timbre.tools.logging
-  "clojure.tools.logging.impl/Logger implementation"
+  "clojure.tools.logging.impl/Logger implementation.
+
+  Limitations:
+    * No support for zero-overhead compile-time logging levels (`enabled?`
+      called as a fn).
+    * No support for ns filtering (`write!` called as a fn and w/o compile-time
+      ns info).
+    * Limited raw `:args` support  (`write!` called w/o raw args)."
   (:require [clojure.tools.logging]
             [taoensso.timbre :as timbre]))
 
@@ -8,10 +15,8 @@
   (enabled? [_ level] (timbre/logging-enabled? level))
   (write! [_ level throwable message]
     ;; tools.logging message may be a string (for `logp`/`logf` calls) or raw
-    ;; argument (for `log` calls). Note that without an :args equivalent for
-    ;; `write!`, the best we can do is `[message]`. This inconsistency means
-    ;; that :args consumers will necessarily behave differently under
-    ;; tools.logging.
+    ;; argument (for `log` calls). The best we can do for :args is therefore
+    ;; `[message]`:
     (timbre/send-to-appenders! level {} [message] logger-ns throwable
       (when (string? message) message))))
 
