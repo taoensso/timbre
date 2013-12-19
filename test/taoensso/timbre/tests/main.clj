@@ -1,7 +1,8 @@
 (ns taoensso.timbre.tests.main
   (:require [expectations    :as test   :refer :all]
             [taoensso.timbre :as timbre :refer (trace debug info warn
-                                                error fatal spy)]
+                                                error fatal spy
+                                                with-log-level)]
             [taoensso.timbre.profiling :as profiling :refer (p profile)]
             taoensso.timbre.tests.called))
 
@@ -32,14 +33,14 @@
         (line-count (with-out-str (trace "hi"))))
 
 (expect 1
-        (line-count (with-out-str (do (timbre/set-level! :trace)
+        (line-count (with-out-str (timbre/with-log-level :trace
                                       (trace "hi")))))
 
 (expect 1
         (line-count (with-out-str (info "hi"))))
 
 (expect 0
-        (line-count (with-out-str (do (timbre/set-level! :warn)
+        (line-count (with-out-str (timbre/with-log-level :warn
                                       (info "hi")))))
 
 (expect 1
