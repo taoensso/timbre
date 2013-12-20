@@ -105,7 +105,7 @@
               (perc accounted clock-time) (ft accounted)))))
 
 (defmacro defnp "Like `defn` but wraps body in `p` macro."
-  {:arglists '([name doc-string? attr-map? [params] prepost-map? body])}
+  {:arglists '([name ?doc-string ?attr-map [params] ?prepost-map body])}
   [name & sigs]
   (let [[name [params & sigs]] (macro/name-with-attributes name sigs)
         prepost-map (when (and (map? (first sigs)) (next sigs)) (first sigs))
