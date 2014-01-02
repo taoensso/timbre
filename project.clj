@@ -5,7 +5,7 @@
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure     "1.4.0"]
                  [org.clojure/tools.macro "0.1.5"]
-                 [io.aviso/pretty         "0.1.6"]]
+                 [io.aviso/pretty         "0.1.8"]]
   :profiles {:1.4  {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
              :1.6  {:dependencies [[org.clojure/clojure "1.6.0-alpha2"]]}
@@ -19,7 +19,7 @@
             "start-dev" ["with-profile" "+dev,+test,+bench" "repl" ":headless"]
             "codox"     ["with-profile" "+dev,+test" "doc"]}
   :plugins [[lein-expectations "0.0.8"]
-            [lein-autoexpect   "1.0"]
+            [lein-autoexpect   "1.2.1"]
             [lein-ancient      "0.5.4"]
             [codox             "0.6.6"]]
   :min-lein-version "2.0.0"
