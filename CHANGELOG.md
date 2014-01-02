@@ -1,4 +1,4 @@
-## v3.0.0-RC2 / 2013-12-04
+## v3.0.0-RC4 / 2013-Jan-02
 
 Major update, non-breaking though users with custom appenders are encouraged to view the _Changes_ section below. This version polishes up the codebase and general design. Tightened up a few aspects of how appenders and appender middleware work. Added a serializing Carmine appender (I use something similar in prod most of the time). Also finally added facilities for ad hoc (non-atom) logging configuration.
 
@@ -6,6 +6,7 @@ Overall quite happy with the state of Timbre as of this release. No major antici
 
 ### Features
  * Android appender, courtesy of AdamClements.
+ * Rolling appender, courtesy of megayu.
  * Powerful, high-performance Carmine (Redis) appender: query-able, rotating serialized log entries by log level. See README or appender's docstring for details. (Recommended!)
  * Appender rate limits now specified in a more flexible format: `[ncalls window-msecs]`, e.g. `[1 2000]` for 1 write / 2000 msecs.
  * Appender rate limits now also apply (at 1/4 ncalls) to any _particular_ logging arguments in the same time window. This helps prevent a particular logging call from flooding the limiter and preventing other calls from getting through.
