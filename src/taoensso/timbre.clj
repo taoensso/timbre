@@ -168,7 +168,7 @@
      :min-level nil :enabled? false :async? false :rate-limit nil
      :fn (fn [{:keys [ap-config output]}] ; Can use any appender args
            (when-let [filename (:spit-filename ap-config)]
-             (try (spit filename output :append true)
+             (try (spit filename (str output "\n") :append true)
                   (catch java.io.IOException _))))}}})
 
 (utils/defonce* config (atom example-config))
