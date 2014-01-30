@@ -1,4 +1,4 @@
-## v3.0.0-RC4 / 2014-Jan-02
+## v3.0.0 / 2014-Jan-30
 
 Major update, non-breaking though users with custom appenders are encouraged to view the _Changes_ section below. This version polishes up the codebase and general design. Tightened up a few aspects of how appenders and appender middleware work. Added a serializing Carmine appender (I use something similar in prod most of the time). Also finally added facilities for ad hoc (non-atom) logging configuration.
 
