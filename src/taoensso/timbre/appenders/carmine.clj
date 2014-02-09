@@ -107,13 +107,18 @@
                     :hash    entry-hash}))
                  []))
 
-        entries-hash ; [{_} {_} ...]
+        entries-hash ; [{_}-or-ex {_}-or-ex ...]
         (when-let [hashes (seq (mapv :hash entries-zset))]
           (if-not (next hashes)
-            [(car/wcar conn (apply car/hget  k-hash hashes))] ; Careful!
-             (car/wcar conn (apply car/hmget k-hash hashes))))]
+            (car/wcar conn :as-pipeline (apply car/hget  k-hash hashes)) ; Careful!
+            (car/wcar conn              (apply car/hmget k-hash hashes))))]
 
-    (mapv (fn [m1 m2] (-> (merge m1 m2) (dissoc :hash)))
+    (mapv (fn [m1 m2-or-ex]
+            (if (instance? Exception m2-or-ex)
+              ;; Should be rare but can happen (e.g. due to faulty Nippy
+              ;; extensions or inconsistently-unserializable args):
+              (-> (assoc m1 :entry-ex m2-or-ex) (dissoc :hash))
+              (-> (merge m1 m2-or-ex)           (dissoc :hash))))
           entries-zset entries-hash)))
 
 ;;;; Dev/tests
