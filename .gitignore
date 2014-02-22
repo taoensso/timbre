@@ -5,9 +5,8 @@
 /logs
 /docs
 /doc
-pom.xml
 *.jar
 *.class
-*.sh
 .lein*
+pom.xml*
 .env
