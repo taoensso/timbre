@@ -1,12 +1,17 @@
-## Pending / unreleaded
+## v3.1.0 / 2014 Feb 23
+
+### New
+
+ * #47 Added `taoensso.timbre.profiling/pspy*` fn.
 
 ### Changes
 
- * Make Carmine appender resistant to unexpected log entry thaw errors.
+ * Made Carmine appender resistant to unexpected log entry thaw errors.
+ * Moved most utils to external `encore` dependency.
 
 ### Fixes
 
- * #50 Fix rotor appender so that it respects :fmt-output-opts (kenrestivo).
+ * #50 Fixed rotor appender so that it respects :fmt-output-opts (kenrestivo).
 
 
 ## v3.0.0 / 2014 Jan 30
