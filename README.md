@@ -283,14 +283,14 @@ Copyright &copy; 2012-2014 Peter Taoussanis. Distributed under the [Eclipse Publ
 
 
 [API docs]: <http://ptaoussanis.github.io/timbre/>
-[CHANGELOG]: <https://github.com/ptaoussanis/nippy/blob/master/CHANGELOG.md>
+[CHANGELOG]: <https://github.com/ptaoussanis/timbre/blob/master/CHANGELOG.md>
 [other Clojure libs]: <https://www.taoensso.com/clojure-libraries>
 [Twitter]: <https://twitter.com/ptaoussanis>
 [semantic]: <http://semver.org/>
 [Leiningen]: <http://leiningen.org/>
 [CDS]: <http://clojure-doc.org/>
 [ClojureWerkz]: <http://clojurewerkz.org/>
-[issues page]: <https://github.com/ptaoussanis/nippy/issues>
-[commit history]: <https://github.com/ptaoussanis/nippy/commits/master>
+[issues page]: <https://github.com/ptaoussanis/timbre/issues>
+[commit history]: <https://github.com/ptaoussanis/timbre/commits/master>
 [taoensso.com]: <https://www.taoensso.com>
-[Eclipse Public License]: <https://raw2.github.com/ptaoussanis/nippy/master/LICENSE>
+[Eclipse Public License]: <https://raw2.github.com/ptaoussanis/timbre/master/LICENSE>
