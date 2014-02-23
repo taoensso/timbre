@@ -11,8 +11,8 @@
                 *assert* true}
   :dependencies
   [[org.clojure/clojure "1.4.0"]
-   [io.aviso/pretty     "0.1.8"]
-   [com.taoensso/encore "0.8.0"]]
+   [com.taoensso/encore "0.8.0"]
+   [io.aviso/pretty     "0.1.8"]]
 
   :test-paths ["test" "src"]
   :profiles
@@ -29,10 +29,10 @@
    [:1.6 :test
     {:jvm-opts ^:replace ["-server"]
      :hooks []
-     :dependencies [[com.draines/postal        "1.11.1"]
-                    [org.clojure/tools.logging "0.2.6"]
-                    [com.taoensso/nippy        "2.5.2"]
-                    [com.taoensso/carmine      "2.4.6"]]
+     :dependencies [[com.taoensso/nippy        "2.5.2"]
+                    [com.taoensso/carmine      "2.4.6"]
+                    [com.draines/postal        "1.11.1"]
+                    [org.clojure/tools.logging "0.2.6"]]
      :plugins []}]}
 
     :plugins [[lein-ancient "0.5.4"]
