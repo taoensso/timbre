@@ -10,9 +10,9 @@
   :global-vars {*warn-on-reflection* true
                 *assert* true}
   :dependencies
-  [[org.clojure/clojure     "1.4.0"]
-   [org.clojure/tools.macro "0.1.5"]
-   [io.aviso/pretty         "0.1.8"]]
+  [[org.clojure/clojure "1.4.0"]
+   [io.aviso/pretty     "0.1.8"]
+   [com.taoensso/encore "0.8.0"]]
 
   :test-paths ["test" "src"]
   :profiles

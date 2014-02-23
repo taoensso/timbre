@@ -1,8 +1,8 @@
 (ns taoensso.timbre.tests.main
   (:require [expectations    :as test   :refer :all]
-            [taoensso.timbre :as timbre :refer (trace debug info warn
-                                                error fatal spy)]
-            [taoensso.timbre.profiling :as profiling :refer (p profile)]))
+            [taoensso.timbre :as timbre]))
+
+(timbre/refer-timbre)
 
 (defn- before-run {:expectations-options :before-run} [])
 (defn- after-run  {:expectations-options :after-run}  [])

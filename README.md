@@ -41,8 +41,7 @@ The `refer-timbre` call is a convenience fn that executes:
 (require '[taoensso.timbre :as timbre
            :refer (log  trace  debug  info  warn  error  fatal  report
                    logf tracef debugf infof warnf errorf fatalf reportf
-                   spy logged-future with-log-level)])
-(require '[taoensso.timbre.utils :refer (sometimes)])
+                   spy logged-future with-log-level sometimes)])
 (require '[taoensso.timbre.profiling :as profiling :refer (pspy profile defnp)])
 ```
 

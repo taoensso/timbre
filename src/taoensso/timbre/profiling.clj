@@ -2,8 +2,8 @@
   "Logging profiler for Timbre, adapted from clojure.contrib.profile."
   {:author "Peter Taoussanis"}
   (:require [clojure.tools.macro   :as macro]
-            [taoensso.timbre       :as timbre]
-            [taoensso.timbre.utils :as utils]))
+            [taoensso.encore       :as encore]
+            [taoensso.timbre       :as timbre]))
 
 (def ^:dynamic *pdata* "{::pname [time1 time2 ...]}" nil)
 
@@ -12,7 +12,7 @@
   of named body. Always returns the body's result."
   [name & body]
   `(if-not *pdata* (do ~@body)
-     (let [name# (utils/fq-keyword ~name)
+     (let [name# (encore/fq-keyword ~name)
            start-time# (System/nanoTime)]
        (try (do ~@body)
             (finally
@@ -42,7 +42,7 @@
   `(let [{result# :result stats# :stats} (with-pdata ~level ~@body)]
      (when stats#
        (timbre/log* {:profile-stats stats#} :format ~level
-                    "Profiling: %s\n%s" (utils/fq-keyword ~name)
+                    "Profiling: %s\n%s" (encore/fq-keyword ~name)
                     (format-pdata stats#)))
      result#))
 
@@ -86,7 +86,7 @@
         ft (fn [nanosecs]
              (let [pow     #(Math/pow 10 %)
                    ok-pow? #(>= nanosecs (pow %))
-                   to-pow  #(utils/round-to %2 (/ nanosecs (pow %1)))]
+                   to-pow  #(encore/round %2 :round (/ nanosecs (pow %1)))]
                (cond (ok-pow? 9) (str (to-pow 9 1) "s")
                      (ok-pow? 6) (str (to-pow 6 0) "ms")
                      (ok-pow? 3) (str (to-pow 3 0) "μs")
