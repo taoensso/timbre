@@ -52,7 +52,7 @@
         (.renameTo (io/file log) (io/file (format "%s.%03d" abs-path n)))
         (recur more (dec n))))))
 
-(defn appender-fn [{:keys [ap-config prefix throwable message]}]
+(defn appender-fn [{:keys [ap-config output]}]
   (let [{:keys [path max-size backlog]
          :or   {max-size (* 1024 1024)
                 backlog 5}} (:rotor ap-config)]
@@ -61,9 +61,7 @@
         (when (> (.length (io/file path)) max-size)
           (rotate-logs path backlog))
         (spit path
-              (with-out-str
-                (t/str-println prefix "-" message
-                       (t/stacktrace throwable)))
+              (str output "\n")
               :append true)
         (catch java.io.IOException _)))))
 

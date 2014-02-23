@@ -1,7 +1,7 @@
-**[API docs](http://ptaoussanis.github.io/timbre/)** | **[CHANGELOG](https://github.com/ptaoussanis/timbre/blob/master/CHANGELOG.md)** | [contact & contributing](#contact--contribution) | [other Clojure libs](https://www.taoensso.com/clojure-libraries) | [Twitter](https://twitter.com/#!/ptaoussanis) | current [semantic](http://semver.org/) version:
+**[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contributing](#contact--contributing) | current ([semantic][]) version:
 
 ```clojure
-[com.taoensso/timbre "3.0.1"] ; Non-breaking upgrade - see CHANGELOG for details
+[com.taoensso/timbre "3.1.0"] ; 3.x is a non-breaking upgrade - see CHANGELOG for details
 ```
 
 Appender authors: please see [here](https://github.com/ptaoussanis/timbre/issues/41) about migrating Timbre 2.x appenders to 3.x's recommended style.
@@ -27,10 +27,10 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 
 ### Dependencies
 
-Add the necessary dependency to your [Leiningen](http://leiningen.org/) `project.clj` and use the supplied ns-import helper:
+Add the necessary dependency to your [Leiningen][] `project.clj` and use the supplied ns-import helper:
 
 ```clojure
-[com.taoensso/timbre "3.0.1"] ; project.clj
+[com.taoensso/timbre "3.1.0"] ; project.clj
 
 (ns my-app (:require [taoensso.timbre :as timbre])) ; Your ns
 (timbre/refer-timbre) ; Provides useful Timbre aliases in this ns
@@ -41,9 +41,8 @@ The `refer-timbre` call is a convenience fn that executes:
 (require '[taoensso.timbre :as timbre
            :refer (log  trace  debug  info  warn  error  fatal  report
                    logf tracef debugf infof warnf errorf fatalf reportf
-                   spy logged-future with-log-level)])
-(require '[taoensso.timbre.utils :refer (sometimes)])
-(require '[taoensso.timbre.profiling :as profiling :refer (pspy profile defnp)])
+                   spy logged-future with-log-level sometimes)])
+(require '[taoensso.timbre.profiling :as profiling :refer (pspy pspy* profile defnp)])
 ```
 
 ### Logging
@@ -268,16 +267,30 @@ A simple **sampling profiler** is also available: `taoensso.timbre.profiling/sam
 
 ## This project supports the CDS and ![ClojureWerkz](https://raw.github.com/clojurewerkz/clojurewerkz.org/master/assets/images/logos/clojurewerkz_long_h_50.png) goals
 
-  * [CDS](http://clojure-doc.org/), the **Clojure Documentation Site**, is a **contributer-friendly** community project aimed at producing top-notch, **beginner-friendly** Clojure tutorials and documentation. Awesome resource.
+  * [CDS][], the **Clojure Documentation Site**, is a **contributer-friendly** community project aimed at producing top-notch, **beginner-friendly** Clojure tutorials and documentation. Awesome resource.
 
-  * [ClojureWerkz](http://clojurewerkz.org/) is a growing collection of open-source, **batteries-included Clojure libraries** that emphasise modern targets, great documentation, and thorough testing. They've got a ton of great stuff, check 'em out!
+  * [ClojureWerkz][] is a growing collection of open-source, **batteries-included Clojure libraries** that emphasise modern targets, great documentation, and thorough testing. They've got a ton of great stuff, check 'em out!
 
-## Contact & contribution
+## Contact & contributing
 
-Please use the [project's GitHub issues page](https://github.com/ptaoussanis/timbre/issues) for project questions/comments/suggestions/whatever **(pull requests welcome!)**. Am very open to ideas if you have any!
+Please use the project's GitHub [issues page][] for project questions/comments/suggestions/whatever **(pull requests welcome!)**. Am very open to ideas if you have any!
 
-Otherwise reach me (Peter Taoussanis) at [taoensso.com](https://www.taoensso.com) or on Twitter ([@ptaoussanis](https://twitter.com/#!/ptaoussanis)). Cheers!
+Otherwise reach me (Peter Taoussanis) at [taoensso.com][] or on [Twitter][]. Cheers!
 
 ## License
 
-Copyright &copy; 2012, 2013 Peter Taoussanis. Distributed under the [Eclipse Public License](http://www.eclipse.org/legal/epl-v10.html), the same as Clojure.
+Copyright &copy; 2012-2014 Peter Taoussanis. Distributed under the [Eclipse Public License][], the same as Clojure.
+
+
+[API docs]: <http://ptaoussanis.github.io/timbre/>
+[CHANGELOG]: <https://github.com/ptaoussanis/nippy/blob/master/CHANGELOG.md>
+[other Clojure libs]: <https://www.taoensso.com/clojure-libraries>
+[Twitter]: <https://twitter.com/ptaoussanis>
+[semantic]: <http://semver.org/>
+[Leiningen]: <http://leiningen.org/>
+[CDS]: <http://clojure-doc.org/>
+[ClojureWerkz]: <http://clojurewerkz.org/>
+[issues page]: <https://github.com/ptaoussanis/nippy/issues>
+[commit history]: <https://github.com/ptaoussanis/nippy/commits/master>
+[taoensso.com]: <https://www.taoensso.com>
+[Eclipse Public License]: <https://raw2.github.com/ptaoussanis/nippy/master/LICENSE>

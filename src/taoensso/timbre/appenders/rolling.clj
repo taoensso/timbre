@@ -64,8 +64,7 @@
      :pattern :daily})
   path: logfile path
   pattern: frequency of rotation, avialable values: :daily (default), :weekly, :monthly"
-  [& [appender-opts {:keys [path pattern]
-                     :or {pattern :daily}}]]
-  (let [default-appender-opts {:enabled? true :min-level nil}]
+  [& [appender-opts]]
+  (let [default-appender-opts {:enabled? true :min-level nil :pattern :daily}]
     (merge default-appender-opts appender-opts
       {:fn appender-fn})))

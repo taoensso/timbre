@@ -1,14 +1,27 @@
-## Pending major release
- * Make Carmine appender resistant to unexpected log entry thaw errors.
+## v3.1.0 / 2014 Feb 23
+
+### New
+
+ * #47 Added `taoensso.timbre.profiling/pspy*` fn.
+
+### Changes
+
+ * Made Carmine appender resistant to unexpected log entry thaw errors.
+ * Moved most utils to external `encore` dependency.
+
+### Fixes
+
+ * #50 Fixed rotor appender so that it respects :fmt-output-opts (kenrestivo).
 
 
-## v3.0.0 / 2014-Jan-30
+## v3.0.0 / 2014 Jan 30
 
-Major update, non-breaking though users with custom appenders are encouraged to view the _Changes_ section below. This version polishes up the codebase and general design. Tightened up a few aspects of how appenders and appender middleware work. Added a serializing Carmine appender (I use something similar in prod most of the time). Also finally added facilities for ad hoc (non-atom) logging configuration.
+> Major update, non-breaking though users with custom appenders are encouraged to view the _Changes_ section below. This version polishes up the codebase and general design. Tightened up a few aspects of how appenders and appender middleware work. Added a serializing Carmine appender (I use something similar in prod most of the time). Also finally added facilities for ad hoc (non-atom) logging configuration.
+>
+> Overall quite happy with the state of Timbre as of this release. No major anticipated improvements/changes from here (modulo bugs).
 
-Overall quite happy with the state of Timbre as of this release. No major anticipated improvements/changes from here (modulo bugs).
+### New
 
-### Features
  * Android appender, courtesy of AdamClements.
  * Rolling appender, courtesy of megayu.
  * Powerful, high-performance Carmine (Redis) appender: query-able, rotating serialized log entries by log level. See README or appender's docstring for details. (Recommended!)
@@ -19,20 +32,22 @@ Overall quite happy with the state of Timbre as of this release. No major antici
  * Appenders can now specify an optional `:fmt-output-opts` that'll get passed to `fmt-output-fn` for any special formatting requirements they may have (e.g. the Postal email appender provides an arg to suppress ANSI colors in stacktrace output).
 
 ### Changes
- * EXPERIMENTAL: stacktraces now formatted with `io.aviso/pretty` rather than clj-stacktrace. Feedback on this (esp. coloring) welcome!
- * DEPRECATED: `red`, `green`, `blue` -> use `color-str` instead.
- * DEPRECATED: config `prefix-fn` has been replaced by the more flexible `fmt-output-fn`. Change is backwards compatible.
- * REMOVED: Per-appender `:prefix` option dropped - was unnecessary. If an appender wants custom output formatting, it can do so w/o using an in-config formatter.
+
+ * **EXPERIMENTAL**: stacktraces now formatted with `io.aviso/pretty` rather than clj-stacktrace. Feedback on this (esp. coloring) welcome!
+ * **DEPRECATED**: `red`, `green`, `blue` -> use `color-str` instead.
+ * **DEPRECATED**: config `prefix-fn` has been replaced by the more flexible `fmt-output-fn`. Change is backwards compatible.
+ * **REMOVED**: Per-appender `:prefix` option dropped - was unnecessary. If an appender wants custom output formatting, it can do so w/o using an in-config formatter.
  * Update `refer-timbre` (add profiling, logf variations, etc.).
- * DEPRECATED: atom logging level is now located in `level-atom` rather than `config`. Old in-config levels will be respected (i.e. change is backwards compatible).
- * DEPRECATED: appender rate limits are now specified as `:rate-limit [ncalls window-msecs]` rather than `:limit-per-msecs ncalls`. Change is backwards compatible.
+ * **DEPRECATED**: atom logging level is now located in `level-atom` rather than `config`. Old in-config levels will be respected (i.e. change is backwards compatible).
+ * **DEPRECATED**: appender rate limits are now specified as `:rate-limit [ncalls window-msecs]` rather than `:limit-per-msecs ncalls`. Change is backwards compatible.
  * Built-in appenders have been simplified using the new `default-output` appender arg.
  * Postal appender now generates a more useful subject in most cases.
 
 ### Fixes
- * [#38] Broken namespace filter (mlb-).
- * [unreported] Messages are now generated _after_ middleware has been applied, allowing better filtering performance and more intuitive behaviour (e.g. changes to args in middleware will now automatically percolate to message content).
- * [unreported] (logf <level> "hello %s") was throwing due to lack of formatting args.
+
+ * #38 Broken namespace filter (mlb-).
+ * Messages are now generated _after_ middleware has been applied, allowing better filtering performance and more intuitive behaviour (e.g. changes to args in middleware will now automatically percolate to message content).
+ * `(logf <level> "hello %s")` was throwing due to lack of formatting args.
 
 
 ## v2.6.3 → v2.7.1
@@ -81,10 +96,3 @@ Overall quite happy with the state of Timbre as of this release. No major antici
   * **BREAKING**: `:more` appender arg has been dropped. `:message` arg is now a string of all arguments as joined by `logp`/`logf`. Appenders that need unjoined logging arguments (i.e. raw arguments as given to `logp`/`logf`) should use the new `:log-args` vector.
 
   * **BREAKING**: Stacktraces are no longer automatically generated at the `log`-macro level. Stacktraces are now left as an appender implementation detail. A `:throwable` appender argument has been added along with a `stacktrace` fn.
-
-
-### For older versions please see the [commit history][]
-
-[commit history]: https://github.com/ptaoussanis/timbre/commits/master
-[API docs]: http://ptaoussanis.github.io/timbre
-[Taoensso libs]: https://www.taoensso.com/clojure-libraries

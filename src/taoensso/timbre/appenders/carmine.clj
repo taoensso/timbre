@@ -31,7 +31,7 @@
      also offer interesting opportunities here.
 
   See accompanying `query-entries` fn to return deserialized log entries."
-  [& [appender-opts {:keys [conn keyfn args-hash-fn nentries-by-level]
+  [& [appender-opts {:keys [conn-opts keyfn args-hash-fn nentries-by-level]
                      :or   {keyfn        default-keyfn
                             args-hash-fn timbre/default-args-hash-fn
                             nentries-by-level {:trace    50
@@ -40,7 +40,8 @@
                                                :warn    100
                                                :error   100
                                                :fatal   100
-                                               :report  100}}}]]
+                                               :report  100}}
+                     :as opts}]]
   {:pre [(string? (keyfn "test"))
          (every? #(contains? nentries-by-level %) timbre/levels-ordered)
          (every? #(and (integer? %) (<= 0 % 100000)) (vals nentries-by-level))]}
@@ -58,7 +59,7 @@
                nmax-entries (nentries-by-level level)]
 
            (when (> nmax-entries 0)
-             (car/wcar conn
+             (car/wcar (or conn-opts (:conn opts)) ; :conn is Deprecated
                (binding [nippy/*final-freeze-fallback* nippy/freeze-fallback-as-str]
                  (car/hset k-hash entry-hash entry))
                (car/zadd k-zset udt entry-hash)
@@ -89,7 +90,7 @@
   Returns latest `n` log entries by level as an ordered vector of deserialized
   maps. Normal sequence fns can be used to query/transform entries. Datomic and
   core.logic are also useful!"
-  [conn level & [n asc? keyfn]]
+  [conn-opts level & [n asc? keyfn]]
   {:pre  [(or (nil? n) (and (integer? n) (<= 1 n 100000)))]}
   (let [keyfn  (or keyfn default-keyfn)
         k-zset (keyfn (name level))
@@ -97,7 +98,7 @@
 
         entries-zset ; [{:hash _ :level _ :instant _} ...]
         (->>
-         (car/wcar conn
+         (car/wcar conn-opts
            (if asc? (car/zrange    k-zset 0 (if n (dec n) -1) :withscores)
                     (car/zrevrange k-zset 0 (if n (dec n) -1) :withscores)))
          (partition 2) ; Reconstitute :level, :instant keys:
@@ -109,9 +110,9 @@
 
         entries-hash ; [{_}-or-ex {_}-or-ex ...]
         (when-let [hashes (seq (mapv :hash entries-zset))]
-          (if-not (next hashes)
-            (car/wcar conn :as-pipeline (apply car/hget  k-hash hashes)) ; Careful!
-            (car/wcar conn              (apply car/hmget k-hash hashes))))]
+          (if-not (next hashes) ; Careful!
+            (car/wcar conn-opts :as-pipeline (apply car/hget  k-hash hashes))
+            (car/wcar conn-opts              (apply car/hmget k-hash hashes))))]
 
     (mapv (fn [m1 m2-or-ex]
             (if (instance? Exception m2-or-ex)

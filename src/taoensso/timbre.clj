@@ -2,7 +2,7 @@
   {:author "Peter Taoussanis"}
   (:require [clojure.string        :as str]
             [io.aviso.exception    :as aviso-ex]
-            [taoensso.timbre.utils :as utils])
+            [taoensso.encore       :as encore])
   (:import  [java.util Date Locale]
             [java.text SimpleDateFormat]))
 
@@ -41,6 +41,12 @@
         (aviso-ex/format-exception throwable)))))
 
 (comment (stacktrace (Exception. "foo") nil {}))
+
+(defmacro sometimes
+  "Executes body with probability e/o [0,1]. Useful for sampled logging."
+  [probability & body]
+  `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
+       (when (< (rand) ~probability) ~@body)))
 
 ;;;; Logging levels
 
@@ -171,9 +177,9 @@
              (try (spit filename (str output "\n") :append true)
                   (catch java.io.IOException _))))}}})
 
-(utils/defonce* config (atom example-config))
+(encore/defonce* config (atom example-config))
 (defn set-config!   [ks val] (swap! config assoc-in ks val))
-(defn merge-config! [& maps] (apply swap! config utils/merge-deep maps))
+(defn merge-config! [& maps] (apply swap! config encore/merge-deep maps))
 
 ;;;; Appender-fn decoration
 
@@ -221,11 +227,11 @@
         ;; Compile-time:
         (if-not rate-limit apfn
           (let [[ncalls-limit window-ms] rate-limit
-                limiter-any      (utils/rate-limiter ncalls-limit window-ms)
+                limiter-any      (encore/rate-limiter ncalls-limit window-ms)
                 ;; This is a little hand-wavy but it's a decent general
                 ;; strategy and helps us from making this overly complex to
                 ;; configure.
-                limiter-specific (utils/rate-limiter (quot ncalls-limit 4)
+                limiter-specific (encore/rate-limiter (quot ncalls-limit 4)
                                                      window-ms)]
             (fn [{:keys [ns args] :as apfn-args}]
               ;; Runtime: (test smaller limit 1st):
@@ -256,7 +262,7 @@
 (comment ((make-timestamp-fn "yyyy-MMM-dd" nil) (Date.)))
 
 (def ^:private get-hostname
-  (utils/memoize-ttl 60000
+  (encore/memoize* 60000
     (fn []
       (let [p (promise)]
         (future ; Android doesn't like this on the main thread
@@ -499,19 +505,17 @@
     '[taoensso.timbre :as timbre
       :refer (log  trace  debug  info  warn  error  fatal  report
               logf tracef debugf infof warnf errorf fatalf reportf
-              spy logged-future with-log-level)])
-  (require '[taoensso.timbre.utils :refer (sometimes)])
+              spy logged-future with-log-level sometimes)])
   (require
-    '[taoensso.timbre.profiling :as profiling :refer (pspy profile defnp)])"
+    '[taoensso.timbre.profiling :as profiling :refer (pspy pspy* profile defnp)])"
   []
   (require
    '[taoensso.timbre :as timbre
      :refer (log  trace  debug  info  warn  error  fatal  report
              logf tracef debugf infof warnf errorf fatalf reportf
-             spy logged-future with-log-level)])
-  (require '[taoensso.timbre.utils :refer (sometimes)])
+             spy logged-future with-log-level sometimes)])
   (require
-   '[taoensso.timbre.profiling :as profiling :refer (pspy profile defnp)]))
+   '[taoensso.timbre.profiling :as profiling :refer (pspy pspy* profile defnp)]))
 
 ;;;; Deprecated
 
