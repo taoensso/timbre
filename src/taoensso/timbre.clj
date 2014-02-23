@@ -507,7 +507,7 @@
               logf tracef debugf infof warnf errorf fatalf reportf
               spy logged-future with-log-level sometimes)])
   (require
-    '[taoensso.timbre.profiling :as profiling :refer (pspy profile defnp)])"
+    '[taoensso.timbre.profiling :as profiling :refer (pspy pspy* profile defnp)])"
   []
   (require
    '[taoensso.timbre :as timbre
@@ -515,7 +515,7 @@
              logf tracef debugf infof warnf errorf fatalf reportf
              spy logged-future with-log-level sometimes)])
   (require
-   '[taoensso.timbre.profiling :as profiling :refer (pspy profile defnp)]))
+   '[taoensso.timbre.profiling :as profiling :refer (pspy pspy* profile defnp)]))
 
 ;;;; Deprecated
 
