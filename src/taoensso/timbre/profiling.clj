@@ -1,9 +1,8 @@
 (ns taoensso.timbre.profiling
   "Logging profiler for Timbre, adapted from clojure.contrib.profile."
   {:author "Peter Taoussanis"}
-  (:require [clojure.tools.macro   :as macro]
-            [taoensso.encore       :as encore]
-            [taoensso.timbre       :as timbre]))
+  (:require [taoensso.encore :as encore]
+            [taoensso.timbre :as timbre]))
 
 (defmacro fq-keyword "Returns namespaced keyword for given id."
   [id]
