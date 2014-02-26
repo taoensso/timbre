@@ -30,6 +30,12 @@
 
 (defmacro p [id & body] `(pspy ~id ~@body)) ; Alias
 
+(comment
+  (time (dotimes [_ 1000000])) ; ~20ms
+  ;; Note that times are ~= for `pspy` as a pure macro and as a `pspy*` fn caller:
+  (time (dotimes [_ 1000000] (pspy :foo))) ; ~300ms
+  )
+
 (declare pdata-stats format-pdata)
 
 (defmacro with-pdata [level & body]
