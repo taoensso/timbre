@@ -1,7 +1,7 @@
 **[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contributing](#contact--contributing) | current ([semantic][]) version:
 
 ```clojure
-[com.taoensso/timbre "3.1.0"] ; 3.x is a non-breaking upgrade - see CHANGELOG for details
+[com.taoensso/timbre "3.1.1"] ; 3.x is a non-breaking upgrade - see CHANGELOG for details
 ```
 
 Appender authors: please see [here](https://github.com/ptaoussanis/timbre/issues/41) about migrating Timbre 2.x appenders to 3.x's recommended style.
@@ -30,7 +30,7 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 Add the necessary dependency to your [Leiningen][] `project.clj` and use the supplied ns-import helper:
 
 ```clojure
-[com.taoensso/timbre "3.1.0"] ; project.clj
+[com.taoensso/timbre "3.1.1"] ; project.clj
 
 (ns my-app (:require [taoensso.timbre :as timbre])) ; Your ns
 (timbre/refer-timbre) ; Provides useful Timbre aliases in this ns
