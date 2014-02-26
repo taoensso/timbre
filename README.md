@@ -259,7 +259,7 @@ The `profile` macro can now be used to log times for any wrapped forms:
 
 You can also use the `defnp` macro to conveniently wrap whole fns.
 
-It's important to note that Timbre profiling is fully **logging-level aware**: if the  level is insufficient, you *won't pay for profiling*. Likewise, normal namespace filtering applies. (Performance characteristics for both checks are inherited from Timbre itself).
+It's important to note that Timbre profiling is fully **logging-level aware**: if the  level is insufficient, you *won't pay for profiling* (there is a minimal dynamic-var deref cost). Likewise, normal namespace filtering applies. (Performance characteristics for both checks are inherited from Timbre itself).
 
 And since `p` and `profile` **always return their body's result** regardless of whether profiling actually happens or not, it becomes feasible to use profiling more often as part of your normal workflow: just *leave profiling code in production as you do for logging code*.
 
