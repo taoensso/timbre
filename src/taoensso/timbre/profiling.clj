@@ -1,9 +1,8 @@
 (ns taoensso.timbre.profiling
   "Logging profiler for Timbre, adapted from clojure.contrib.profile."
   {:author "Peter Taoussanis"}
-  (:require [clojure.tools.macro   :as macro]
-            [taoensso.encore       :as encore]
-            [taoensso.timbre       :as timbre]))
+  (:require [taoensso.encore :as encore]
+            [taoensso.timbre :as timbre]))
 
 (defmacro fq-keyword "Returns namespaced keyword for given id."
   [id]
@@ -29,6 +28,12 @@
   [id & body] `(pspy* ~id (fn [] ~@body)))
 
 (defmacro p [id & body] `(pspy ~id ~@body)) ; Alias
+
+(comment
+  (time (dotimes [_ 1000000])) ; ~20ms
+  ;; Note that times are ~= for `pspy` as a pure macro and as a `pspy*` fn caller:
+  (time (dotimes [_ 1000000] (pspy :foo))) ; ~300ms
+  )
 
 (declare pdata-stats format-pdata)
 

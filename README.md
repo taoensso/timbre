@@ -1,7 +1,7 @@
 **[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contributing](#contact--contributing) | current ([semantic][]) version:
 
 ```clojure
-[com.taoensso/timbre "3.1.0"] ; 3.x is a non-breaking upgrade - see CHANGELOG for details
+[com.taoensso/timbre "3.1.1"] ; 3.x is a non-breaking upgrade - see CHANGELOG for details
 ```
 
 Appender authors: please see [here](https://github.com/ptaoussanis/timbre/issues/41) about migrating Timbre 2.x appenders to 3.x's recommended style.
@@ -30,7 +30,7 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 Add the necessary dependency to your [Leiningen][] `project.clj` and use the supplied ns-import helper:
 
 ```clojure
-[com.taoensso/timbre "3.1.0"] ; project.clj
+[com.taoensso/timbre "3.1.1"] ; project.clj
 
 (ns my-app (:require [taoensso.timbre :as timbre])) ; Your ns
 (timbre/refer-timbre) ; Provides useful Timbre aliases in this ns
@@ -259,7 +259,7 @@ The `profile` macro can now be used to log times for any wrapped forms:
 
 You can also use the `defnp` macro to conveniently wrap whole fns.
 
-It's important to note that Timbre profiling is fully **logging-level aware**: if the  level is insufficient, you *won't pay for profiling*. Likewise, normal namespace filtering applies. (Performance characteristics for both checks are inherited from Timbre itself).
+It's important to note that Timbre profiling is fully **logging-level aware**: if the  level is insufficient, you *won't pay for profiling* (there is a minimal dynamic-var deref cost). Likewise, normal namespace filtering applies. (Performance characteristics for both checks are inherited from Timbre itself).
 
 And since `p` and `profile` **always return their body's result** regardless of whether profiling actually happens or not, it becomes feasible to use profiling more often as part of your normal workflow: just *leave profiling code in production as you do for logging code*.
 
@@ -272,6 +272,8 @@ A simple **sampling profiler** is also available: `taoensso.timbre.profiling/sam
   * [ClojureWerkz][] is a growing collection of open-source, **batteries-included Clojure libraries** that emphasise modern targets, great documentation, and thorough testing. They've got a ton of great stuff, check 'em out!
 
 ## Contact & contributing
+
+`lein start-dev` to get a (headless) development repl that you can connect to with [Cider][] (emacs) or your IDE.
 
 Please use the project's GitHub [issues page][] for project questions/comments/suggestions/whatever **(pull requests welcome!)**. Am very open to ideas if you have any!
 
@@ -291,6 +293,7 @@ Copyright &copy; 2012-2014 Peter Taoussanis. Distributed under the [Eclipse Publ
 [CDS]: <http://clojure-doc.org/>
 [ClojureWerkz]: <http://clojurewerkz.org/>
 [issues page]: <https://github.com/ptaoussanis/timbre/issues>
+[Cider]: <https://github.com/clojure-emacs/cider>
 [commit history]: <https://github.com/ptaoussanis/timbre/commits/master>
 [taoensso.com]: <https://www.taoensso.com>
 [Eclipse Public License]: <https://raw2.github.com/ptaoussanis/timbre/master/LICENSE>
