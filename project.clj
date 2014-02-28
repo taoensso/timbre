@@ -19,12 +19,12 @@
   {;; :default [:base :system :user :provided :dev]
    :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0-beta1"]]}
-   :test {:dependencies [[expectations                  "1.4.56"]
-                         [reiddraper/simple-check       "0.5.6"]
-                         [com.taoensso/nippy            "2.5.2"]
-                         [com.taoensso/carmine          "2.4.6"]
-                         [com.draines/postal            "1.11.1"]
-                         [org.clojure/tools.logging     "0.2.6"]]
+   :test {:dependencies [[expectations              "1.4.56"]
+                         [org.clojure/test.check    "0.5.7"]
+                         [com.taoensso/nippy        "2.5.2"]
+                         [com.taoensso/carmine      "2.4.6"]
+                         [com.draines/postal        "1.11.1"]
+                         [org.clojure/tools.logging "0.2.6"]]
           :plugins [[lein-expectations "0.0.8"]
                     [lein-autoexpect   "1.2.2"]]}
    :dev* [:dev {:jvm-opts ^:replace ["-server"]
