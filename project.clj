@@ -33,10 +33,8 @@
    :dev
    [:1.6 :test
     {:dependencies []
-     :plugins []}]}
-
-  :plugins [[lein-ancient "0.5.4"]
-            [codox        "0.6.7"]]
+     :plugins [[lein-ancient "0.5.4"]
+               [codox        "0.6.7"]]}]}
 
   ;; :codox {:sources ["target/classes"]} ; cljx
   :aliases
