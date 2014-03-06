@@ -247,20 +247,6 @@
             (fn [apfn-args] ; Runtime:
               (send-off agent (fn [_] (apfn apfn-args)))))))))))
 
-(defn make-timestamp-fn
-  "Returns a unary fn that formats instants using given pattern string and an
-  optional Locale."
-  ;; Thread safe SimpleDateTime soln. from instant.clj, Ref. http://goo.gl/CEBJnQ
-  [^String pattern ^Locale locale]
-  (let [format (proxy [ThreadLocal] [] ; For thread safety
-                   (initialValue []
-                     (if locale
-                       (SimpleDateFormat. pattern locale)
-                       (SimpleDateFormat. pattern))))]
-    (fn [^Date instant] (.format ^SimpleDateFormat (.get format) instant))))
-
-(comment ((make-timestamp-fn "yyyy-MMM-dd" nil) (Date.)))
-
 (def ^:private get-hostname
   (encore/memoize* 60000
     (fn []
@@ -286,8 +272,12 @@
       (let [{ap-config :shared-appender-config
              :keys [timestamp-pattern timestamp-locale
                     prefix-fn fmt-output-fn]} config
-            timestamp-fn (when timestamp-pattern
-                           (make-timestamp-fn timestamp-pattern timestamp-locale))]
+             timestamp-fn
+             (if-not timestamp-pattern (constantly nil)
+               (fn [^Date dt]
+                 (.format (encore/simple-date-format timestamp-pattern
+                            {:locale timestamp-locale}) dt)))]
+
         (fn [juxtfn-args]
           ;; Runtime:
           (when-let [{:keys [instant msg-type args]} juxtfn-args]

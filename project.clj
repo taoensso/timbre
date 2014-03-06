@@ -11,7 +11,7 @@
                 *assert* true}
   :dependencies
   [[org.clojure/clojure "1.4.0"]
-   [com.taoensso/encore "0.9.2"]
+   [com.taoensso/encore "0.9.6"]
    [io.aviso/pretty     "0.1.8"]]
 
   :test-paths ["test" "src"]
