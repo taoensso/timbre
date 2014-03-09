@@ -1,11 +1,8 @@
-## v3.1.2 / 2014 Mar 9
-
- * FIX: Carmine appender unfreezable support for Carmine v3+.
-
-
 ## v3.1.1 / 2014 Feb 26
 
- * FIX: project.clj to prevent unnecessary downstream deps.
+### Fixes
+
+ * Fix project.clj to prevent unnecessary downstream deps.
 
 
 ## v3.1.0 / 2014 Feb 23

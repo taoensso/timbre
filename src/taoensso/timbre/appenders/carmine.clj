@@ -59,30 +59,29 @@
                nmax-entries (nentries-by-level level)]
 
            (when (> nmax-entries 0)
-             (binding [nippy/*final-freeze-fallback* nippy/freeze-fallback-as-str]
-               (car/wcar (or conn-opts (:conn opts)) ; :conn is Deprecated
+             (car/wcar (or conn-opts (:conn opts)) ; :conn is Deprecated
+               (binding [nippy/*final-freeze-fallback* nippy/freeze-fallback-as-str]
+                 (car/hset k-hash entry-hash entry))
+               (car/zadd k-zset udt entry-hash)
 
-                 (car/hset k-hash entry-hash entry)
-                 (car/zadd k-zset udt entry-hash)
+               (when (< (rand) 0.01) ; Occasionally GC
+                 ;; This is necessary since we're doing zset->entry-hash->entry
+                 ;; rather than zset->entry. We want the former for the control
+                 ;; it gives us over what should constitute a 'unique' entry.
+                 (car/lua
+                  "-- -ive idx used to prune from the right (lowest score first)
+                   local max_idx = (0 - (tonumber(_:nmax-entries)) - 1)
+                   local entries_to_prune =
+                     redis.call('zrange', _:k-zset, 0, max_idx)
+                   redis.call('zremrangebyrank', _:k-zset, 0, max_idx) -- Prune zset
 
-                 (when (< (rand) 0.01) ; Occasionally GC
-                   ;; This is necessary since we're doing zset->entry-hash->entry
-                   ;; rather than zset->entry. We want the former for the control
-                   ;; it gives us over what should constitute a 'unique' entry.
-                   (car/lua
-                    "-- -ive idx used to prune from the right (lowest score first)
-                     local max_idx = (0 - (tonumber(_:nmax-entries)) - 1)
-                     local entries_to_prune =
-                       redis.call('zrange', _:k-zset, 0, max_idx)
-                     redis.call('zremrangebyrank', _:k-zset, 0, max_idx) -- Prune zset
-
-                     for i,entry in pairs(entries_to_prune) do
-                       redis.call('hdel', _:k-hash, entry) -- Prune hash
-                     end
-                     return nil"
-                    {:k-zset k-zset
-                     :k-hash k-hash}
-                    {:nmax-entries nmax-entries})))))))})))
+                   for i,entry in pairs(entries_to_prune) do
+                     redis.call('hdel', _:k-hash, entry) -- Prune hash
+                   end
+                   return nil"
+                {:k-zset k-zset
+                 :k-hash k-hash}
+                {:nmax-entries nmax-entries}))))))})))
 
 ;;;; Query utils
 
