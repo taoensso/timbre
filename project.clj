@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "3.1.1"
+(defproject com.taoensso/timbre "3.1.2"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Clojure logging & profiling library"
   :url "https://github.com/ptaoussanis/timbre"
@@ -11,7 +11,7 @@
                 *assert* true}
   :dependencies
   [[org.clojure/clojure "1.4.0"]
-   [com.taoensso/encore "0.9.2"]
+   [com.taoensso/encore "0.9.6"]
    [io.aviso/pretty     "0.1.8"]]
 
   :test-paths ["test" "src"]
@@ -19,12 +19,12 @@
   {;; :default [:base :system :user :provided :dev]
    :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0-beta1"]]}
-   :test {:dependencies [[expectations                  "1.4.56"]
-                         [reiddraper/simple-check       "0.5.6"]
-                         [com.taoensso/nippy            "2.5.2"]
-                         [com.taoensso/carmine          "2.4.6"]
-                         [com.draines/postal            "1.11.1"]
-                         [org.clojure/tools.logging     "0.2.6"]]
+   :test {:dependencies [[expectations              "1.4.56"]
+                         [org.clojure/test.check    "0.5.7"]
+                         [com.taoensso/nippy        "2.5.2"]
+                         [com.taoensso/carmine      "2.4.6"]
+                         [com.draines/postal        "1.11.1"]
+                         [org.clojure/tools.logging "0.2.6"]]
           :plugins [[lein-expectations "0.0.8"]
                     [lein-autoexpect   "1.2.2"]]}
    :dev* [:dev {:jvm-opts ^:replace ["-server"]
@@ -33,10 +33,8 @@
    :dev
    [:1.6 :test
     {:dependencies []
-     :plugins []}]}
-
-  :plugins [[lein-ancient "0.5.4"]
-            [codox        "0.6.7"]]
+     :plugins [[lein-ancient "0.5.4"]
+               [codox        "0.6.7"]]}]}
 
   ;; :codox {:sources ["target/classes"]} ; cljx
   :aliases
