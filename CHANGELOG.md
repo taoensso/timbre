@@ -1,6 +1,6 @@
-## v3.1.2 / 2014 Mar 9
+## v3.1.3 / 2014 Mar 11
 
- * FIX: Carmine appender unfreezable support for Carmine v3+.
+ * FIX: profiling id namespacing.
 
 
 ## v3.1.1 / 2014 Feb 26
