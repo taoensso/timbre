@@ -7,7 +7,7 @@
 (defmacro fq-keyword "Returns namespaced keyword for given id."
   [id]
   `(if (and (keyword? ~id) (namespace ~id)) ~id
-     (keyword (str ~*ns*) (name ~id))))
+     (keyword (str *ns*) (name ~id))))
 
 (comment (map #(fq-keyword %) ["foo" :foo :foo/bar]))
 

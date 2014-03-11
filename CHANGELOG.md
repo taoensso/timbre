@@ -1,8 +1,11 @@
+## v3.1.3 / 2014 Mar 11
+
+ * FIX: profiling id namespacing.
+
+
 ## v3.1.1 / 2014 Feb 26
 
-### Fixes
-
- * Fix project.clj to prevent unnecessary downstream deps.
+ * FIX: project.clj to prevent unnecessary downstream deps.
 
 
 ## v3.1.0 / 2014 Feb 23
