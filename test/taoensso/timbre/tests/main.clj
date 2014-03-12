@@ -2,7 +2,7 @@
   (:require [expectations    :as test   :refer :all]
             [taoensso.timbre :as timbre]))
 
-(timbre/refer-timbre)
+;; (timbre/refer-timbre)
 
 (comment (test/run-tests '[taoensso.timbre.tests.main]))
 
