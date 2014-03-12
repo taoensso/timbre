@@ -22,9 +22,7 @@
 
 (deftest test-rotor
   (testing "rotating logs"
-    (testing "exposing the bug TODO write something better"
-      ;; when we rotate with a full backlog of log files,
-      ;; the last should get deleted
+    (testing "when rotating with a full backlog of files, the last should be deleted"
       (with-temp-dir-containing-log-files 5
         (fn [basepath]
           (#'rotor/rotate-logs basepath 2)
