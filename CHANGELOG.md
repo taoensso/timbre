@@ -1,3 +1,8 @@
+## v3.1.3 / 2014 Mar 12
+
+ * FIX: rotor appender not rotating
+
+
 ## v3.1.2 / 2014 Mar 9
 
  * FIX: Carmine appender unfreezable support for Carmine v3+.
