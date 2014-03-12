@@ -1,3 +1,8 @@
+## Pending / unreleased
+
+ * NEW: Add `profiling/p*` macro.
+
+
 ## v3.1.3 / 2014 Mar 11
 
  * FIX: profiling id namespacing.
