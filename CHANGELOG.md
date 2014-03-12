@@ -1,6 +1,7 @@
 ## Pending / unreleased
 
  * NEW: Add `profiling/p*` macro.
+ * CHANGE: Include `p`, `p*` in `refer-timbre` imports.
 
 
 ## v3.1.3 / 2014 Mar 11
