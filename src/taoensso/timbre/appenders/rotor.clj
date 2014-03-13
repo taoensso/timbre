@@ -37,20 +37,13 @@
   the naming of archived logs."
   [basepath max-count]
   (let [abs-path (-> basepath io/file (.getAbsolutePath))
-        logs (->> basepath
-                  matching-files
-                  (take max-count)
-                  (map (fn [^File x] (.getAbsolutePath x)))
-                  sort
-                  reverse)
-        num-logs (count logs)
-        overflow? (> num-logs max-count)]
-    (when overflow?
-      (io/delete-file (first logs)))
-    (loop [[log & more] (if overflow? (rest logs) logs) n num-logs]
-      (when log
-        (.renameTo (io/file log) (io/file (format "%s.%03d" abs-path n)))
-        (recur more (dec n))))))
+        logs     (-> basepath matching-files sort)
+        [logs-to-rotate logs-to-delete] (split-at max-count logs)]
+    (doseq [log-to-delete logs-to-delete]
+      (io/delete-file log-to-delete))
+    (doseq [[^File log-file n]
+            (reverse (map vector logs-to-rotate (iterate inc 1)))]
+      (.renameTo log-file (io/file (format "%s.%03d" abs-path n))))))
 
 (defn appender-fn [{:keys [ap-config output]}]
   (let [{:keys [path max-size backlog]
