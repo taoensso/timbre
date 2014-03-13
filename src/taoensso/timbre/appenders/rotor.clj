@@ -36,8 +36,8 @@
   will be deleted. In future, there will be a suffix fn to customize
   the naming of archived logs."
   [basepath max-count]
-  (let [abs-path                        (-> basepath io/file (.getAbsolutePath))
-        logs                            (-> basepath matching-files sort)
+  (let [abs-path (-> basepath io/file (.getAbsolutePath))
+        logs     (-> basepath matching-files sort)
         [logs-to-rotate logs-to-delete] (split-at max-count logs)]
     (doseq [log-to-delete logs-to-delete]
       (io/delete-file log-to-delete))
