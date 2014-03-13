@@ -1,4 +1,5 @@
-(ns taoensso.test.timbre.appenders.rotor
+(ns taoensso.timbre.tests.appenders.rotor
+  {:author "Ian Truslove, Kurt Harriger"}
   (:require [taoensso.timbre.appenders.rotor :as rotor :refer :all]
             [clojure.test                              :refer :all]
             [clojure.java.io                           :refer [file]]))
