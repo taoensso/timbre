@@ -1,3 +1,10 @@
+## v3.1.4 / 2014 Mar 13
+
+ * NEW: Add `profiling/p*` macro.
+ * CHANGE: Include `p`, `p*` in `refer-timbre` imports.
+ * FIX: rotor appender not rotating (iantruslove, kurtharriger).
+
+
 ## v3.1.3 / 2014 Mar 11
 
  * FIX: profiling id namespacing.
