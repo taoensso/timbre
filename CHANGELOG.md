@@ -1,3 +1,8 @@
+## v3.1.5 / 2014 Mar 15
+
+ * FIX: `profiling/p*` was defined incorrectly (kyptin).
+
+
 ## v3.1.4 / 2014 Mar 13
 
  * NEW: Add `profiling/p*` macro.
