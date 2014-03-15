@@ -27,8 +27,9 @@
   of named body. Always returns the body's result."
   [id & body] `(pspy* ~id (fn [] ~@body)))
 
-(defmacro p  [id & body] `(pspy  ~id ~@body)) ; Alias
-(defmacro p* [id & body] `(pspy* ~id ~@body)) ; Alias
+;;; Aliases
+(def p* pspy*)
+(defmacro p [id & body] `(pspy ~id ~@body))
 
 (comment
   (time (dotimes [_ 1000000])) ; ~20ms
