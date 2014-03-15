@@ -1,4 +1,4 @@
-## Pending / unreleased
+## v3.1.5 / 2014 Mar 15
 
  * FIX: `profiling/p*` was defined incorrectly (kyptin).
 
