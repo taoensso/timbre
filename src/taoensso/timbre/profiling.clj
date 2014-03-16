@@ -186,8 +186,8 @@
         accounted    (reduce + (map :time (vals stats)))
         max-id-width (apply max (map (comp count str)
                                      (conj (keys stats) "Accounted Time")))
-        pattern   (str "%" max-id-width "s %6d %9s %10s %9s %9s %7d %1s%n")
-        s-pattern (.replace pattern \d \s)
+        pattern   (str "%" max-id-width "s %,11d %9s %10s %9s %9s %7d %1s%n")
+        s-pattern (str "%" max-id-width "s %11s %9s %10s %9s %9s %7s %1s%n")
         perc      #(Math/round (/ %1 %2 0.01))
         ft (fn [nanosecs]
              (let [pow     #(Math/pow 10 %)
@@ -199,7 +199,7 @@
                      :else       (str nanosecs     "ns"))))]
 
     (with-out-str
-      (printf s-pattern "Id" "Calls" "Min" "Max" "MAD" "Mean" "Time%" "Time")
+      (printf s-pattern "Id" "nCalls" "Min" "Max" "MAD" "Mean" "Time%" "Time")
       (doseq [pid (->> (keys stats)
                        (sort-by #(- (get-in stats [% (or sort-field :time)]))))]
         (let [{:keys [count min max mean mad time]} (stats pid)]
