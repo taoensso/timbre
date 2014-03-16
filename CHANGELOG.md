@@ -1,3 +1,8 @@
+## v3.1.6 / 2014 Mar 16
+
+ * [#56] FIX: `defnp`/`p` head retention issue (kyptin).
+
+
 ## v3.1.5 / 2014 Mar 15
 
  * FIX: `profiling/p*` was defined incorrectly (kyptin).

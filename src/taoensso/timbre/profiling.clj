@@ -12,6 +12,21 @@
 (comment (map #(fq-keyword %) ["foo" :foo :foo/bar]))
 
 (def ^:dynamic *pdata* "{::pid [time1 time2 ...]}" nil)
+(defmacro pspy
+  "Profile spy. When in the context of a *pdata* binding, records execution time
+  of named body. Always returns the body's result."
+  ;; Note: do NOT implement as `(pspy* ~id (fn [] ~@body))`. The fn wrapping
+  ;; can cause unnecessary lazy seq head retention, Ref. http://goo.gl/42Vxph.
+  [id & body]
+  `(if-not *pdata* (do ~@body)
+     (let [id# (fq-keyword ~id)
+           t0# (System/nanoTime)]
+       (try (do ~@body)
+            (finally
+              (let [t-elapsed# (- (System/nanoTime) t0#)]
+                (swap! *pdata* #(assoc % id# (conj (% id# []) t-elapsed#)))))))))
+
+(defmacro p [id & body] `(pspy ~id ~@body)) ; Alias
 
 (defn pspy* [id f]
   (if-not *pdata* (f)
@@ -22,19 +37,12 @@
              (let [t-elapsed (- (System/nanoTime) t0)]
                (swap! *pdata* #(assoc % id (conj (% id []) t-elapsed)))))))))
 
-(defmacro pspy
-  "Profile spy. When in the context of a *pdata* binding, records execution time
-  of named body. Always returns the body's result."
-  [id & body] `(pspy* ~id (fn [] ~@body)))
-
-;;; Aliases
-(def p* pspy*)
-(defmacro p [id & body] `(pspy ~id ~@body))
+(def p* pspy*) ; Alias
 
 (comment
-  (time (dotimes [_ 1000000])) ; ~20ms
-  ;; Note that times are ~= for `pspy` as a pure macro and as a `pspy*` fn caller:
-  (time (dotimes [_ 1000000] (pspy :foo))) ; ~300ms
+  (binding [*pdata* {}])
+  (time (dotimes [_ 1000000])) ; ~3ms
+  (time (dotimes [_ 1000000] (pspy :foo))) ; ~65ms (^:dynamic bound >= once!)
   )
 
 (declare pdata-stats format-pdata)
@@ -43,7 +51,7 @@
   `(if-not (timbre/logging-enabled? ~level ~(str *ns*))
      {:result (do ~@body)}
      (binding [*pdata* (atom {})]
-       {:result (p ::clock-time ~@body)
+       {:result (pspy ::clock-time ~@body)
         :stats  (pdata-stats @*pdata*)})))
 
 (defmacro profile
@@ -127,8 +135,8 @@
         prepost-map (when (and (map? (first sigs)) (next sigs)) (first sigs))
         body (if prepost-map (next sigs) sigs)]
     `(defn ~name ~params ~prepost-map
-       (p ~(clojure.core/name name)
-          ~@body))))
+       (pspy ~(clojure.core/name name)
+             ~@body))))
 
 (comment (defnp foo "Docstring "[x] "boo" (* x x))
          (macroexpand '(defnp foo "Docstring "[x] "boo" (* x x)))
