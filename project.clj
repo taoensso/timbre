@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "3.1.5"
+(defproject com.taoensso/timbre "3.1.6"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Clojure logging & profiling library"
   :url "https://github.com/ptaoussanis/timbre"
