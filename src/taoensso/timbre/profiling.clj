@@ -4,6 +4,8 @@
   (:require [taoensso.encore :as encore]
             [taoensso.timbre :as timbre]))
 
+;;;; Utils
+
 (defmacro fq-keyword "Returns namespaced keyword for given id."
   [id]
   `(if (and (keyword? ~id) (namespace ~id)) ~id
@@ -11,7 +13,17 @@
 
 (comment (map #(fq-keyword %) ["foo" :foo :foo/bar]))
 
-(def ^:dynamic *pdata* "{::pid [time1 time2 ...]}" nil)
+;;;;
+
+(def ^:dynamic *pdata*
+  "{::pid {:times [t1 t2 ...] ; Times awaiting merge into stats
+           :ntimes _          ; (count times)
+           :stats {}          ; Cumulative stats
+          }}"
+  nil)
+
+(declare capture-time! merge-times>stats!)
+
 (defmacro pspy
   "Profile spy. When in the context of a *pdata* binding, records execution time
   of named body. Always returns the body's result."
@@ -22,9 +34,7 @@
      (let [id# (fq-keyword ~id)
            t0# (System/nanoTime)]
        (try (do ~@body)
-            (finally
-              (let [t-elapsed# (- (System/nanoTime) t0#)]
-                (swap! *pdata* #(assoc % id# (conj (% id# []) t-elapsed#)))))))))
+            (finally (capture-time! id# (- (System/nanoTime) t0#)))))))
 
 (defmacro p [id & body] `(pspy ~id ~@body)) ; Alias
 
@@ -33,9 +43,7 @@
     (let [id (fq-keyword id)
           t0 (System/nanoTime)]
       (try (f)
-           (finally
-             (let [t-elapsed (- (System/nanoTime) t0)]
-               (swap! *pdata* #(assoc % id (conj (% id []) t-elapsed)))))))))
+           (finally (capture-time! id (- (System/nanoTime) t0)))))))
 
 (def p* pspy*) ; Alias
 
@@ -45,14 +53,14 @@
   (time (dotimes [_ 1000000] (pspy :foo))) ; ~65ms (^:dynamic bound >= once!)
   )
 
-(declare pdata-stats format-pdata)
+(declare ^:private format-stats)
 
 (defmacro with-pdata [level & body]
   `(if-not (timbre/logging-enabled? ~level ~(str *ns*))
      {:result (do ~@body)}
      (binding [*pdata* (atom {})]
        {:result (pspy ::clock-time ~@body)
-        :stats  (pdata-stats @*pdata*)})))
+        :stats  (merge-times>stats!)})))
 
 (defmacro profile
   "When logging is enabled, executes named body with profiling enabled. Body
@@ -67,7 +75,7 @@
      (when stats#
        (timbre/log* {:profile-stats stats#} :format ~level
                     "Profiling: %s\n%s" (fq-keyword ~id)
-                    (format-pdata stats#)))
+                    (format-stats stats#)))
      result#))
 
 (defmacro sampling-profile
@@ -77,28 +85,102 @@
        (if-not (< (rand) ~probability) (do ~@body)
          (profile ~level ~id ~@body))))
 
-(defn pdata-stats
-  "{::pid [time1 time2 ...] ...} => {::pid {:min <min-time> ...} ...}
-  For performance, stats are calculated once only after all data have been
-  collected."
-  [pdata]
-  (reduce-kv
-   (fn [m pid times]
-     (let [count (max 1 (count times))
-           time  (reduce + times)
-           mean  (long (/ time count))
-           mad   (long (/ (reduce + (map #(Math/abs (long (- % mean)))
-                                         times)) ; Mean absolute deviation
-                          count))]
-       (assoc m pid {:count count
-                     :min   (apply min times)
-                     :max   (apply max times)
-                     :mean  mean
-                     :mad   mad
-                     :time  time})))
-   {} (or pdata {})))
+(defmacro defnp "Like `defn` but wraps body in `p` macro."
+  {:arglists '([name ?doc-string ?attr-map [params] ?prepost-map body])}
+  [name & sigs]
+  (let [[name [params & sigs]] (encore/name-with-attrs name sigs)
+        prepost-map (when (and (map? (first sigs)) (next sigs)) (first sigs))
+        body (if prepost-map (next sigs) sigs)]
+    `(defn ~name ~params ~prepost-map
+       (pspy ~(clojure.core/name name)
+             ~@body))))
 
-(defn format-pdata [stats & [sort-field]]
+(comment (defnp foo "Docstring "[x] "boo" (* x x))
+         (macroexpand '(defnp foo "Docstring "[x] "boo" (* x x)))
+         (profile :info :defnp-test (foo 5)))
+
+;;;; Data capturing & aggregation
+
+(def ^:private ^:constant stats-gc-n 111111)
+
+(defn capture-time! [id t-elapsed]
+  (let [ntimes
+        (->
+         (swap! *pdata*
+          (fn [m]
+            (let [{:as   m-id
+                   :keys [times ntimes]
+                   :or   {times [] ntimes 0}} (get m id {})]
+              (assoc m id
+                (assoc m-id :times  (conj times t-elapsed)
+                            :ntimes (inc  ntimes))))))
+         (get-in [id :ntimes]))]
+    (when (= ntimes stats-gc-n) ; Merge to reduce memory footprint
+      ;; This is so much slower than `capture-time!` swaps that it gets delayed
+      ;; until after entire profiling call completes!:
+      ;; (future (merge-times>stats! id)) ; Uses binding conveyance
+      (p :timbre/stats-gc (merge-times>stats! id)))
+    nil))
+
+(comment
+  (binding [*pdata* (atom {})]
+    (capture-time! :foo 100000)
+    (capture-time! :foo 100000)
+    *pdata*))
+
+(defn merge-times>stats!
+  ([] ; -> {<pid> <merged-stats>}
+   (reduce (fn [m pid] (assoc m pid (merge-times>stats! pid)))
+    {} (keys (or @*pdata* {}))))
+
+  ([id] ; -> <merged-stats>
+   (->
+    (swap! *pdata*
+      (fn [m]
+        (let [{:as   m-id
+               :keys [times ntimes stats]
+               :or   {times  []
+                      ntimes 0
+                      stats  {}}} (get m id {})]
+          (if (empty? times) m
+            (let [ts-count   (max 1 ntimes)
+                  ts-time    (reduce + times)
+                  ts-mean    (long (/ ts-time ts-count))
+                  ts-mad-sum (long (reduce + (map #(Math/abs (long (- % ts-mean)))
+                                                  times))) ; Mean absolute deviation
+                  ;;
+                  s-count   (+ (:count stats 0) ts-count)
+                  s-time    (+ (:time  stats 0) ts-time)
+                  s-mean    (long (/ s-time s-count))
+                  s-mad-sum (long (+ (:mad-sum stats 0) ts-mad-sum))
+                  s-mad     (long (/ s-mad-sum s-count))
+                  s-min (apply min (:min stats Double/POSITIVE_INFINITY) times)
+                  s-max (apply max (:max stats 0)                        times)]
+              (assoc m id
+                (assoc m-id
+                  :times []
+                  :ntimes 0
+                  :stats {:count   s-count
+                          :min     s-min
+                          :max     s-max
+                          :mean    s-mean
+                          :mad-sum s-mad-sum
+                          :mad     s-mad
+                          :time    s-time})))))))
+    (get-in [id :stats]))))
+
+(comment
+  (binding [*pdata* (atom {})]
+    (capture-time!       :foo 10)
+    (capture-time!       :foo 20)
+    (merge-times>stats!  :foo)
+    (capture-time!       :foo 30)
+    (merge-times>stats!  :foo)
+    (merge-times>stats!  :bar)
+    (capture-time!       :foo 10)
+    *pdata*))
+
+(defn format-stats [stats & [sort-field]]
   (let [clock-time (-> stats ::clock-time :time) ; How long entire profile body took
         stats        (dissoc stats ::clock-time)
         accounted    (reduce + (map :time (vals stats)))
@@ -166,5 +248,12 @@
          (p :div  (reduce / nums)))))
 
   (profile :info :Arithmetic (dotimes [n 100] (my-fn)))
+  (profile :info :high-n     (dotimes [n 1e6] (p :divs (/ 1 2 3 4 5 6 7 8 9))))
+  (let [;; MAD = 154.0ms, natural:
+        ;; n->s {0 10 1 100 2 50 3 500 4 8 5 300 6 32 7 433 8 213 9 48}
+        ;; MAD = 236.0ms, pathological:
+        n->s {0 10 1 11 2 5 3 18 4 7 5 2 6 300 7 400 8 600 9 700}]
+    (with-redefs [stats-gc-n 3]
+      (profile :info :high-sigma (dotimes [n 10]  (p :sleep (Thread/sleep (n->s n)))))))
 
   (sampling-profile :info 0.2 :sampling-test (p :string "Hello!")))
