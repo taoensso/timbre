@@ -145,15 +145,18 @@
           (if (empty? times) m
             (let [ts-count   (max 1 ntimes)
                   ts-time    (reduce + times)
-                  ts-mean    (long (/ ts-time ts-count))
-                  ts-mad-sum (long (reduce + (map #(Math/abs (long (- % ts-mean)))
-                                                  times))) ; Mean absolute deviation
+                  ts-mean    (/ ts-time ts-count)
+                  ;; Batched "online" MAD calculation here is >= the standard
+                  ;; Knuth/Welford method, Ref. http://goo.gl/QLSfOc,
+                  ;;                            http://goo.gl/mx5eSK.
+                  ts-mad-sum (reduce + (map #(Math/abs (long (- % ts-mean)))
+                                            times)) ; Mean absolute deviation
                   ;;
                   s-count   (+ (:count stats 0) ts-count)
                   s-time    (+ (:time  stats 0) ts-time)
-                  s-mean    (long (/ s-time s-count))
-                  s-mad-sum (long (+ (:mad-sum stats 0) ts-mad-sum))
-                  s-mad     (long (/ s-mad-sum s-count))
+                  s-mean    (/ s-time s-count)
+                  s-mad-sum (+ (:mad-sum stats 0) ts-mad-sum)
+                  s-mad     (/ s-mad-sum s-count)
                   s-min (apply min (:min stats Double/POSITIVE_INFINITY) times)
                   s-max (apply max (:max stats 0)                        times)]
               (assoc m id
