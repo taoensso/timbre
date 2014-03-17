@@ -145,33 +145,15 @@
           (if (empty? times) m
             (let [ts-count   (max 1 ntimes)
                   ts-time    (reduce + times)
-                  ts-mean    (/ ts-time ts-count)
-                  ;; Non-streaming Mean Absolute Deviation = |ts-mean|/n.
-                  ;; To get streaming we instead collect deltas separated by
-                  ;; sign. This seems to be more accurate that Knuth/Welford,
-                  ;; Ref. http://goo.gl/mx5eSK, http://goo.gl/QLSfOc - probably
-                  ;; due to larger batch sizes.
-                  [ts-mad-s+ ts-mad-s-]
-                  (reduce (fn [[s+ s-] t]
-                            (let [delta (- t ts-mean)]
-                              (if (>= delta 0) [(+ s+ delta) s-]
-                                               [s+ (+ s- delta)])))
-                          [0 0] times)
+                  ts-mean    (long (/ ts-time ts-count))
+                  ts-mad-sum (long (reduce + (map #(Math/abs (long (- % ts-mean)))
+                                                  times))) ; Mean absolute deviation
                   ;;
                   s-count   (+ (:count stats 0) ts-count)
                   s-time    (+ (:time  stats 0) ts-time)
-                  s-mean    (/ s-time s-count)
-                  ;;
-                  s-mad-s+  (if-not (:count stats) ts-mad-s+
-                              (+ (:mad-s+ stats) ts-mad-s+
-                                 (* (:count stats) (- s-mean (:mean stats)))))
-                  s-mad-s-  (if-not (:count stats) ts-mad-s-
-                              (+ (:mad-s- stats) ts-mad-s-
-                                 (* (:count stats) (- s-mean (:mean stats)))))
-                  s-mad-sum (+ (Math/abs (long s-mad-s+))
-                               (Math/abs (long s-mad-s-)))
-                  s-mad     (/ s-mad-sum s-count)
-                  ;;
+                  s-mean    (long (/ s-time s-count))
+                  s-mad-sum (long (+ (:mad-sum stats 0) ts-mad-sum))
+                  s-mad     (long (/ s-mad-sum s-count))
                   s-min (apply min (:min stats Double/POSITIVE_INFINITY) times)
                   s-max (apply max (:max stats 0)                        times)]
               (assoc m id
@@ -182,8 +164,7 @@
                           :min     s-min
                           :max     s-max
                           :mean    s-mean
-                          :mad-s+  s-mad-s+
-                          :mad-s-  s-mad-s-
+                          :mad-sum s-mad-sum
                           :mad     s-mad
                           :time    s-time})))))))
     (get-in [id :stats]))))
