@@ -1,8 +1,10 @@
 **[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contributing](#contact--contributing) | current ([semantic][]) version:
 
 ```clojure
-[com.taoensso/timbre "3.1.6"] ; 3.x is a non-breaking upgrade - see CHANGELOG for details
+[com.taoensso/timbre "3.1.6"] ; Stable
 ```
+
+v3 is a **major, backwards-compatible release**. Please see the [CHANGELOG][] for details.
 
 Appender authors: please see [here](https://github.com/ptaoussanis/timbre/issues/41) about migrating Timbre 2.x appenders to 3.x's recommended style.
 
@@ -286,7 +288,8 @@ Copyright &copy; 2012-2014 Peter Taoussanis. Distributed under the [Eclipse Publ
 
 
 [API docs]: <http://ptaoussanis.github.io/timbre/>
-[CHANGELOG]: <https://github.com/ptaoussanis/timbre/blob/master/CHANGELOG.md>
+[CHANGELOG_]: <https://github.com/ptaoussanis/timbre/blob/master/CHANGELOG.md>
+[CHANGELOG]: <https://github.com/ptaoussanis/timbre/releases>
 [other Clojure libs]: <https://www.taoensso.com/clojure-libraries>
 [Twitter]: <https://twitter.com/ptaoussanis>
 [semantic]: <http://semver.org/>
