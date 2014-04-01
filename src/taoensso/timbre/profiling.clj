@@ -134,7 +134,7 @@
   (let [[name [params & sigs]] (encore/name-with-attrs name sigs)
         prepost-map (when (and (map? (first sigs)) (next sigs)) (first sigs))
         body (if prepost-map (next sigs) sigs)]
-    `(defn ~name ~params ~prepost-map
+    `(defn ~name ~params ~(or prepost-map {})
        (pspy ~(clojure.core/name name)
              ~@body))))
 
