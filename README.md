@@ -4,9 +4,7 @@
 [com.taoensso/timbre "3.1.6"] ; Stable
 ```
 
-v3 is a **major, backwards-compatible release**. Please see the [CHANGELOG][] for details.
-
-Appender authors: please see [here](https://github.com/ptaoussanis/timbre/issues/41) about migrating Timbre 2.x appenders to 3.x's recommended style.
+v3 is a **major, backwards-compatible release**. Please see the [CHANGELOG][] for details. Appender authors: please see [here](https://github.com/ptaoussanis/timbre/issues/41) about migrating Timbre 2.x appenders to 3.x's recommended style.
 
 # Timbre, a (sane) Clojure logging & profiling library
 
@@ -24,6 +22,10 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
  * Robust **namespace filtering**.
  * [tools.logging](https://github.com/clojure/tools.logging) support (optional, useful when integrating with legacy logging systems).
  * Dead-simple, logging-level-aware **logging profiler**.
+
+## 3rd-party tools, appenders, etc.
+ * [log-config](https://github.com/palletops/log-config) by [Hugo Duncan](https://github.com/hugoduncan) - library to help manage Timbre logging config.
+ * Suggestions welcome!
 
 ## Getting started
 
