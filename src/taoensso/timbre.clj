@@ -250,13 +250,12 @@
 (def ^:private get-hostname
   (encore/memoize* 60000
     (fn []
-      (let [p (promise)]
-        (future ; Android doesn't like this on the main thread
-          (deliver p
-            (try (.. java.net.InetAddress getLocalHost getHostName)
-                 (catch java.net.UnknownHostException _
-                   "UnknownHost"))))
-        @p))))
+      (->
+       (future ; Android doesn't like this on the main thread
+         (try (.. java.net.InetAddress getLocalHost getHostName)
+              (catch java.net.UnknownHostException _
+                "UnknownHost")))
+       (deref 5000 "UnknownHost")))))
 
 (defn- wrap-appender-juxt
   "Wraps compile-time appender juxt with additional runtime capabilities
