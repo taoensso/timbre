@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "3.1.6"
+(defproject com.taoensso/timbre "3.2.0"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Clojure logging & profiling library"
   :url "https://github.com/ptaoussanis/timbre"
@@ -11,18 +11,18 @@
                 *assert* true}
   :dependencies
   [[org.clojure/clojure "1.4.0"]
-   [com.taoensso/encore "0.9.8"]
+   [com.taoensso/encore "1.5.0"]
    [io.aviso/pretty     "0.1.10"]]
 
   :test-paths ["test" "src"]
   :profiles
   {;; :default [:base :system :user :provided :dev]
    :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
-   :1.6  {:dependencies [[org.clojure/clojure "1.6.0-beta1"]]}
+   :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
    :test {:dependencies [[expectations              "1.4.56"]
                          [org.clojure/test.check    "0.5.7"]
-                         [com.taoensso/nippy        "2.5.2"]
-                         [com.taoensso/carmine      "2.4.6"]
+                         [com.taoensso/nippy        "2.6.3"]
+                         [com.taoensso/carmine      "2.6.2"]
                          [com.draines/postal        "1.11.1"]
                          [org.clojure/tools.logging "0.2.6"]]
           :plugins [[lein-expectations "0.0.8"]

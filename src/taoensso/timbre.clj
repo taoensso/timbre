@@ -250,13 +250,12 @@
 (def ^:private get-hostname
   (encore/memoize* 60000
     (fn []
-      (let [p (promise)]
-        (future ; Android doesn't like this on the main thread
-          (deliver p
-            (try (.. java.net.InetAddress getLocalHost getHostName)
-                 (catch java.net.UnknownHostException _
-                   "UnknownHost"))))
-        @p))))
+      (->
+       (future ; Android doesn't like this on the main thread
+         (try (.. java.net.InetAddress getLocalHost getHostName)
+              (catch java.net.UnknownHostException _
+                "UnknownHost")))
+       (deref 5000 "UnknownHost")))))
 
 (defn- wrap-appender-juxt
   "Wraps compile-time appender juxt with additional runtime capabilities
@@ -366,11 +365,18 @@
 
 ;;;; Logging macros
 
+(def ^:dynamic *config-dynamic* nil)
+(defmacro with-logging-config
+  "Allows thread-local logging config override. Useful for dev & testing."
+  [config & body] `(binding [*config-dynamic* ~config] ~@body))
+
+(defn get-default-config [] (or *config-dynamic* @config))
+
 (defn ns-unfiltered? [config ns] ((:ns-filter (compile-config config)) ns))
 
 (defn logging-enabled? "For 3rd-party utils, etc."
   [level & [compile-time-ns]]
-  (let [config' @config]
+  (let [config' (get-default-config)]
     (and (level-sufficient? level config')
          (or (nil? compile-time-ns)
              (ns-unfiltered? config' compile-time-ns)))))
@@ -380,7 +386,7 @@
    level base-appender-args log-vargs ns throwable message
    ;; Additional args provided by Timbre only:
    & [juxt-fn msg-type file line]]
-  (when-let [juxt-fn (or juxt-fn (get-in (compile-config @config)
+  (when-let [juxt-fn (or juxt-fn (get-in (compile-config (get-default-config))
                                          [:appenders-juxt level]))]
     (juxt-fn
      (conj (or base-appender-args {})
@@ -412,8 +418,8 @@
     `(let [;;; Support [level & log-args], [config level & log-args] sigs:
            s1# ~s1
            default-config?# (levels-scored s1#)
-           config# (if default-config?# @config s1#)
-           level#  (if default-config?# s1#     ~s2)
+           config# (if default-config?# (get-default-config) s1#)
+           level#  (if default-config?# s1# ~s2)
            compile-time-ns# ~(str *ns*)]
        ;; (println "DEBUG: Runtime level check")
        (when (and (level-sufficient? level# config#)
@@ -495,7 +501,8 @@
     '[taoensso.timbre :as timbre
       :refer (log  trace  debug  info  warn  error  fatal  report
               logf tracef debugf infof warnf errorf fatalf reportf
-              spy logged-future with-log-level sometimes)])
+              spy logged-future with-log-level with-logging-config
+              sometimes)])
   (require
     '[taoensso.timbre.profiling :as profiling
       :refer (pspy pspy* profile defnp p p*)])"
@@ -504,7 +511,8 @@
    '[taoensso.timbre :as timbre
      :refer (log  trace  debug  info  warn  error  fatal  report
              logf tracef debugf infof warnf errorf fatalf reportf
-             spy logged-future with-log-level sometimes)])
+             spy logged-future with-log-level with-logging-config
+             sometimes)])
   (require
    '[taoensso.timbre.profiling :as profiling
      :refer (pspy pspy* profile defnp p p*)]))
