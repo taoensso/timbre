@@ -11,7 +11,7 @@
                 *assert* true}
   :dependencies
   [[org.clojure/clojure "1.4.0"]
-   [com.taoensso/encore "1.2.1"]
+   [com.taoensso/encore "1.5.0"]
    [io.aviso/pretty     "0.1.10"]]
 
   :test-paths ["test" "src"]
@@ -21,8 +21,8 @@
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
    :test {:dependencies [[expectations              "1.4.56"]
                          [org.clojure/test.check    "0.5.7"]
-                         [com.taoensso/nippy        "2.6.0"]
-                         [com.taoensso/carmine      "2.5.0"]
+                         [com.taoensso/nippy        "2.6.3"]
+                         [com.taoensso/carmine      "2.6.2"]
                          [com.draines/postal        "1.11.1"]
                          [org.clojure/tools.logging "0.2.6"]]
           :plugins [[lein-expectations "0.0.8"]
