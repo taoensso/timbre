@@ -1,4 +1,4 @@
-## Pending / unreleased
+## v3.2.0 / 2014 May 6
 
  * [#60] **FIX**: `defnp` no longer generates an Eastwood warning (@ducky427).
  * **CHANGE**: Improved profiling memory efficiency (max memory use, was previously unbounded).
