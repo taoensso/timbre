@@ -1,8 +1,9 @@
 ## Pending / unreleased
 
- * [#60] CHANGE: `defnp` no longer generates an Eastwood warning (ducky427).
- * CHANGE: Improved profiling memory efficiency (max memory use, was previously unbounded).
- * CHANGE: Profiling: make larger call numbers easier to read.
+ * [#60] **FIX**: `defnp` no longer generates an Eastwood warning (@ducky427).
+ * **CHANGE**: Improved profiling memory efficiency (max memory use, was previously unbounded).
+ * **CHANGE**: Profiling: make larger call numbers easier to read.
+ * [#63]: **NEW**: Add support for thread-local configuration (@jameswarren).
 
 
 ## v3.1.6 / 2014 Mar 16
