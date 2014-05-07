@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "3.2.0"
+(defproject com.taoensso/timbre "3.2.1"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Clojure logging & profiling library"
   :url "https://github.com/ptaoussanis/timbre"
@@ -11,7 +11,7 @@
                 *assert* true}
   :dependencies
   [[org.clojure/clojure "1.4.0"]
-   [com.taoensso/encore "1.5.0"]
+   [com.taoensso/encore "1.5.1"]
    [io.aviso/pretty     "0.1.10"]]
 
   :test-paths ["test" "src"]

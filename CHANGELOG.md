@@ -1,3 +1,8 @@
+## v3.2.1 / 2014 May 7
+
+ * **FIX**: missing tools.reader upstream dependency (@ducky427).
+
+
 ## v3.2.0 / 2014 May 6
 
  * [#60] **FIX**: `defnp` no longer generates an Eastwood warning (@ducky427).

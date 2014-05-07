@@ -1,7 +1,7 @@
 **[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contributing](#contact--contributing) | current ([semantic][]) version:
 
 ```clojure
-[com.taoensso/timbre "3.2.0"] ; Stable
+[com.taoensso/timbre "3.2.1"] ; Stable
 ```
 
 v3 is a **major, backwards-compatible release**. Please see the [CHANGELOG][] for details. Appender authors: please see [here](https://github.com/ptaoussanis/timbre/issues/41) about migrating Timbre 2.x appenders to 3.x's recommended style.
