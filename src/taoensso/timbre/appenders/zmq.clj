@@ -24,7 +24,7 @@
   [& [appender-opts {:keys [transport address port]}]]
   (let [default-appender-opts {:enabled? true
                                :min-level :error
-                               :async? false}
+                               :async? true}
         context (zmq/zcontext)
         socket (make-zmq-socket context transport address port)
         poller (doto (zmq/poller context)
