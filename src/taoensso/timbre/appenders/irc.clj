@@ -51,4 +51,4 @@
                    :message   message))))})))
 
 (def irc-appender
-  (make-irc-appender))
+  (assoc (make-irc-appender) :doc (:doc (meta #'make-irc-appender))))
