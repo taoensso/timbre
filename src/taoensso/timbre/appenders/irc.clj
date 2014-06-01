@@ -29,19 +29,25 @@
     (doseq [line (rest lines)]
       (irclj/message conn chan ">" line))))
 
-(defn appender-fn [{:keys [ap-config prefix throwable message]}]
-  (when-let [irc-config (:irc ap-config)]
-    (send-message
-     (assoc irc-config
-       :prefix    prefix
-       :throwable throwable
-       :message   message))))
+(defn make-irc-appender
+  "Sends IRC messages using irclj.
+  Needs :irc config map in :shared-appender-config, e.g.:
+   {:host \"irc.example.org\" :port 6667 :nick \"logger\"
+    :name \"My Logger\" :chan \"#logs\"}"
+  [& [appender-opts {:keys [irc-config]}]]
+  (let [default-appender-opts
+        {:enabled?  true
+         :min-level :info
+         :prefix-fn (fn [args] (-> args :level name str/upper-case))}]
+    (merge default-appender-opts appender-opts
+           {:fn
+            (fn [{:keys [ap-config prefix throwable message]}]
+              (when-let [irc-config (or irc-config (:irc ap-config))]
+                (send-message
+                 (assoc irc-config
+                   :prefix    prefix
+                   :throwable throwable
+                   :message   message))))})))
 
 (def irc-appender
-  {:doc (str "Sends IRC messages using irclj.\n"
-             "Needs :irc config map in :shared-appender-config, e.g.:
-             {:host \"irc.example.org\" :port 6667 :nick \"logger\"
-              :name \"My Logger\" :chan \"#logs\"")
-   :min-level :info :enabled? true
-   :prefix-fn (fn [{:keys [level]}] (-> level name str/upper-case))
-   :fn appender-fn})
+  (make-irc-appender))
