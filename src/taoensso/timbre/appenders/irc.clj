@@ -18,7 +18,8 @@
     conn))
 
 (defn ensure-conn [conf]
-  (swap! conn #(or % (connect conf))))
+  (or @conn
+      (reset! conn (connect conf))))
 
 (defn send-message [{:keys [prefix throwable message chan] :as config}]
   (let [conn (ensure-conn config)
