@@ -8,7 +8,7 @@
 (def conn (atom nil))
 
 (defn connect [{:keys [host port pass nick user name chan]
-                :or {:port 6667}}]
+                :or   {port 6667}}]
   (let [conn (irclj/connect host port nick
                             :username  user
                             :real-name name
