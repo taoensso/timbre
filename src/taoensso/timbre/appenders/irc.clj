@@ -38,6 +38,7 @@
   (let [default-appender-opts
         {:enabled?  true
          :min-level :info
+         :async?     true
          :prefix-fn (fn [args] (-> args :level name str/upper-case))}]
     (merge default-appender-opts appender-opts
            {:fn
