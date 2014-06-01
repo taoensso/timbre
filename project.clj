@@ -32,7 +32,7 @@
                 }]
    :dev
    [:1.6 :test
-    {:dependencies []
+    {:dependencies [[irclj "0.5.0-alpha4"]]
      :plugins [[lein-ancient "0.5.4"]
                [codox        "0.6.7"]]}]}
 
