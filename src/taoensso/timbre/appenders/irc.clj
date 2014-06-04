@@ -61,3 +61,13 @@
 
 (def irc-appender "DEPRECATED: Use `make-irc-appender` instead."
   (make-irc-appender))
+
+(comment
+  (def test-config {:irc {:host "127.0.0.1"
+                          :nick "lazylog"
+                          :user "lazare"
+                          :name "Lazylus Logus"
+                          :chan "bob"}})
+  ((:fn irc-appender) {:ap-config test-config
+                       :prefix "[PREFIX]"
+                       :message "your message sir"}))
