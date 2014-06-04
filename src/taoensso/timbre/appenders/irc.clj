@@ -5,11 +5,17 @@
             [irclj.core      :as irc]
             [taoensso.timbre :as timbre]))
 
+(defn default-fmt-output-fn
+  [{:keys [level throwable message]}]
+  (format "[%s] %s%s"
+          (-> level name (str/upper-case))
+          (or message "")
+          (or (timbre/stacktrace throwable "\n") "")))
+
 (def default-appender-opts
-  {:enabled?  true
-   :min-level :info
-   :async?     true
-   :prefix-fn (fn [args] (-> args :level name str/upper-case))})
+  {:async?        true
+   :enabled?      true
+   :min-level     :info})
 
 (defn- connect [{:keys [host port pass nick user name chan]
                 :or   {port 6667}}]
@@ -25,24 +31,19 @@
   (if-not @conn
     (reset! conn @(connect conf))))
 
-(defn- send-message [conn {:keys [prefix throwable message chan] :as config}]
-  (ensure-conn conn config)
-  (let [output (str message (timbre/stacktrace throwable "\n"))
-        lines  (str/split output #"\n")]
-    (irc/message conn chan prefix (first lines))
-    (doseq [line (rest lines)]
+(defn- send-message [conn chan output]
+  (let [[fst & rst] (str/split output #"\n")]
+    (irc/message conn chan fst)
+    (doseq [line rst]
       (irc/message conn chan ">" line))))
 
 (defn- make-appender-fn [irc-config conn]
-  (fn [{:keys [ap-config prefix throwable message]}]
-    (prn ap-config)
+  (fn [{:keys [ap-config] :as args}]
     (when-let [irc-config (or irc-config (:irc ap-config))]
-      (send-message
-       conn
-       (assoc irc-config
-         :prefix    prefix
-         :message   message
-         :throwable throwable)))))
+      (ensure-conn conn irc-config)
+      (let [fmt-fn (or (:fmt-output-fn irc-config)
+                       default-fmt-output-fn)]
+        (send-message conn (:chan irc-config) (fmt-fn args))))))
 
 ;;; Public
 
@@ -63,11 +64,12 @@
   (make-irc-appender))
 
 (comment
-  (def test-config {:irc {:host "127.0.0.1"
-                          :nick "lazylog"
-                          :user "lazare"
-                          :name "Lazylus Logus"
-                          :chan "bob"}})
-  ((:fn irc-appender) {:ap-config test-config
-                       :prefix "[PREFIX]"
-                       :message "your message sir"}))
+  (timbre/set-config!
+   [:shared-appender-config :irc]
+   {:host "127.0.0.1"
+    :nick "lazylog"
+    :user "lazare"
+    :name "Lazylus Logus"
+    :chan "bob"})
+  (timbre/set-config! [:appenders :irc] (make-irc-appender))
+  (timbre/log :error "A multiple\nline message\nfor you"))
