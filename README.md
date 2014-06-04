@@ -265,6 +265,14 @@ The `profile` macro can now be used to log times for any wrapped forms:
 
 You can also use the `defnp` macro to conveniently wrap whole fns.
 
+The "Total%" column specify how long the identified (ex: ':my-app/slow-sleep') form took relative to the sum of all identified form times ("accounted time"). So what proportion of time was spent on this particular form, versus other identified forms.
+
+The "Total" column specify how long the identified (':my-app/slow-sleep') form took. Absolute, not relative.
+
+The "Clock Time" row specify how long the entire enclosed 'profile' form took. This includes time spent on things that weren't identified with 'p', etc.
+
+The Accounted Time" row specify How long **all** the identified forms took. This is the sum of the '2's.
+
 It's important to note that Timbre profiling is fully **logging-level aware**: if the  level is insufficient, you *won't pay for profiling* (there is a minimal dynamic-var deref cost). Likewise, normal namespace filtering applies. (Performance characteristics for both checks are inherited from Timbre itself).
 
 And since `p` and `profile` **always return their body's result** regardless of whether profiling actually happens or not, it becomes feasible to use profiling more often as part of your normal workflow: just *leave profiling code in production as you do for logging code*.
