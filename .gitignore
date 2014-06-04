@@ -11,3 +11,5 @@
 /pom.xml*
 /.env
 .DS_Store
+/.idea
+*.iml
