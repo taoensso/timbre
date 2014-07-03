@@ -85,7 +85,8 @@
        (if-not (< (rand) ~probability) (do ~@body)
          (profile ~level ~id ~@body))))
 
-(defmacro defnp "Like `defn` but wraps body in `p` macro."
+(defmacro defnp
+  "Like `defn` (single arity only) but wraps body in `p` macro."
   {:arglists '([name ?doc-string ?attr-map [params] ?prepost-map body])}
   [name & sigs]
   (let [[name [params & sigs]] (encore/name-with-attrs name sigs)
