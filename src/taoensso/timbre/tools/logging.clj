@@ -13,12 +13,14 @@
 (deftype Logger [logger-ns]
   clojure.tools.logging.impl/Logger
   (enabled? [_ level] (timbre/logging-enabled? level))
-  (write! [_ level throwable message]
-    ;; tools.logging message may be a string (for `logp`/`logf` calls) or raw
-    ;; argument (for `log` calls). The best we can do for :args is therefore
-    ;; `[message]`:
+  (write!   [_ level throwable message]
+    ;; tools.logging message may be a string (for `logp`/`logf` calls) or
+    ;; single raw argument (for `log` calls). The best we can do for :args is
+    ;; therefore `[message]`:
     (timbre/send-to-appenders! level {} [message] logger-ns throwable
-      (when (string? message) message))))
+      (when (string? message)
+        (delay ; Mimic Timbre's lazy message creation
+          message)))))
 
 (deftype LoggerFactory []
   clojure.tools.logging.impl/LoggerFactory

@@ -19,6 +19,27 @@
           min-encore-version)
         {:min-version min-encore-version}))))
 
+;;;; TODO v4
+;; * Use `format`, `sprintln` from Encore.
+;; * Decide on `:message` format design
+;;   - No delay, just require use of tool?
+;;   - Delay set (as wrapper) per-appender with merged `:ap-config`?
+;;     - :msg-type e/o #{:tools.logging :print-str :pr-str :format nil}
+;;     - :message key is set [only, ever] at per-appender wrapper level.
+;;     - Pros: great flexibility with easy config, simple.
+;;     - Cons: cost of per-appender delay generation. Problem?
+;; * Get core working + tested.
+;; * Enumerate changes from v3.
+;; * Look into v3 backwards compatibility.
+;; * Document changes from v3.
+;; * Update bundled appenders (?).
+;; * Update docs.
+;;
+;; * Investigate better encore/Cljs interplay: fns?
+;; * Do runtime level check even if a compile-time level is in effect if the
+;;   provided `log` level arg is not immediately recognized (e.g. it may be a
+;;   runtime level form that first requires eval).
+
 ;;;; Public utils
 
 (defn str-println
@@ -37,23 +58,70 @@
 
 (def default-out (java.io.OutputStreamWriter. System/out))
 (def default-err (java.io.PrintWriter.        System/err))
-
 (defmacro with-default-outs
   "Evaluates body with Clojure's default *out* and *err* bindings."
-  [& body] `(binding [*out* default-out *err* default-err] ~@body))
+  [& body] `(binding [*out* default-out
+                      *err* default-err] ~@body))
 
-(defmacro with-err-as-out "Evaluates body with *err* bound to *out*."
-  [& body] `(binding [*err* *out*] ~@body))
-
-(defn stacktrace "Default stacktrace formatter for use by appenders, etc."
+(defn fmt-stacktrace "Default stacktrace formatter for use by appenders."
   [throwable & [separator stacktrace-fonts]]
   (when throwable
     (str separator
-      (if-let [fonts stacktrace-fonts]
+      (if-let [fonts stacktrace-fonts] ; nil (defaults), or a map
         (binding [aviso-ex/*fonts* fonts] (aviso-ex/format-exception throwable))
         (aviso-ex/format-exception throwable)))))
 
-(comment (stacktrace (Exception. "foo") nil {}))
+(comment (println (fmt-stacktrace (Exception. "foo") nil nil))
+         (println (fmt-stacktrace (Exception. "foo") nil {})))
+
+(def get-hostname
+  ;; TODO Any way to keep future from affecting shutdown time,
+  ;; Ref. http://goo.gl/5hx9oK?
+  (encore/memoize* (encore/ms :mins 2)
+    (fn []
+      (->
+       (future ; Android doesn't like this on the main thread
+         (try (.. java.net.InetAddress getLocalHost getHostName)
+              (catch java.net.UnknownHostException _
+                "UnknownHost")))
+       (deref 5000 "UnknownHost")))))
+
+(def ^:private default-message-timestamp-pattern "14-Jul-07 16:42:11"
+  "yy-MMM-dd HH:mm:ss")
+
+(def ^:private default-message-pattern-fn
+  "14-Jul-07 16:42:11 localhost INFO [my-app.foo.bar] - Hello world"
+  (fn [{:keys [ns ; & Any other appender args
+              ;; These are delays:
+              timestamp_ hostname_ level-name_ args-str_ stacktrace_]}]
+    (str @timestamp_ " " @hostname_ " " @level-name_ " "
+      "[" ns "] - " @args-str_ @stacktrace_)))
+
+(defn fmt-appender-args "Formats appender arguments as a message string."
+  [fmt-fn ; `(apply <fmt-fn> args)`: format, print-str, pr-str, etc.
+   {:as appender-args :keys [instant ns level throwable args]} &
+   [{:as fmt-opts :keys [timestamp-pattern timestamp-locale no-fonts? pattern-fn]
+     :or {timestamp-pattern default-message-timestamp-pattern
+          timestamp-locale  nil
+          pattern-fn        default-message-pattern-fn}}]]
+
+  (when-not (empty? args)
+    (pattern-fn
+      (merge appender-args
+        ;; Delays since user pattern may/not want any of these:
+        {:hostname_   (delay (get-hostname))
+         :timestamp_  (delay (.format (encore/simple-date-format timestamp-pattern
+                                        {:locale timestamp-locale}) instant))
+         :level-name_ (delay (-> level name str/upper-case))
+         :args-str_   (delay (apply fmt-fn args)) ; `args` is non-empty
+         :stacktrace_ (delay (fmt-stacktrace throwable "\n" (when no-fonts? {})))}))))
+
+(comment
+  (encore/qbench 1000
+    (fmt-appender-args print-str
+      {:instant (Date.) :ns *ns* :level :info :throwable nil
+       :args ["Hello" "there"]})) ; ~14ms
+  )
 
 (defmacro sometimes
   "Executes body with probability e/o [0,1]. Useful for sampled logging."
@@ -76,8 +144,6 @@
 
 (def level-atom (atom :debug))
 (defn set-level! [level] (reset! level-atom level))
-
-;;;
 
 (def levels-ordered [:trace :debug :info :warn :error :fatal :report])
 (def levels-scored (zipmap levels-ordered (next (range))))
@@ -120,45 +186,37 @@
 
 ;;;; Default configuration and appenders
 
-(defn default-fmt-output-fn
-  [{:keys [level throwable message timestamp hostname ns]}
-   ;; Any extra appender-specific opts:
-   & [{:keys [nofonts?] :as appender-fmt-output-opts}]]
-  ;; <timestamp> <hostname> <LEVEL> [<ns>] - <message> <throwable>
-  (format "%s %s %s [%s] - %s%s"
-    timestamp hostname (-> level name str/upper-case) ns (or message "")
-    (or (stacktrace throwable "\n" (when nofonts? {})) "")))
-
 (def example-config
   "APPENDERS
      An appender is a map with keys:
-      :doc             ; (Optional) string.
-      :min-level       ; (Optional) keyword, or nil (no minimum level).
-      :enabled?        ; (Optional).
-      :async?          ; (Optional) dispatch using agent (good for slow appenders).
-      :rate-limit      ; (Optional) [ncalls-limit window-ms].
-      :fmt-output-opts ; (Optional) extra opts passed to `fmt-output-fn`.
+      :doc             ; Optional docstring.
+      :min-level       ; Level keyword, or nil (=> no minimum level).
+      :enabled?        ;
+      :async?          ; Dispatch using agent? Useful for slow appenders.
+      :rate-limit      ; [ncalls-limit window-ms], or nil.
+      :args-hash-fn    ; Used by rate-limiter, etc.
+      :appender-config ; Any appender-specific config.
       :fn              ; (fn [appender-args-map]), with keys described below.
-      :args-hash-fn    ; Experimental. Used by rate-limiter, etc.
 
      An appender's fn takes a single map with keys:
+      :instant       ; java.util.Date.
+      :ns            ; String.
       :level         ; Keyword.
       :error?        ; Is level an 'error' level?
       :throwable     ; java.lang.Throwable.
       :args          ; Raw logging macro args (as given to `info`, etc.).
-      :message       ; Stringified logging macro args, or nil.
-      :output        ; Output of `fmt-output-fn`, used by built-in appenders
-                     ; as final, formatted appender output. Appenders may (but
-                     ; are not obligated to) use this as their output.
-      :ap-config     ; Content of config's :shared-appender-config key.
+      ;;
+      :context       ; Thread-local dynamic logging context.
+      :ap-config     ; Content of appender's own `:appender-config` merged over
+                     ; `:shared-appender-config`.
       :profile-stats ; From `profile` macro.
-      :instant       ; java.util.Date.
-      :timestamp     ; String generated from :timestamp-pattern, :timestamp-locale.
-      :hostname      ; String.
-      :ns            ; String.
+      ;;
       ;; Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
       :file          ; String.
       :line          ; Integer.
+      ;;
+      :message       ; DELAYED string of formatted appender args. Appenders may
+                     ; (but are not obligated to) use this as their output.
 
    MIDDLEWARE
      Middleware are fns (applied right-to-left) that transform the map
@@ -168,8 +226,7 @@
   The `example-config` code contains further settings and details.
   See also `set-config!`, `merge-config!`, `set-level!`."
 
-  {;; Prefer `level-atom` to in-config level when possible:
-   ;; :current-logging-level :debug
+  {;; :current-level :debug ; Prefer `level-atom`
 
    ;;; Control log filtering by namespace patterns (e.g. ["my-app.*"]).
    ;;; Useful for turning off logging in noisy libraries, etc.
@@ -180,33 +237,27 @@
    ;; Useful for obfuscating credentials, pattern filtering, etc.
    :middleware []
 
-   ;;; Control :timestamp format
-   :timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ" ; SimpleDateFormat pattern
-   :timestamp-locale  nil ; A Locale object, or nil
+   :shared-appender-config
+   {:message-fmt-opts ; `:message` appender argument formatting
+    {:timestamp-pattern default-message-timestamp-pattern ; SimpleDateFormat
+     :timestamp-locale  nil ; A Locale object, or nil
+     :pattern-fn        default-message-pattern-fn}}
 
-   :prefix-fn ; DEPRECATED, here for backwards comp
-   (fn [{:keys [level timestamp hostname ns]}]
-     (str timestamp " " hostname " " (-> level name str/upper-case)
-          " [" ns "]"))
-
-   ;; Output formatter used by built-in appenders. Custom appenders may (but are
-   ;; not required to use) its output (:output). Extra per-appender opts can be
-   ;; supplied as an optional second (map) arg.
-   :fmt-output-fn default-fmt-output-fn
-
-   :shared-appender-config {} ; Provided to all appenders via :ap-config key
    :appenders
    {:standard-out
     {:doc "Prints to *out*/*err*. Enabled by default."
      :min-level nil :enabled? true :async? false :rate-limit nil
-     :fn (fn [{:keys [error? output]}] ; Can use any appender args
-           (binding [*out* (if error? *err* *out*)]
-             (str-println output)))}
+     :appender-config {:always-log-to-err? false}
+     :fn (fn [{:keys [ap-config error? message]}] ; Can use any appender args
+           (binding [*out* (if (or error? (:always-log-to-err? ap-config))
+                             *err* *out*)]
+             (str-println @message)))}
 
     :spit
-    {:doc "Spits to `(:spit-filename :shared-appender-config)` file."
+    {:doc "Spits to `(:spit-filename :ap-config)` file."
      :min-level nil :enabled? false :async? false :rate-limit nil
-     :fn (fn [{:keys [ap-config output]}] ; Can use any appender args
+     :appender-config {:spit-filename "timbre-spit.log"}
+     :fn (fn [{:keys [ap-config message]}] ; Can use any appender args
            (when-let [filename (:spit-filename ap-config)]
              (try (ensure-spit-dir-exists! filename)
                   (spit filename (str output "\n") :append true)
@@ -219,27 +270,20 @@
 ;;;; Appender-fn decoration
 
 (defn default-args-hash-fn
-  "Alpha - subject to change!!
-  Returns a hash identifier for given appender arguments in such a way that
-  (= (hash args-A) (hash args-B)) iff arguments A and B are \"the same\" by
-  some reasonable-in-the-general-case definition for logging arguments.
-
-  Useful in the context of rate limiting, deduplicating appenders, etc."
-
-  ;; Things like dates & user ids user ids will still trip us up.
-  ;; `[hostname ns line]` may be another idea?
-  ;; Waiting on http://dev.clojure.org/jira/browse/CLJ-865.
-
-  [{:keys [hostname ns args] :as apfn-args}]
+  "Returns a hash id for given appender args such that
+  (= (hash args-A) (hash args-B)) iff args A and B are \"the same\" by
+  some reasonable-in-the-general-case definition for logging args. Useful for
+  rate limiting, deduplicating appenders, etc."
+  [{:keys [ns line args] :as apfn-args}]
   (str (or (some #(and (map? %) (:timbre/hash %)) args) ; Explicit hash given
-           [hostname ns args])))
+           ;; [ns line] ; TODO Waiting on http://goo.gl/cVVAYA
+           [ns args])))
 
 (defn- wrap-appender-fn
-  "Wraps compile-time appender fn with additional runtime capabilities
-  controlled by compile-time config."
   [config {:as appender apfn :fn
-           :keys [async? rate-limit fmt-output-opts args-hash-fn]
+           :keys [async? rate-limit args-hash-fn appender-config]
            :or   {args-hash-fn default-args-hash-fn}}]
+<<<<<<< HEAD
   (let [rate-limit (or rate-limit ; Backwards comp:
                        (if-let [x (:max-message-per-msecs appender)] [1 x]
                          (when-let [x (:limit-per-msecs   appender)] [1 x])))]
@@ -338,13 +382,80 @@
         juxtfn)))
 
    ;; Pre-middleware stuff
+=======
+  (assert (or (nil? rate-limit) (vector? rate-limit)))
+  (->> ; Wrapping applies per appender, bottom-to-top
+    apfn
+
+    ;; :ap-config
+    ((fn [apfn]
+       ;; Compile-time:
+       (if-not appender-config apfn
+         (let [merged-config (merge (:shared-appender-config config)
+                                    appender-config)]
+           (println "DEBUG! `merged-config`:" merged-config) ; TODO
+           (fn [apfn-args]
+             ;; Runtime:
+             (apfn (assoc apfn-args :ap-config merged-config)))))))
+
+    ;; Rate limits
+    ((fn [apfn]
+       ;; Compile-time:
+       (if-not rate-limit apfn
+         (let [[ncalls-limit window-ms] rate-limit
+               limiter-any      (encore/rate-limiter ncalls-limit window-ms)
+               ;; This is a little hand-wavy but it's a decent general
+               ;; strategy and helps us from making this overly complex to
+               ;; configure.
+               limiter-specific (encore/rate-limiter (quot ncalls-limit 4)
+                                  window-ms)]
+           (fn [{:keys [ns args] :as apfn-args}]
+             ;; Runtime:
+             (when-not (or (limiter-specific (args-hash-fn apfn-args))
+                           (limiter-any)) ; Test smaller limit 1st
+               (apfn apfn-args)))))))
+
+    ;; Async (agents)
+    ((fn [apfn]
+       ;; Compile-time:
+       (if-not async? apfn
+         (let [agent (agent nil :error-mode :continue)]
+           (fn [apfn-args] ; Runtime:
+             (send-off agent (fn [_] (apfn apfn-args))))))))))
+
+(def ^:dynamic *context* "Thread-local dynamic logging context." {})
+(defn- wrap-appender-juxt [config juxtfn]
+  (->> ; Wrapping applies per juxt, bottom-to-top
+   juxtfn
+
+   ;; ;; Post-middleware stuff
+   ;; ((fn [juxtfn]
+   ;;    ;; Compile-time:
+   ;;    (fn [juxtfn-args]
+   ;;      ;; Runtime:
+   ;;      (juxtfn juxtfn-args))))
+
+   ;; Middleware (transforms/filters)
+>>>>>>> fe51297... NB Experimental: major refactor (currently breaking, for potential Timbre v4)
    ((fn [juxtfn]
       ;; Compile-time:
-      (let [{ap-config :shared-appender-config} config]
-        (fn [juxtfn-args]
-          ;; Runtime:
-          (juxtfn (merge juxtfn-args {:ap-config ap-config
-                                      :hostname  (get-hostname)}))))))))
+      (let [middleware (:middleware config)]
+        (if (empty? middleware) juxtfn
+          (let [composed-middleware
+                (apply comp (map (fn [mf] (fn [args] (when args (mf args))))
+                              middleware))]
+            (fn [juxtfn-args]
+              ;; Runtime:
+              (when-let [juxtfn-args (composed-middleware juxtfn-args)]
+                (juxtfn juxtfn-args))))))))
+
+   ;; ;; Pre-middleware stuff
+   ;; ((fn [juxtfn]
+   ;;    ;; Compile-time:
+   ;;    (fn [juxtfn-args]
+   ;;      ;; Runtime:
+   ;;      (juxtfn juxtfn-args))))
+   ))
 
 ;;;; Config compilation
 
@@ -400,6 +511,9 @@
 
 (defn get-default-config [] (or *config-dynamic* @config))
 
+(defmacro with-logging-context "Thread-local dynamic logging context."
+  [context & body] `(binding [*context* ~context] ~@body))
+
 (defn ns-unfiltered? [config ns] ((:ns-filter (compile-config config)) ns))
 
 (defn logging-enabled? "For 3rd-party utils, etc."
@@ -410,24 +524,79 @@
              (ns-unfiltered? config' compile-time-ns)))))
 
 (defn send-to-appenders! "Implementation detail."
+  [{:keys [;; Args provided by both Timbre, tools.logging:
+           level base-appender-args log-vargs ns throwable message
+           ;; Additional args provided by Timbre only:
+           juxt-fn file line]}]
+  (when-let [juxt-fn (or juxt-fn (get-in (compile-config (get-default-config))
+                                         [:appenders-juxt level]))]
+    (let [appender-args
+          (conj (or base-appender-args {})
+            {;;; Passed through
+             :level     level
+             :args      log-vargs ; String / 1-vec raw arg for tools.logging impl
+             :ns        ns
+             :throwable throwable
+             :file      file ; Nil for tools.logging
+             :line      line ; ''
+
+             ;;; Generated
+             :instant   (Date.)
+             :error?    (level-error? level)
+
+             ;;; Varies
+             :message   message})]
+      (juxt-fn appender-args)
+      nil)))
+
+(comment ; TODO
+  (delay
+    (fmt-appender-args ; TODO + maybe merge :ap-config for fmt opts?
+      ;; Or just have in :shared-appender-config
+      (case msg-type
+        :format    format
+        :print-str print-str
+        :pr-str    pr-str))))
+
+(comment ; TODO
+  [fmt-fn ; `(apply <fmt-fn> args)`: format, print-str, pr-str, etc.
+   {:as appender-args :keys [instant ns level throwable args]} &
+   [{:as fmt-opts :keys [timestamp-pattern timestamp-locale no-fonts? pattern-fn]
+     :or {timestamp-pattern default-message-timestamp-pattern
+          timestamp-locale  nil
+          pattern-fn        default-message-pattern-fn}}]])
+
+(defn send-to-appenders! "Implementation detail."
+  ([level base-appender-args log-vargs ns throwable message])
+
+
+  
+
+  )
+
+(defn send-to-appenders! "Implementation detail."
   [;; Args provided by both Timbre, tools.logging:
    level base-appender-args log-vargs ns throwable message
    ;; Additional args provided by Timbre only:
-   & [juxt-fn msg-type file line]]
+   & [juxt-fn file line]]
   (when-let [juxt-fn (or juxt-fn (get-in (compile-config (get-default-config))
                                          [:appenders-juxt level]))]
     (juxt-fn
      (conj (or base-appender-args {})
-       {:instant   (Date.)
-        :ns        ns
-        :file      file ; No tools.logging support
-        :line      line ; No tools.logging support
-        :level     level
+       {;;; Generated
+        :instant   (Date.)
         :error?    (level-error? level)
-        :args      log-vargs ; No tools.logging support
+
+        ;;; Passed through
+        :ns        ns
+        :level     level
         :throwable throwable
-        :message   message  ; Timbre: nil,  tools.logging: nil or string
-        :msg-type  msg-type ; Timbre: nnil, tools.logging: nil
+        :message   message
+
+        ;;; Passed through (no/limited tools.logging support)
+        :file      file ; Nil for tools.logging impl
+        :line      line ; ''
+        :args      log-vargs ; String / 1-vec raw arg for tools.logging impl
         }))
     nil))
 
@@ -435,10 +604,9 @@
 (comment (macroexpand '(get-compile-time-ns)))
 
 (defmacro log* "Implementation detail."
-  {:arglists '([base-appender-args msg-type level & log-args]
-               [base-appender-args msg-type config level & log-args])}
-  [base-appender-args msg-type & [s1 s2 :as sigs]]
-  {:pre [(#{:nil :print-str :format} msg-type)]}
+  {:arglists '([base-appender-args fmt-fn level & log-args]
+               [base-appender-args fmt-fn config level & log-args])}
+  [base-appender-args fmt-fn & [s1 s2 :as sigs]]
   ;; Compile-time:
   (when (or (nil? level-compile-time)
             (let [level (cond (levels-scored s1) s1
@@ -468,9 +636,13 @@
               log-vargs#
               compile-time-ns#
               (when has-throwable?# x1#)
+
+
+              ;; TODO
               nil ; Timbre generates msg only after middleware
+
+
               juxt-fn#
-              ~msg-type
               (let [file# ~*file*] (when (not= file# "NO_SOURCE_PATH") file#))
               ;; TODO Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
               ~(:line (meta &form)))))))))
@@ -550,6 +722,9 @@
 
 ;;;; Deprecated
 
+(defmacro with-err-as-out "DEPRECATED." [& body] `(binding [*err* *out*] ~@body))
+(def stacktrace "DEPREACTED. Use `fmt-stacktrace` instead." fmt-stacktrace)
+
 (defmacro logp "DEPRECATED: Use `log` instead."
   {:arglists '([level & message] [level throwable & message])}
   [& sigs] `(log ~@sigs)) ; Alias
@@ -613,7 +788,7 @@
         {:appenders
          {:fmt-output-opts-test
           {:min-level :error :enabled? true
-           :fmt-output-opts {:nofonts? true}
+           :fmt-output-opts {:no-fonts? true}
            :fn (fn [{:keys [output]}] (str-println output))}}})
       (log :report (Exception. "Oh noes") "Hello"))
 

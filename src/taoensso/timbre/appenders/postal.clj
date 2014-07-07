@@ -30,7 +30,8 @@
          :min-level  :warn
          :async?     true ; Slow!
          :rate-limit [5 (* 1000 60 2)] ; 5 calls / 2 mins
-         :fmt-output-opts {:nofonts? true} ; Disable ANSI-escaped stuff
+         ;; TODO These opts are deprecated!
+         :fmt-output-opts {:no-fonts? true} ; Disable ANSI-escaped stuff
          }]
 
     (merge default-appender-opts appender-opts
