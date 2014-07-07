@@ -12,8 +12,8 @@
 
   :dependencies
   [[org.clojure/clojure "1.4.0"]
-   [com.taoensso/encore "1.5.1"]
-   [io.aviso/pretty     "0.1.10"]]
+   [com.taoensso/encore "1.7.0"]
+   [io.aviso/pretty     "0.1.12"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
@@ -25,7 +25,7 @@
                          [com.taoensso/nippy      "2.6.3"]
                          [com.taoensso/carmine    "2.6.2"]
                          [com.draines/postal      "1.11.1"]
-                         [org.clojure/tools.logging "0.2.6"]]
+                         [org.clojure/tools.logging "0.3.0"]]
           :plugins [[lein-expectations "0.0.8"]
                     [lein-autoexpect   "1.2.2"]]}
    :dev
