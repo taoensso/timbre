@@ -283,6 +283,9 @@
             (let [juxtfn-args (if-not msg-type juxtfn-args ; tools.logging
                                 (-> juxtfn-args
                                     (dissoc :msg-type)
+                                    ;; TODO Consider a breaking change here to
+                                    ;; swap assoc'd message with a delay, as
+                                    ;; per http://goo.gl/7YVSfj:
                                     (assoc  :message
                                       (when-not (empty? args)
                                         (case msg-type
