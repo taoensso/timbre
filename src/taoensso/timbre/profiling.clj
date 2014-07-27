@@ -194,7 +194,8 @@
         s-pattern (str "%" max-id-width "s %11s %9s %10s %9s %9s %7s %1s%n")
         perc      #(Math/round (/ %1 %2 0.01))
         ft (fn [nanosecs]
-             (let [pow     #(Math/pow 10 %)
+             (let [nanosecs (long nanosecs) ; Truncate any fractional nanosecs
+                   pow     #(Math/pow 10 %)
                    ok-pow? #(>= nanosecs (pow %))
                    to-pow  #(encore/round (/ nanosecs (pow %1)) :round %2)]
                (cond (ok-pow? 9) (str (to-pow 9 1) "s")
