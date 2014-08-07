@@ -218,12 +218,17 @@
 (defmacro defnp "Like `defn` but wraps body in `p` macro."
   {:arglists '([name ?doc-string ?attr-map [params] ?prepost-map body])}
   [name & sigs]
-  (let [[name [params & sigs]] (encore/name-with-attrs name sigs)
-        prepost-map (when (and (map? (first sigs)) (next sigs)) (first sigs))
-        body (if prepost-map (next sigs) sigs)]
-    `(defn ~name ~params ~(or prepost-map {})
-       (pspy ~(clojure.core/name name)
-             ~@body))))
+  (let [[name sigs] (encore/name-with-attrs name sigs)
+        [sigs func->str] (if (vector? (first sigs))          ;only one arity
+                           [(list sigs) (fn [name _] (clojure.core/name name))]
+                           [sigs (fn [name params] (str (clojure.core/name name) \_ (count params)))])
+        new-sigs (map (fn [[params & others]]
+                        (let [[prepost-map & body] (if (and (map? (first others)) (next others)) ;has prepost map
+                                                     others
+                                                     (cons {} others))]
+                          `(~params ~prepost-map (pspy ~(func->str name params) ~@body))))
+                      sigs)]
+    `(defn ~name ~@new-sigs)))
 
 (comment (defnp foo "Docstring "[x] "boo" (* x x))
          (macroexpand '(defnp foo "Docstring "[x] "boo" (* x x)))
