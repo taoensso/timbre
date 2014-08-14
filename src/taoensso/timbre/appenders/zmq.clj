@@ -11,13 +11,13 @@
 (defn appender-fn [socket poller {:keys [ap-config output]}]
     (loop []
       (zmq/poll poller 500)
-      (cond 
+      (cond
         (zmq/check-poller poller 0 :pollout) (zmq/send-str socket output)
         (zmq/check-poller poller 0 :pollerr) (System/exit 1)
         :else (recur))))
 
 (defn make-zmq-appender
-  "Returns a ØMQ appender. Takes appender options and a map consisting of: 
+  "Returns a ØMQ appender. Takes appender options and a map consisting of:
     transport: a string representing transport type: tcp, ipc, inproc, pgm/epgm
     address: a string containing an address to connect to.
     port: a number representing the port to connect to."
@@ -29,6 +29,6 @@
         socket (make-zmq-socket context transport address port)
         poller (doto (zmq/poller context)
                  (zmq/register socket :pollout :pollerr))]
-    (merge default-appender-opts 
-           appender-opts 
+    (merge default-appender-opts
+           appender-opts
            {:fn (partial appender-fn socket poller)})))
