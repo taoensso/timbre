@@ -85,21 +85,6 @@
        (if-not (< (rand) ~probability) (do ~@body)
          (profile ~level ~id ~@body))))
 
-(defmacro defnp
-  "Like `defn` (single arity only) but wraps body in `p` macro."
-  {:arglists '([name ?doc-string ?attr-map [params] ?prepost-map body])}
-  [name & sigs]
-  (let [[name [params & sigs]] (encore/name-with-attrs name sigs)
-        prepost-map (when (and (map? (first sigs)) (next sigs)) (first sigs))
-        body (if prepost-map (next sigs) sigs)]
-    `(defn ~name ~params ~prepost-map
-       (pspy ~(clojure.core/name name)
-             ~@body))))
-
-(comment (defnp foo "Docstring "[x] "boo" (* x x))
-         (macroexpand '(defnp foo "Docstring "[x] "boo" (* x x)))
-         (profile :info :defnp-test (foo 5)))
-
 ;;;; Data capturing & aggregation
 
 (def ^:private ^:constant stats-gc-n 111111)
@@ -215,6 +200,8 @@
       (printf s-pattern "Accounted Time" "" "" "" "" ""
               (perc accounted clock-time) (ft accounted)))))
 
+;;;;
+
 (defmacro defnp "Like `defn` but wraps fn bodies with `p` macro."
   {:arglists
    '([name doc-string? attr-map? [params*] prepost-map? body]
@@ -244,6 +231,8 @@
   (macroexpand '(defnp foo "Docstring" ([x]   (* x x))
                                        ([x y] (* x y))))
   (profile :info :defnp-test (foo 5)))
+
+;;;;
 
 (comment
   (profile :info :sleepy-threads
