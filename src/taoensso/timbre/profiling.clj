@@ -215,24 +215,35 @@
       (printf s-pattern "Accounted Time" "" "" "" "" ""
               (perc accounted clock-time) (ft accounted)))))
 
-(defmacro defnp "Like `defn` but wraps body in `p` macro."
-  {:arglists '([name ?doc-string ?attr-map [params] ?prepost-map body])}
-  [name & sigs]
-  (let [[name sigs] (encore/name-with-attrs name sigs)
-        [sigs func->str] (if (vector? (first sigs))          ;only one arity
-                           [(list sigs) (fn [name _] (clojure.core/name name))]
-                           [sigs (fn [name params] (str (clojure.core/name name) \_ (count params)))])
-        new-sigs (map (fn [[params & others]]
-                        (let [[prepost-map & body] (if (and (map? (first others)) (next others)) ;has prepost map
-                                                     others
-                                                     (cons {} others))]
-                          `(~params ~prepost-map (pspy ~(func->str name params) ~@body))))
-                      sigs)]
-    `(defn ~name ~@new-sigs)))
+(defmacro defnp "Like `defn` but wraps fn bodies with `p` macro."
+  {:arglists
+   '([name doc-string? attr-map? [params*] prepost-map? body]
+     [name doc-string? attr-map? ([params*] prepost-map? body)+ attr-map?])}
+  [name' & sigs]
+  (let [[name' sigs]  (encore/name-with-attrs name' sigs)
+        single-arity? (vector? (first sigs))
+        [sigs func->str]
+        (if single-arity?
+          [(list sigs) (fn [name' _params] (name name'))]
+          [sigs        (fn [name'  params] (str (name name') \_ (count params)))])
 
-(comment (defnp foo "Docstring "[x] "boo" (* x x))
-         (macroexpand '(defnp foo "Docstring" [x] "boo" (* x x)))
-         (profile :info :defnp-test (foo 5)))
+        new-sigs
+        (map (fn [[params & others]]
+               (let [has-prepost-map? (and (map? (first others)) (next others))
+                     [prepost-map & body]
+                     (if has-prepost-map?
+                       others
+                       (cons {} others))]
+                 `(~params ~prepost-map (pspy ~(func->str name' params) ~@body))))
+          sigs)]
+    `(defn ~name' ~@new-sigs)))
+
+(comment
+  (defnp foo "Docstring "[x] "boo" (* x x))
+  (macroexpand '(defnp foo "Docstring" [x] "boo" (* x x)))
+  (macroexpand '(defnp foo "Docstring" ([x]   (* x x))
+                                       ([x y] (* x y))))
+  (profile :info :defnp-test (foo 5)))
 
 (comment
   (profile :info :sleepy-threads
