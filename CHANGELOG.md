@@ -1,8 +1,6 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
-## Unreleased / pending
-
- > TODO
+## v3.3.0 / 2014 May 8
 
  * **CHANGE**: Update IRC appender to Timbre v3 style (@crisptrutski).
  * **FIX** [#47]: correctly format nanosecond profiling times.
@@ -18,7 +16,7 @@
 
 ## v3.2.0 / 2014 May 6
 
- * [#60] **FIX**: `defnp` no longer generates an Eastwood warning (@ducky427).
+ * **FIX** [#60]: `defnp` no longer generates an Eastwood warning (@ducky427).
  * **CHANGE**: Improved profiling memory efficiency (max memory use, was previously unbounded).
  * **CHANGE**: Profiling: make larger call numbers easier to read.
  * [#63]: **NEW**: Add support for thread-local configuration (@jameswarren).
@@ -26,19 +24,19 @@
 
 ## v3.1.6 / 2014 Mar 16
 
- * [#56] FIX: `defnp`/`p` head retention issue (kyptin).
+ * **FIX** [#56]: `defnp`/`p` head retention issue (@kyptin).
 
 
 ## v3.1.5 / 2014 Mar 15
 
- * FIX: `profiling/p*` was defined incorrectly (kyptin).
+ * **FIX**: `profiling/p*` was defined incorrectly (@kyptin).
 
 
 ## v3.1.4 / 2014 Mar 13
 
- * NEW: Add `profiling/p*` macro.
- * CHANGE: Include `p`, `p*` in `refer-timbre` imports.
- * FIX: rotor appender not rotating (iantruslove, kurtharriger).
+ * **NEW**: Add `profiling/p*` macro.
+ * **CHANGE**: Include `p`, `p*` in `refer-timbre` imports.
+ * **FIX**: rotor appender not rotating (@iantruslove, @kurtharriger).
 
 
 ## v3.1.3 / 2014 Mar 11
