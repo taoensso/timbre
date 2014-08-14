@@ -406,6 +406,9 @@
         }))
     nil))
 
+(defmacro get-compile-time-ns [] (str *ns*)) ; Nb need `str` to be readable
+(comment (macroexpand '(get-compile-time-ns)))
+
 (defmacro log* "Implementation detail."
   {:arglists '([base-appender-args msg-type level & log-args]
                [base-appender-args msg-type config level & log-args])}
@@ -423,7 +426,7 @@
            default-config?# (levels-scored s1#)
            config# (if default-config?# (get-default-config) s1#)
            level#  (if default-config?# s1# ~s2)
-           compile-time-ns# ~(str *ns*)]
+           compile-time-ns# (get-compile-time-ns)]
        ;; (println "DEBUG: Runtime level check")
        (when (and (level-sufficient? level# config#)
                   (ns-unfiltered? config# compile-time-ns#))

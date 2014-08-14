@@ -9,7 +9,7 @@
 (defmacro fq-keyword "Returns namespaced keyword for given id."
   [id]
   `(if (and (keyword? ~id) (namespace ~id)) ~id
-     (keyword (str *ns*) (name ~id))))
+     (keyword (timbre/get-compile-time-ns) (name ~id))))
 
 (comment (map #(fq-keyword %) ["foo" :foo :foo/bar]))
 
@@ -56,7 +56,7 @@
 (declare ^:private format-stats)
 
 (defmacro with-pdata [level & body]
-  `(if-not (timbre/logging-enabled? ~level ~(str *ns*))
+  `(if-not (timbre/logging-enabled? ~level (timbre/get-compile-time-ns))
      {:result (do ~@body)}
      (binding [*pdata* (atom {})]
        {:result (pspy ::clock-time ~@body)
@@ -226,7 +226,7 @@
              ~@body))))
 
 (comment (defnp foo "Docstring "[x] "boo" (* x x))
-         (macroexpand '(defnp foo "Docstring "[x] "boo" (* x x)))
+         (macroexpand '(defnp foo "Docstring" [x] "boo" (* x x)))
          (profile :info :defnp-test (foo 5)))
 
 (comment
