@@ -1,4 +1,4 @@
-**[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contributing](#contact--contributing) | current ([semantic][]) version:
+**[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contrib](#contact--contributing) | current [Break Version][]:
 
 ```clojure
 [com.taoensso/timbre "3.2.1"] ; Stable
@@ -295,7 +295,8 @@ Copyright &copy; 2012-2014 Peter Taoussanis. Distributed under the [Eclipse Publ
 [CHANGELOG]: <https://github.com/ptaoussanis/timbre/releases>
 [other Clojure libs]: <https://www.taoensso.com/clojure-libraries>
 [Twitter]: <https://twitter.com/ptaoussanis>
-[semantic]: <http://semver.org/>
+[SemVer]: <http://semver.org/>
+[Break Version]: <https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md>
 [Leiningen]: <http://leiningen.org/>
 [CDS]: <http://clojure-doc.org/>
 [ClojureWerkz]: <http://clojurewerkz.org/>

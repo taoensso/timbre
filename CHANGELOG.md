@@ -1,3 +1,16 @@
+> This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
+
+## Unreleased / pending
+
+ > TODO
+
+ * **CHANGE**: Update IRC appender to Timbre v3 style (@crisptrutski).
+ * **FIX** [#47]: correctly format nanosecond profiling times.
+ * **FIX** [#77]: profile ids now use correct (compile-time rather than runtime) ns prefix.
+ * **NEW**: Add zmq appender (@angusiguess).
+ * **NEW** [#75]: Make defnp support multi-arity functions (@maurolopes)
+
+
 ## v3.2.1 / 2014 May 7
 
  * **FIX**: missing tools.reader upstream dependency (@ducky427).
