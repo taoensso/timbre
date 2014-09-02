@@ -9,7 +9,7 @@
 (defmacro fq-keyword "Returns namespaced keyword for given id."
   [id]
   `(if (and (keyword? ~id) (namespace ~id)) ~id
-     (keyword (str *ns*) (name ~id))))
+     (keyword (timbre/get-compile-time-ns) (name ~id))))
 
 (comment (map #(fq-keyword %) ["foo" :foo :foo/bar]))
 
@@ -56,7 +56,7 @@
 (declare ^:private format-stats)
 
 (defmacro with-pdata [level & body]
-  `(if-not (timbre/logging-enabled? ~level ~(str *ns*))
+  `(if-not (timbre/logging-enabled? ~level (timbre/get-compile-time-ns))
      {:result (do ~@body)}
      (binding [*pdata* (atom {})]
        {:result (pspy ::clock-time ~@body)
@@ -84,20 +84,6 @@
   `(do (assert (<= 0 ~probability 1) "Probability: 0<=p<=1")
        (if-not (< (rand) ~probability) (do ~@body)
          (profile ~level ~id ~@body))))
-
-(defmacro defnp "Like `defn` but wraps body in `p` macro."
-  {:arglists '([name ?doc-string ?attr-map [params] ?prepost-map body])}
-  [name & sigs]
-  (let [[name [params & sigs]] (encore/name-with-attrs name sigs)
-        prepost-map (when (and (map? (first sigs)) (next sigs)) (first sigs))
-        body (if prepost-map (next sigs) sigs)]
-    `(defn ~name ~params ~prepost-map
-       (pspy ~(clojure.core/name name)
-             ~@body))))
-
-(comment (defnp foo "Docstring "[x] "boo" (* x x))
-         (macroexpand '(defnp foo "Docstring "[x] "boo" (* x x)))
-         (profile :info :defnp-test (foo 5)))
 
 ;;;; Data capturing & aggregation
 
@@ -193,7 +179,8 @@
         s-pattern (str "%" max-id-width "s %11s %9s %10s %9s %9s %7s %1s%n")
         perc      #(Math/round (/ %1 %2 0.01))
         ft (fn [nanosecs]
-             (let [pow     #(Math/pow 10 %)
+             (let [nanosecs (long nanosecs) ; Truncate any fractional nanosecs
+                   pow     #(Math/pow 10 %)
                    ok-pow? #(>= nanosecs (pow %))
                    to-pow  #(encore/round (/ nanosecs (pow %1)) :round %2)]
                (cond (ok-pow? 9) (str (to-pow 9 1) "s")
@@ -213,19 +200,39 @@
       (printf s-pattern "Accounted Time" "" "" "" "" ""
               (perc accounted clock-time) (ft accounted)))))
 
-(defmacro defnp "Like `defn` but wraps body in `p` macro."
-  {:arglists '([name ?doc-string ?attr-map [params] ?prepost-map body])}
-  [name & sigs]
-  (let [[name [params & sigs]] (encore/name-with-attrs name sigs)
-        prepost-map (when (and (map? (first sigs)) (next sigs)) (first sigs))
-        body (if prepost-map (next sigs) sigs)]
-    `(defn ~name ~params ~(or prepost-map {})
-       (pspy ~(clojure.core/name name)
-             ~@body))))
+;;;;
 
-(comment (defnp foo "Docstring "[x] "boo" (* x x))
-         (macroexpand '(defnp foo "Docstring "[x] "boo" (* x x)))
-         (profile :info :defnp-test (foo 5)))
+(defmacro defnp "Like `defn` but wraps fn bodies with `p` macro."
+  {:arglists
+   '([name doc-string? attr-map? [params*] prepost-map? body]
+     [name doc-string? attr-map? ([params*] prepost-map? body)+ attr-map?])}
+  [name' & sigs]
+  (let [[name' sigs]  (encore/name-with-attrs name' sigs)
+        single-arity? (vector? (first sigs))
+        [sigs func->str]
+        (if single-arity?
+          [(list sigs) (fn [name' _params] (name name'))]
+          [sigs        (fn [name'  params] (str (name name') \_ (count params)))])
+
+        new-sigs
+        (map (fn [[params & others]]
+               (let [has-prepost-map? (and (map? (first others)) (next others))
+                     [prepost-map & body]
+                     (if has-prepost-map?
+                       others
+                       (cons {} others))]
+                 `(~params ~prepost-map (pspy ~(func->str name' params) ~@body))))
+          sigs)]
+    `(defn ~name' ~@new-sigs)))
+
+(comment
+  (defnp foo "Docstring "[x] "boo" (* x x))
+  (macroexpand '(defnp foo "Docstring" [x] "boo" (* x x)))
+  (macroexpand '(defnp foo "Docstring" ([x]   (* x x))
+                                       ([x y] (* x y))))
+  (profile :info :defnp-test (foo 5)))
+
+;;;;
 
 (comment
   (profile :info :sleepy-threads

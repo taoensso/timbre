@@ -1,7 +1,7 @@
-**[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contributing](#contact--contributing) | current ([semantic][]) version:
+**[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contrib](#contact--contributing) | current [Break Version][]:
 
 ```clojure
-[com.taoensso/timbre "3.2.1"] ; Stable
+[com.taoensso/timbre "3.3.0"]
 ```
 
 v3 is a **major, backwards-compatible release**. Please see the [CHANGELOG][] for details. Appender authors: please see [here](https://github.com/ptaoussanis/timbre/issues/41) about migrating Timbre 2.x appenders to 3.x's recommended style.
@@ -34,7 +34,7 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 Add the necessary dependency to your [Leiningen][] `project.clj` and use the supplied ns-import helper:
 
 ```clojure
-[com.taoensso/timbre "3.2.1"] ; project.clj
+[com.taoensso/timbre "3.3.0"] ; project.clj
 
 (ns my-app (:require [taoensso.timbre :as timbre])) ; Your ns
 (timbre/refer-timbre) ; Provides useful Timbre aliases in this ns
@@ -295,7 +295,8 @@ Copyright &copy; 2012-2014 Peter Taoussanis. Distributed under the [Eclipse Publ
 [CHANGELOG]: <https://github.com/ptaoussanis/timbre/releases>
 [other Clojure libs]: <https://www.taoensso.com/clojure-libraries>
 [Twitter]: <https://twitter.com/ptaoussanis>
-[semantic]: <http://semver.org/>
+[SemVer]: <http://semver.org/>
+[Break Version]: <https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md>
 [Leiningen]: <http://leiningen.org/>
 [CDS]: <http://clojure-doc.org/>
 [ClojureWerkz]: <http://clojurewerkz.org/>
