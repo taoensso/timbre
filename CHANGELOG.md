@@ -1,5 +1,10 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v3.3.1 / 2014 Sep 7
+
+ * **FIX** https://github.com/ptaoussanis/timbre/issues/79.
+
+
 ## v3.3.0 / 2014 May 8
 
  * **CHANGE**: Update IRC appender to Timbre v3 style (@crisptrutski).

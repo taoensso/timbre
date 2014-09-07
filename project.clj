@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "3.3.0"
+(defproject com.taoensso/timbre "3.3.1"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Clojure logging & profiling library"
   :url "https://github.com/ptaoussanis/timbre"
@@ -12,7 +12,7 @@
 
   :dependencies
   [[org.clojure/clojure "1.4.0"]
-   [com.taoensso/encore "1.7.3"]
+   [com.taoensso/encore "1.8.1"]
    [io.aviso/pretty     "0.1.12"]]
 
   :profiles
@@ -43,12 +43,5 @@
    "deploy-lib" ["do" "deploy" "clojars," "install"]
    "start-dev"  ["with-profile" "+server-jvm" "repl" ":headless"]}
 
-  :repositories
-  {"sonatype"
-   {:url "http://oss.sonatype.org/content/repositories/releases"
-    :snapshots false
-    :releases {:checksum :fail}}
-   "sonatype-snapshots"
-   {:url "http://oss.sonatype.org/content/repositories/snapshots"
-    :snapshots true
-    :releases {:checksum :fail :update :always}}})
+  :repositories {"sonatype-oss-public"
+                 "https://oss.sonatype.org/content/groups/public/"})
