@@ -157,7 +157,7 @@ This is the biggest win over Java logging utilities IMO. Here's `timbre/example-
     {:doc "Spits to `(:spit-filename :shared-appender-config)` file."
      :min-level nil :enabled? false :async? false :rate-limit nil
      :fn (fn [{:keys [ap-config output]}] ; Use any appender args
-           (when-let [filename (:spit-filename ap-config)]ar
+           (when-let [filename (:spit-filename ap-config)]
              (try (spit filename output :append true)
                   (catch java.io.IOException _))))}}})
 ```
