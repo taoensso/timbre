@@ -40,31 +40,32 @@
     (.set cal Calendar/MILLISECOND 999)
     cal))
 
-(defn- appender-fn [{:keys [ap-config output instant]}]
-  (let [{:keys [path pattern]
-         :or {pattern :daily}} (:rolling ap-config)
-        prev-cal (prev-period-end-cal instant pattern)
-        log (io/file path)]
-    (when log
-      (try
-        (if (.exists log)
-          (if (<= (.lastModified log) (.getTimeInMillis prev-cal))
-            (shift-log-period log path prev-cal))
-          (.createNewFile log))
-        (spit path (with-out-str (timbre/str-println output)) :append true)
-        (catch java.io.IOException _)))))
+(defn- make-appender-fn [path pattern]
+  (fn [{:keys [ap-config output instant]}]
+    (let [path (or path (-> ap-config :rolling :path))
+          pattern (or pattern (-> ap-config :rolling :pattern) :daily)
+          prev-cal (prev-period-end-cal instant pattern)
+          log (io/file path)]
+      (when log
+        (try
+          (if (.exists log)
+            (if (<= (.lastModified log) (.getTimeInMillis prev-cal))
+              (shift-log-period log path prev-cal))
+            (.createNewFile log))
+          (spit path (with-out-str (timbre/str-println output)) :append true)
+          (catch java.io.IOException _))))))
 
 (defn make-rolling-appender
   "Returns a Rolling file appender.
-  A rolling config map can be provided here as an argument, or as a :rolling key
-  in :shared-appender-config.
+  A rolling config map can be provided here as a second argument, or provided at
+  :rolling in :shared-appender-config.
 
   (make-rolling-appender {:enabled? true}
     {:path \"log/app.log\"
      :pattern :daily})
   path: logfile path
-  pattern: frequency of rotation, avialable values: :daily (default), :weekly, :monthly"
-  [& [appender-opts]]
-  (let [default-appender-opts {:enabled? true :min-level nil :pattern :daily}]
+  pattern: frequency of rotation, available values: :daily (default), :weekly, :monthly"
+  [& [appender-opts {:keys [path pattern]}]]
+  (let [default-appender-opts {:enabled? true :min-level nil}]
     (merge default-appender-opts appender-opts
-      {:fn appender-fn})))
+      {:fn (make-appender-fn path pattern)})))
