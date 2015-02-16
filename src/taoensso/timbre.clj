@@ -1,8 +1,8 @@
 (ns taoensso.timbre "Simple, flexible, all-Clojure logging. No XML!"
   {:author "Peter Taoussanis"}
-  (:require [clojure.string        :as str]
-            [io.aviso.exception    :as aviso-ex]
-            [taoensso.encore       :as encore])
+  (:require [clojure.string     :as str]
+            [io.aviso.exception :as aviso-ex]
+            [taoensso.encore    :as enc])
   (:import  [java.util Date Locale]
             [java.text SimpleDateFormat]))
 
@@ -177,9 +177,9 @@
              (try (spit filename (str output "\n") :append true)
                   (catch java.io.IOException _))))}}})
 
-(encore/defonce* config (atom example-config))
+(enc/defonce* config (atom example-config))
 (defn set-config!   [ks val] (swap! config assoc-in ks val))
-(defn merge-config! [& maps] (apply swap! config encore/merge-deep maps))
+(defn merge-config! [& maps] (apply swap! config enc/merge-deep maps))
 
 ;;;; Appender-fn decoration
 
@@ -227,11 +227,11 @@
         ;; Compile-time:
         (if-not rate-limit apfn
           (let [[ncalls-limit window-ms] rate-limit
-                limiter-any      (encore/rate-limiter ncalls-limit window-ms)
+                limiter-any      (enc/rate-limiter ncalls-limit window-ms)
                 ;; This is a little hand-wavy but it's a decent general
                 ;; strategy and helps us from making this overly complex to
                 ;; configure.
-                limiter-specific (encore/rate-limiter (quot ncalls-limit 4)
+                limiter-specific (enc/rate-limiter (quot ncalls-limit 4)
                                                      window-ms)]
             (fn [{:keys [ns args] :as apfn-args}]
               ;; Runtime: (test smaller limit 1st):
@@ -248,7 +248,7 @@
               (send-off agent (fn [_] (apfn apfn-args)))))))))))
 
 (def ^:private get-hostname
-  (encore/memoize* 60000
+  (enc/memoize* 60000
     (fn []
       (->
        (future ; Android doesn't like this on the main thread
@@ -274,7 +274,7 @@
              timestamp-fn
              (if-not timestamp-pattern (constantly nil)
                (fn [^Date dt]
-                 (.format (encore/simple-date-format timestamp-pattern
+                 (.format (enc/simple-date-format timestamp-pattern
                             {:locale timestamp-locale}) dt)))]
 
         (fn [juxtfn-args]
