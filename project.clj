@@ -12,22 +12,22 @@
 
   :dependencies
   [[org.clojure/clojure "1.4.0"]
-   [com.taoensso/encore "1.8.1"]
-   [io.aviso/pretty     "0.1.12"]]
+   [com.taoensso/encore "1.21.0"]
+   [io.aviso/pretty     "0.1.16"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
    :server-jvm {:jvm-opts ^:replace ["-server"]}
    :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
-   :test {:dependencies [[expectations            "2.0.9"]
-                         [org.clojure/test.check  "0.5.9"]
-                         [com.taoensso/nippy      "2.7.0-RC1"]
-                         [com.taoensso/carmine    "2.7.0"]
-                         [com.draines/postal      "1.11.1"]
-                         [org.clojure/tools.logging "0.3.0"]]
+   :test {:dependencies [[expectations            "2.0.13"]
+                         [org.clojure/test.check  "0.7.0"]
+                         [com.taoensso/nippy      "2.7.1"]
+                         [com.taoensso/carmine    "2.9.0"]
+                         [com.draines/postal      "1.11.3"]
+                         [org.clojure/tools.logging "0.3.1"]]
           :plugins [[lein-expectations "0.0.8"]
-                    [lein-autoexpect   "1.2.2"]]}
+                    [lein-autoexpect   "1.4.2"]]}
    :dev
    [:1.6 :test
     {:dependencies [[irclj "0.5.0-alpha4"]]
