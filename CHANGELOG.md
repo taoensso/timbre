@@ -1,5 +1,10 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v3.4.0 / 2015 Feb 16
+
+ > This should be a **non-breaking** release that only bumps some old dependencies.
+
+
 ## v3.3.1 / 2014 Sep 7
 
  * **FIX** https://github.com/ptaoussanis/timbre/issues/79.

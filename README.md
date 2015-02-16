@@ -1,10 +1,8 @@
 **[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contrib](#contact--contributing) | current [Break Version][]:
 
 ```clojure
-[com.taoensso/timbre "3.3.1"]
+[com.taoensso/timbre "3.4.0"]
 ```
-
-v3 is a **major, backwards-compatible release**. Please see the [CHANGELOG][] for details. Appender authors: please see [here](https://github.com/ptaoussanis/timbre/issues/41) about migrating Timbre 2.x appenders to 3.x's recommended style.
 
 # Timbre, a (sane) Clojure logging & profiling library
 
@@ -34,7 +32,7 @@ Logging with Java can be maddeningly, unnecessarily hard. Particularly if all yo
 Add the necessary dependency to your [Leiningen][] `project.clj` and use the supplied ns-import helper:
 
 ```clojure
-[com.taoensso/timbre "3.3.1"] ; project.clj
+[com.taoensso/timbre "3.4.0"] ; project.clj
 
 (ns my-app (:require [taoensso.timbre :as timbre])) ; Your ns
 (timbre/refer-timbre) ; Provides useful Timbre aliases in this ns
