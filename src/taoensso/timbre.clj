@@ -3,7 +3,8 @@
   (:require [clojure.string     :as str]
             [io.aviso.exception :as aviso-ex]
             [taoensso.encore    :as enc])
-  (:import  [java.util Date Locale]
+  (:import  java.io.File
+            [java.util Date Locale]
             [java.text SimpleDateFormat]))
 
 ;;;; Encore version check
@@ -269,11 +270,21 @@
                 "UnknownHost")))
        (deref 5000 "UnknownHost")))))
 
+(defn- exists?
+  [path]
+  (when-not (str/blank? path) (.exists (File. ^String path))))
+
+(defn- mkdirs "Creates all parent directories for the passed file."
+  [^File f]
+  (.mkdirs (.getParentFile (.getCanonicalFile f))))
+
 (defn- wrap-appender-juxt
   "Wraps compile-time appender juxt with additional runtime capabilities
   (incl. middleware) controlled by compile-time config. Like `wrap-appender-fn`
   but operates on the entire juxt at once."
   [config juxtfn]
+  (when-let [spit-file (get-in config [:shared-appender-config :spit-filename])]
+    (when-not (exists? spit-file) (mkdirs (File. spit-file))))
   (->> ; Wrapping applies per juxt, bottom-to-top
    juxtfn
 
