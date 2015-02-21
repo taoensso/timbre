@@ -182,7 +182,7 @@ For common-case ease-of-use, **all logging utils use a global atom for their con
 ;; [com.taoensso/carmine "2.4.0"] ; Add to project.clj deps
 ;; (:require [taoensso.timbre.appenders (:carmine :as car-appender)]) ; Add to ns
 
-(timbre/set-config! [:appenders :carmine] (postal-appenders/make-carmine-appender))
+(timbre/set-config! [:appenders :carmine] (car-appender/make-carmine-appender))
 ```
 
 This gives us a high-performance Redis appender:
