@@ -180,7 +180,7 @@ For common-case ease-of-use, **all logging utils use a global atom for their con
 
 ```clojure
 ;; [com.taoensso/carmine "2.4.0"] ; Add to project.clj deps
-;; (:require [taoensso.timbre.appenders (:carmine :as car-appender)]) ; Add to ns
+;; (:require [taoensso.timbre.appenders (carmine :as car-appender)]) ; Add to ns
 
 (timbre/set-config! [:appenders :carmine] (car-appender/make-carmine-appender))
 ```
