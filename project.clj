@@ -12,20 +12,20 @@
 
   :dependencies
   [[org.clojure/clojure "1.4.0"]
-   [com.taoensso/encore "1.21.0"]
-   [io.aviso/pretty     "0.1.16"]]
+   [com.taoensso/encore "1.22.0"]
+   [io.aviso/pretty     "0.1.17"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
    :server-jvm {:jvm-opts ^:replace ["-server"]}
    :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
-   :test {:dependencies [[expectations              "2.0.13"]
+   :test {:dependencies [[expectations              "2.1.0"]
                          [org.clojure/test.check    "0.7.0"]
                          [org.clojure/tools.logging "0.3.1"]
 
                          ;; Appender dependencies
-                         [com.taoensso/nippy   "2.7.1"]
+                         [com.taoensso/nippy   "2.8.0"]
                          [com.taoensso/carmine "2.9.0"]
                          [com.draines/postal   "1.11.3"]
                          [irclj                "0.5.0-alpha4"]]
@@ -34,8 +34,8 @@
    :dev
    [:1.6 :test
     {:dependencies []
-     :plugins [[lein-ancient "0.5.4"]
-               [codox        "0.8.10"]]}]}
+     :plugins [[lein-ancient "0.6.4"]
+               [codox        "0.8.11"]]}]}
 
   :test-paths ["test" "src"]
 
