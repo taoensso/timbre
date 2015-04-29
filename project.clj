@@ -12,7 +12,7 @@
 
   :dependencies
   [[org.clojure/clojure "1.4.0"]
-   [com.taoensso/encore "1.22.0"]
+   [com.taoensso/encore "1.24.1"]
    [io.aviso/pretty     "0.1.17"]]
 
   :profiles
@@ -26,7 +26,7 @@
 
                          ;; Appender dependencies
                          [com.taoensso/nippy   "2.8.0"]
-                         [com.taoensso/carmine "2.9.0"]
+                         [com.taoensso/carmine "2.9.2"]
                          [com.draines/postal   "1.11.3"]
                          [irclj                "0.5.0-alpha4"]]
           :plugins [[lein-expectations "0.0.8"]
