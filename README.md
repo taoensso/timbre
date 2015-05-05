@@ -74,7 +74,7 @@ java.lang.Exception: Oh noes
           <...>
 ```
 
-Timbre makes use of futures so that logging does not block your application. This will create a new Clojure thread pool which needs to be shutdown via a call to `(shutdown-agents)` when you are done logging. This is a bug in Clojure and can be tracked [http://dev.clojure.org/jira/browse/CLJ-124](here).
+Timbre makes use of futures so that logging does not block your application. This will create a new Clojure thread pool which needs to be shutdown via a call to `(shutdown-agents)` when you are done logging. This is a bug in Clojure and can be tracked [here](http://dev.clojure.org/jira/browse/CLJ-124).
 
 ### Configuration
 
