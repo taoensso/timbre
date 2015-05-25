@@ -4,7 +4,8 @@
             [io.aviso.exception :as aviso-ex]
             [taoensso.encore    :as enc])
   (:import  [java.util Date Locale]
-            [java.text SimpleDateFormat]))
+            [java.text SimpleDateFormat]
+            [java.io File]))
 
 ;;;; Encore version check
 
@@ -96,6 +97,27 @@
                                                  (:current-level config)
                                                  @level-atom))))
 
+;;;;
+
+(def ^:private get-hostname
+  (enc/memoize* 60000
+    (fn []
+      (->
+       (future ; Android doesn't like this on the main thread
+         (try (.. java.net.InetAddress getLocalHost getHostName)
+              (catch java.net.UnknownHostException _
+                "UnknownHost")))
+       (deref 5000 "UnknownHost")))))
+
+(def ^:private ensure-spit-dir-exists!
+  (enc/memoize* 60000
+    (fn [fname]
+      (when-not (str/blank? fname)
+        (let [file (File. ^String fname)
+              dir  (.getParentFile (.getCanonicalFile file))]
+          (when-not (.exists dir)
+            (.mkdirs dir)))))))
+
 ;;;; Default configuration and appenders
 
 (defn default-fmt-output-fn
@@ -186,7 +208,8 @@
      :min-level nil :enabled? false :async? false :rate-limit nil
      :fn (fn [{:keys [ap-config output]}] ; Can use any appender args
            (when-let [filename (:spit-filename ap-config)]
-             (try (spit filename (str output "\n") :append true)
+             (try (ensure-spit-dir-exists! filename)
+                  (spit filename (str output "\n") :append true)
                   (catch java.io.IOException _))))}}})
 
 (enc/defonce* config (atom example-config))
@@ -258,16 +281,6 @@
           (let [agent (agent nil :error-mode :continue)]
             (fn [apfn-args] ; Runtime:
               (send-off agent (fn [_] (apfn apfn-args)))))))))))
-
-(def ^:private get-hostname
-  (enc/memoize* 60000
-    (fn []
-      (->
-       (future ; Android doesn't like this on the main thread
-         (try (.. java.net.InetAddress getLocalHost getHostName)
-              (catch java.net.UnknownHostException _
-                "UnknownHost")))
-       (deref 5000 "UnknownHost")))))
 
 (defn- wrap-appender-juxt
   "Wraps compile-time appender juxt with additional runtime capabilities
