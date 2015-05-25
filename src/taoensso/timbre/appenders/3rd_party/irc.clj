@@ -1,18 +1,20 @@
-(ns taoensso.timbre.appenders.irc
-  "IRC appender. Depends on https://github.com/flatland/irclj."
+(ns taoensso.timbre.appenders.3rd-party.irc
+  "IRC appender. Requires https://github.com/flatland/irclj."
   {:author "Emlyn Corrin"}
   (:require [clojure.string  :as str]
             [irclj.core      :as irc]
             [taoensso.timbre :as timbre]))
 
 (defn default-fmt-output-fn
-  [{:keys [level throwable message]}]
+  [{:keys [level ?err_ msg_]}]
   (format "[%s] %s%s"
-          (-> level name (str/upper-case))
-          (or message "")
-          (or (timbre/stacktrace throwable "\n") "")))
+    (-> level name (str/upper-case))
+    (or (force msg_) "")
+    (if-let [err (force ?err_)]
+      (str "\n" (timbre/stacktrace err))
+      "")))
 
-(def default-appender-opts
+(def default-appender-config
   {:async?        true
    :enabled?      true
    :min-level     :info})
@@ -38,38 +40,36 @@
       (irc/message conn chan ">" line))))
 
 (defn- make-appender-fn [irc-config conn]
-  (fn [{:keys [ap-config] :as args}]
-    (when-let [irc-config (or irc-config (:irc ap-config))]
-      (ensure-conn conn irc-config)
-      (let [fmt-fn (or (:fmt-output-fn irc-config)
-                       default-fmt-output-fn)]
-        (send-message conn (:chan irc-config) (fmt-fn args))))))
+  (fn [data]
+    (let [{:keys [appender-opts]} data]
+      (when-let [irc-config (or irc-config appender-opts)]
+        (ensure-conn conn irc-config)
+        (let [fmt-fn (or (:fmt-output-fn irc-config)
+                         default-fmt-output-fn)]
+          (send-message conn (:chan irc-config) (fmt-fn data)))))))
 
 ;;; Public
 
-(defn make-irc-appender
+(defn make-appender
   "Sends IRC messages using irc.
-  Needs :irc config map in :shared-appender-config, e.g.:
-   {:host \"irc.example.org\" :port 6667 :nick \"logger\"
-    :name \"My Logger\" :chan \"#logs\"}"
-  [& [appender-opts {:keys [irc-config]}]]
+  Needs :opts map in appender, e.g.:
+  {:host \"irc.example.org\" :port 6667 :nick \"logger\"
+   :name \"My Logger\" :chan \"#logs\"}"
+  [& [appender-config {:keys [irc-config]}]]
   (let [conn (atom nil)]
-    (merge default-appender-opts
-           appender-opts
-           {:conn conn
-            :doc (:doc (meta #'make-irc-appender))
-            :fn  (make-appender-fn irc-config conn)})))
-
-(def irc-appender "DEPRECATED: Use `make-irc-appender` instead."
-  (make-irc-appender))
+    (merge default-appender-config appender-config
+      {:conn conn
+       :fn   (make-appender-fn irc-config conn)})))
 
 (comment
-  (timbre/set-config!
-   [:shared-appender-config :irc]
-   {:host "127.0.0.1"
-    :nick "lazylog"
-    :user "lazare"
-    :name "Lazylus Logus"
-    :chan "bob"})
-  (timbre/set-config! [:appenders :irc] (make-irc-appender))
-  (timbre/log :error "A multiple\nline message\nfor you"))
+  (timbre/merge-config! {:appenders {:irc (make-appender)}})
+  (timbre/merge-config!
+    {:appenders
+     {:irc
+      {:opts
+       {:host "127.0.0.1"
+        :nick "lazylog"
+        :user "lazare"
+        :name "Lazylus Logus"
+        :chan "bob"}}}})
+  (timbre/error "A multiple\nline message\nfor you"))

@@ -1,7 +1,9 @@
-(ns taoensso.timbre.appenders.mongo
-  "MongoDB appender. Depends on  https://github.com/aboekhoff/congomongo."
+(ns taoensso.timbre.appenders.3rd-party.mongo
+  "MongoDB appender. Requires on https://github.com/aboekhoff/congomongo."
   {:author "Emlyn Corrin"}
-  (:require [somnium.congomongo :as mongo]))
+  (:require [somnium.congomongo :as mongo]
+            [taoensso.timbre    :as timbre]
+            [taoensso.encore    :as encore]))
 
 (def conn (atom nil))
 
@@ -21,26 +23,28 @@
                            :as config}]
   (let [selected-params (if logged-keys
                           (select-keys params logged-keys)
-                          (dissoc params :ap-config))
-        logged-params (if-let [t (:throwable selected-params)]
-                        (assoc selected-params :throwable (str t))
-                        selected-params)]
+                          (dissoc params :config :appender :appender-opts))
+        logged-params (encore/map-vals #(str (force %)) selected-params)]
     (mongo/with-mongo (ensure-conn config)
       (mongo/insert! collection logged-params))))
 
-(defn appender-fn [{:keys [ap-config] :as params}]
-  (when-let [mongo-config (:mongo ap-config)]
-    (log-message params mongo-config)))
+(defn- make-appender-fn [make-config]
+  (fn [data]
+    (let [{:keys [appender-opts]} data]
+      (when-let [mongo-config appender-opts]
+        (log-message data mongo-config)))))
 
-(def mongo-appender
-  {:doc (str "Logs to MongoDB using congomongo.\n"
-             "Needs :mongo config map in :shared-appender-config, e.g.:
-             {:db \"logs\"
-              :collection \"myapp\"
-              :logged-keys [:instant :level :message]
-              :write-concern :acknowledged
-              :server {:host \"127.0.0.1\"
-                       :port 27017}}")
-   :min-level :warn :enabled? true :async? true
-   :rate-limit [1 1000] ; 1 entry / sec
-   :fn appender-fn})
+(defn make-appender
+  "Logs to MongoDB using congomongo. Needs :opts map in appender, e.g.:
+  {:db \"logs\"
+   :collection \"myapp\"
+   :logged-keys [:instant :level :msg_]
+   :write-concern :acknowledged
+   :server {:host \"127.0.0.1\"
+   :port 27017}}"
+  [& [appender-config make-config]]
+  (let [default-appender-config
+        {:min-level :warn :enabled? true :async? true
+         :rate-limit [[1 1000]]}]
+    (merge default-appender-config appender-config
+      {:fn (make-appender-fn make-config)})))
