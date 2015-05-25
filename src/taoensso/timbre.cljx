@@ -1,41 +1,28 @@
 (ns taoensso.timbre
   "Simple, flexible logging for Clojure/Script. No XML."
   {:author "Peter Taoussanis"}
-
-  #+clj
-  (:require [clojure.string     :as str]
-            [io.aviso.exception :as aviso-ex]
-            [taoensso.encore    :as enc :refer (have have? qb)])
-
-  #+cljs
-  (:require [clojure.string  :as str]
-            [taoensso.encore :as enc :refer ()])
-  #+cljs
-  (:require-macros
-   [taoensso.encore :as enc :refer (have have?)])
-
-  #+clj
-  (:import [java.util Date Locale]
-           [java.text SimpleDateFormat]
-           [java.io File]))
+  #+clj  (:require [clojure.string     :as str]
+                   [io.aviso.exception :as aviso-ex]
+                   [taoensso.encore    :as enc :refer (have have? qb)])
+  #+cljs (:require [clojure.string  :as str]
+                   [taoensso.encore :as enc :refer ()])
+  #+cljs (:require-macros [taoensso.encore :as enc :refer (have have?)])
+  #+clj  (:import [java.util Date Locale]
+                  [java.text SimpleDateFormat]
+                  [java.io File]))
 
 ;;;; TODO
 ;; - Check for successful cljs compile
-;; - Bump encore version + min version check
-;; - Clj default appenders
-;; - Simple config flag to log std err -> out
 ;; - Cljs default appenders
-;; - Port profiling ns (cljs support?)
+;; - Port appenders
+;; - Try ease backward comp, update README, CHANGELOG
 ;; - Document shutdown-agents,
 ;;   Ref. https://github.com/ptaoussanis/timbre/pull/100/files
-;; - Try ease backward comp
-;; - Port appenders
-;; - Update README, CHANGELOG
 
 ;;;; Encore version check
 
 #+clj
-(let [min-encore-version 1.30]
+(let [min-encore-version 1.31]
   (if-let [assert! (ns-resolve 'taoensso.encore 'assert-min-encore-version)]
     (assert! min-encore-version)
     (throw
@@ -47,14 +34,119 @@
 
 ;;;; Config
 
+#+clj
+(def default-timestamp-opts
+  {:pattern     "yy-MMM-dd HH:mm:ss"
+   :locale      (java.util.Locale. "en")
+   ;; :timezone (java.util.TimeZone/getTimeZone "UTC")
+   :timezone    (java.util.TimeZone/getDefault)})
+
+(declare stacktrace)
+(defn default-output-fn [data & [opts]]
+  (let [{:keys [level ?err_ vargs_ msg_ ?ns-str hostname_ timestamp_]} data]
+    (str
+      #+clj (force timestamp_) #+clj " "
+      #+clj (force hostname_)  #+clj " "
+      (str/upper-case (name level))
+      " [" (or ?ns-str "?ns") "] - " (force msg_)
+      (when-let [err (force ?err_)] (str "\n" (stacktrace err))))))
+
+(declare default-err default-out ensure-spit-dir-exists!)
+
 (def example-config
-  "Example (+default) Timbre config map." ; TODO
-  {:level :debug
-   :appenders ; TODO
-   {:println
-    {:min-level nil :enabled? true :async? false :rate-limit nil
-     :fn (fn [data]
-           (println ((:output-fn data) data)))}}})
+  "Example (+default) Timbre config map.
+
+  APPENDERS
+    An appender is a map with keys:
+      :doc             ; Optional docstring.
+      :min-level       ; Level keyword, or nil (=> no minimum level).
+      :enabled?        ;
+      :async?          ; Dispatch using agent? Useful for slow appenders.
+      :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil.
+      :data-hash-fn    ; Used by rate-limiter, etc.
+      :opts            ; Any appender-specific opts
+      :fn              ; (fn [data-map]), with keys described below.
+
+    An appender's fn takes a single data map with keys:
+      :config          ; Entire config map (this map)
+      :appender-id     ; Id of appender currently being dispatched to
+      :appender        ; Entire appender map currently being dispatched to
+      :appender-opts   ; (:opts (:appender <data-map>)), for convenience
+
+      :instant         ; java.util.Date or js/Date
+      :level           ; Keyword
+      :error-level?    ; Is level :error or :fatal?
+      :?ns-str         ; String, or nil
+      :?file           ; String, or nil (waiting on CLJ-865)
+      :?line           ; Integer, or nil ('')
+
+      :?err_           ; Delay - first-argument error
+      :vargs_          ; Delay - raw args vector
+      :hostname_       ; Delay - string (clj only)
+      :msg_            ; Delay - args string
+      :timestamp_      ; Delay - string
+      :output-fn       ; (fn [data & [opts]]) -> formatted output string
+
+      :profile-stats   ; From `profile` macro
+
+      <Also, any *context* keys, which get merged into data map>
+
+  DELAYS
+    As a matter of middleware hygiene, prefer using `force` to @/`deref`
+    when retrieving getting delayed values.
+
+  MIDDLEWARE
+    Middleware are fns (applied left->right) that transform the data map
+    dispatched to appender fns. If any middleware returns nil, NO dispatching
+    will occur (i.e. the event will be filtered).
+
+  The `example-config` source code contains further settings and details.
+  See also `set-config!`, `merge-config!`, `set-level!`."
+
+  (merge
+    {:level :debug
+
+     :whitelist  [] ; "my-ns.*", etc.
+     :blacklist  [] ;
+     :middleware [] ; (fns [data])->?data, applied left->right
+
+     :output-fn default-output-fn
+     #+clj :timestamp-opts #+clj default-timestamp-opts
+
+     :appenders
+     #+clj
+     {:println
+      {:doc "Prints to (:stream <appender-opts>) IO stream. Enabled by default."
+       :min-level nil :enabled? true :async? false :rate-limit nil
+       :opts {;; e/o #{:std-err :std-out :auto <stream>}:
+              :stream :auto}
+       :fn
+       (fn [data]
+         (let [{:keys [output-fn error? appender-opts]} data
+               {:keys [stream]} appender-opts
+               out (case stream
+                     (nil :auto) (if error? default-err *out*)
+                     :std-err    default-err
+                     :std-out    default-out
+                     stream)]
+           (binding [*out* out] (println (output-fn data)))))}
+
+      :spit
+      {:doc "Spits to (:spit-filename <appender-opts>) file."
+       :min-level nil :enabled? false :async? false :rate-limit nil
+       :opts {:spit-filename "timbre-spit.log"}
+       :fn
+       (fn [data]
+         (let [{:keys [output-fn appender-opts]} data
+               {:keys [spit-filename]} appender-opts]
+           (when-let [fname (enc/as-?nblank spit-filename)]
+             (try (ensure-spit-dir-exists! fname)
+                  (spit fname (str (output-fn data) "\n") :append true)
+                  (catch java.io.IOException _)))))}}}))
+
+(comment
+  (set-config! example-config)
+  (infof "Hello %s" "world :-)"))
 
 (enc/defonce* ^:dynamic *config* example-config)
 (defmacro with-config [config & body] `(binding [*config* ~config] ~@body))
@@ -86,16 +178,17 @@
 (defn level>= [x y] (>= (long (scored-levels (valid-level x)))
                         (long (scored-levels (valid-level y)))))
 
-(comment (level>= :info :debug))
+(comment (qb 10000 (level>= :info :debug)))
 
 #+clj (defn- env-val [id] (when-let [s (System/getenv id)] (enc/read-edn s)))
 #+clj (def ^:private compile-time-level
         (have [:or nil? valid-level] (keyword (env-val "TIMBRE_LEVEL"))))
 
 (defn get-active-level [& [config]] (or (:level (or config *config*)) :report))
-(comment (qb 10000 (get-active-level)))
 
-(comment (binding [*config* {:level :trace}] (level>= :trace (get-active-level))))
+(comment
+  (qb 10000 (get-active-level))
+  (binding [*config* {:level :trace}] (level>= :trace (get-active-level))))
 
 ;;;; ns filter
 
@@ -154,25 +247,13 @@
   (vsplit-err1 [:a :b :c])
   (vsplit-err1 [(Exception.) :a :b :c]))
 
-(declare stacktrace)
-
-(defn default-output-fn [data & [opts]]
-  (let [{:keys [level ?err_ vargs_ msg-fn ?ns-str hostname_ timestamp_]} data]
-    (str (force timestamp_) " "
-      #+clj @hostname_ #+clj " "
-      (str/upper-case (name level))
-      " [" ?ns-str "] - " (msg-fn vargs_)
-      (when-let [err (force ?err_)] (str "\n" (stacktrace err))))))
-
-(comment (infof (Exception.) "Hello %s" "Steve"))
-
 (defn default-data-hash-fn [data]
   (let [{:keys [?ns-str ?line vargs_]} data
         vargs (force vargs_)]
     (str
       (or (some #(and (map? %) (:timbre/hash %)) vargs) ; Explicit hash given
-        #_[?ns-str ?line] ; TODO Waiting on http://goo.gl/cVVAYA
-        [?ns-str vargs]))))
+          #_[?ns-str ?line] ; TODO Waiting on http://goo.gl/cVVAYA
+          [?ns-str vargs]))))
 
 (comment (default-data-hash-fn {}))
 
@@ -201,51 +282,33 @@
 
 (declare get-hostname)
 
-;;;; TODO Temp, work on timestamps
-;; want a simple, pattern-based 
-
-(def ^:private default-timestamp-pattern "14-Jul-07 16:42:11"
-  "yy-MMM-dd HH:mm:ss")
-
-(.format
-  (enc/simple-date-format default-timestamp-pattern
-    {:locale (Locale. "en")
-     ;; :timezone "foo"
-     }) (enc/now-dt))
-
-
-
-;;;; TODO
-
-
 (defn log* "Core fn-level logger. Implementation detail."
   [config level ?ns-str ?file ?line msg-type dvargs & [base-data]]
   (when (log? level ?ns-str config)
-    (let [instant  (enc/now-dt)
-          vargs*_  (delay (vsplit-err1 (mapv force dvargs)))
-          ?err_    (delay (get @vargs*_ 0))
-          vargs_   (delay (get @vargs*_ 1))
-          msg-fn   (fn [vargs_] ; Post-middleware vargs, etc.
-                     (when-not (nil? msg-type)
-                       (when-let [vargs (have [:or nil? vector?] (force vargs_))]
-                         (case msg-type
-                           :print  (enc/spaced-str vargs)
-                           :format (let [[fmt args] (enc/vsplit-first vargs)]
-                                     (enc/format* fmt args))))))
-          data
-          (merge base-data *context*
-            {:config  config ; Entire config!
-             :instant instant
-             :level   level
-             :?ns-str ?ns-str
-             :?file   ?file
-             :?line   ?line
-             :?err_   ?err_
-             :vargs_  vargs_
-             :msg-fn  msg-fn
-             #+clj :hostname_ #+clj (delay (get-hostname))
-             :error-level? (#{:error :fatal} level)})
-
+    (let [instant (enc/now-dt)
+          vargs*_ (delay (vsplit-err1 (mapv force dvargs)))
+          ?err_   (delay (get @vargs*_ 0))
+          vargs_  (delay (get @vargs*_ 1))
+          data    (merge base-data *context*
+                    {:config  config ; Entire config!
+                     ;; :context *context* ; Extra destructure's a nuisance
+                     :instant instant
+                     :level   level
+                     :?ns-str ?ns-str
+                     :?file   ?file
+                     :?line   ?line
+                     :?err_   ?err_
+                     :vargs_  vargs_
+                     #+clj :hostname_ #+clj (delay (get-hostname))
+                     :error-level? (#{:error :fatal} level)})
+          msg-fn
+          (fn [vargs_] ; *After* middleware, etc.
+            (when-not (nil? msg-type)
+              (when-let [vargs (have [:or nil? vector?] (force vargs_))]
+                (case msg-type
+                  :print  (enc/spaced-str vargs)
+                  :format (let [[fmt args] (enc/vsplit-first vargs)]
+                            (enc/format* fmt args))))))
           ?data
           (reduce ; Apply middleware: data->?data
             (fn [acc mf]
@@ -274,26 +337,32 @@
                         (not (rl-fn data-hash))))))
 
               (let [{:keys [async?] apfn :fn} appender
+                    msg_      (delay (msg-fn (:vargs_ data)))
                     output-fn (or (:output-fn appender)
                                   (:output-fn config)
                                   default-output-fn)
 
-                    ;; TODO Grab config (tz, pattern, locale, etc.) from 
-                    timestamp_ (delay "TODO")
-                    
-                    
-                    data (assoc data :output-fn
-                                )]
+                    #+clj timestamp_
+                    #+clj
+                    (delay
+                      (let [timestamp-opts (merge default-timestamp-opts
+                                                  (:timestamp-opts config)
+                                                  (:timestamp-opts appender))
+                            {:keys [pattern locale timezone]} timestamp-opts]
+                        (.format (enc/simple-date-format pattern
+                                   {:locale locale :timezone timezone})
+                          (:instant data))))
 
-                             :timestamp_   timestamp_
-             ;; :output-fn output-fn
+                    data
+                    (merge data
+                      {:appender-id id
+                       :appender    appender
+                       :appender-opts (:opts appender)
+                       :msg_        msg_
+                       :msg-fn      msg-fn
+                       :output-fn   output-fn
+                       #+clj :timestamp_ #+clj timestamp_})]
 
-             ;; :timestamp_   (delay "maybe?") ; TODO Nix?
-
-             
-             
-
-             
                 (if-not async?
                   (apfn data)
                   (send-off (get-agent id) (fn [_] (apfn data)))))))
@@ -339,7 +408,10 @@
 
 (def-loggers)
 
-(comment (infof "hello %s" "world"))
+(comment
+  (infof "hello %s" "world")
+  (infof (Exception.) "hello %s" "world")
+  (infof (Exception.)))
 
 (defmacro log-errors [& body]
   `(let [[?result# ?error#] (enc/catch-errors ~@body)]
@@ -438,14 +510,3 @@
   [probability & body]
   `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
        (when (< (rand) ~probability) ~@body)))
-
-
-
-;;;; TODO Scratch
-;; :keys [timestamp-pattern timestamp-locale
-;;        prefix-fn fmt-output-fn]} config
-;; timestamp-fn
-;; (if-not timestamp-pattern (constantly nil)
-;;         (fn [^Date dt]
-;;           (.format (enc/simple-date-format timestamp-pattern
-;;                      {:locale timestamp-locale}) dt)))]
