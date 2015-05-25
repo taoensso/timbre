@@ -3,7 +3,8 @@
   {:author "Peter Taoussanis"}
   (:require [taoensso.carmine :as car]
             [taoensso.nippy   :as nippy]
-            [taoensso.timbre  :as timbre]))
+            [taoensso.timbre  :as timbre]
+            [taoensso.encore  :as enc :refer (have have?)]))
 
 (defn- sha48
   "Truncated 160bit SHA hash (48bit Long). Redis can store small collections of
@@ -15,51 +16,56 @@
 
 (comment (sha48 {:key "I'm gonna get hashed!"}))
 
-(defn default-keyfn [level] {:pre [(string? level)]}
-  (format "carmine:timbre:default:%s" level))
+(defn default-keyfn [level] {:pre [(have? string? level)]}
+  (str "carmine:timbre:default:" level))
 
-(defn make-carmine-appender
-  "Alpha - subject to change!
-  Returns a Carmine Redis appender:
-   * All raw logging args are preserved in serialized form (even Throwables!).
-   * Only the most recent instance of each unique entry is kept (hash fn used
+(defn make-appender
+  "Returns a Carmine Redis appender (experimental, subject to change):
+    * All raw logging args are preserved in serialized form (even Throwables!).
+    * Only the most recent instance of each unique entry is kept (hash fn used
      to determine uniqueness is configurable).
-   * Configurable number of entries to keep per logging level.
-   * Log is just a value: a vector of Clojure maps: query+manipulate with
-     standard seq fns: group-by hostname, sort/filter by ns & severity, explore
-     exception stacktraces, filter by raw arguments, etc. Datomic and `core.logic`
-     also offer interesting opportunities here.
+    * Configurable number of entries to keep per logging level.
+    * Log is just a value: a vector of Clojure maps: query+manipulate with
+      standard seq fns: group-by hostname, sort/filter by ns & severity, explore
+      exception stacktraces, filter by raw arguments, etc. Datomic and `core.logic`
+      also offer interesting opportunities here.
 
   See accompanying `query-entries` fn to return deserialized log entries."
-  [& [appender-opts {:keys [conn-opts keyfn args-hash-fn nentries-by-level]
-                     :or   {keyfn        default-keyfn
-                            args-hash-fn timbre/default-args-hash-fn
-                            nentries-by-level {:trace    50
-                                               :debug    50
-                                               :info     50
-                                               :warn    100
-                                               :error   100
-                                               :fatal   100
-                                               :report  100}}
-                     :as opts}]]
-  {:pre [(string? (keyfn "test"))
-         (every? #(contains? nentries-by-level %) timbre/levels-ordered)
-         (every? #(and (integer? %) (<= 0 % 100000)) (vals nentries-by-level))]}
+  [& [appender-config
+      {:keys [conn-opts keyfn data-hash-fn nentries-by-level]
+       :or   {keyfn        default-keyfn
+              data-hash-fn timbre/default-data-hash-fn
+              nentries-by-level {:trace    50
+                                 :debug    50
+                                 :info     50
+                                 :warn    100
+                                 :error   100
+                                 :fatal   100
+                                 :report  100}}
+       :as make-config}]]
+  {:pre [(have? string? (keyfn "test"))
+         (have? [:ks>= timbre/ordered-levels] nentries-by-level)
+         (have? [:and integer? #(<= 0 % 100000)] :in (vals nentries-by-level))]}
 
-  (let [default-appender-opts {:enabled? true :min-level nil}]
-    (merge default-appender-opts appender-opts
+  (let [default-appender-config {:enabled? true :min-level nil}]
+    (merge default-appender-config appender-config
       {:fn
-       (fn [{:keys [level instant] :as apfn-args}]
-         (let [entry-hash (sha48 (args-hash-fn apfn-args))
-               entry      (select-keys apfn-args [:hostname :ns :args :throwable
-                                                  :profile-stats])
+       (fn [data]
+         (let [{:keys [level instant]} data
+               entry-hash (sha48 (data-hash-fn data))
+               entry      {:?ns-str         (:?ns-str       data)
+                           :hostname (force (:hostname_     data))
+                           :vargs    (force (:vargs_        data))
+                           :?err     (force (:?err_         data))
+                           :profile-stats   (:profile-stats data)}
+
                k-zset (keyfn (name level))
                k-hash (str k-zset ":entries")
                udt (.getTime ^java.util.Date instant) ; Use as zscore
                nmax-entries (nentries-by-level level)]
 
            (when (> nmax-entries 0)
-             (car/wcar (or conn-opts (:conn opts)) ; :conn is Deprecated
+             (car/wcar conn-opts
                (binding [nippy/*final-freeze-fallback* nippy/freeze-fallback-as-str]
                  (car/hset k-hash entry-hash entry))
                (car/zadd k-zset udt entry-hash)
@@ -91,7 +97,7 @@
   maps. Normal sequence fns can be used to query/transform entries. Datomic and
   core.logic are also useful!"
   [conn-opts level & [n asc? keyfn]]
-  {:pre  [(or (nil? n) (and (integer? n) (<= 1 n 100000)))]}
+  {:pre [(have? [:or nil? [:and integer? #(<= 1 % 100000)]] n)]}
   (let [keyfn  (or keyfn default-keyfn)
         k-zset (keyfn (name level))
         k-hash (str k-zset ":entries")
@@ -125,9 +131,8 @@
 ;;;; Dev/tests
 
 (comment
-  (timbre/log {:timestamp-pattern "yyyy-MMM-dd HH:mm:ss ZZ"
-               :appenders {:carmine (make-carmine-appender)}}
-    :info "Hello1" "Hello2")
+  (timbre/with-merged-config {:appenders {:carmine (make-appender)}}
+    (timbre/info "Hello1" "Hello2"))
 
   (car/wcar {} (car/keys (default-keyfn "*")))
   (count (car/wcar {} (car/hgetall (default-keyfn "info:entries"))))

@@ -49,7 +49,7 @@
       #+clj (force hostname_)  #+clj " "
       (str/upper-case (name level))
       " [" (or ?ns-str "?ns") "] - " (force msg_)
-      (when-let [err (force ?err_)] (str "\n" (stacktrace err))))))
+      (when-let [err (force ?err_)] (str "\n" (stacktrace err opts))))))
 
 (declare default-err default-out ensure-spit-dir-exists!)
 
@@ -149,7 +149,10 @@
   (infof "Hello %s" "world :-)"))
 
 (enc/defonce* ^:dynamic *config* example-config)
-(defmacro with-config [config & body] `(binding [*config* ~config] ~@body))
+(defmacro with-config        [config & body] `(binding [*config* ~config] ~@body))
+(defmacro with-merged-config [config & body]
+  `(binding [*config* (enc/nested-merge *config* ~config)] ~@body))
+
 (defn swap-config! [f]
   #+cljs (set!             *config* (f *config*))
   #+clj  (alter-var-root #'*config*  f))
@@ -165,7 +168,7 @@
 
 ;;;; Levels
 
-(def ^:private ordered-levels [:trace :debug :info :warn :error :fatal :report])
+(def ordered-levels [:trace :debug :info :warn :error :fatal :report])
 (def ^:private scored-levels  (zipmap ordered-levels (next (range))))
 (def ^:private valid-level
   (let [valid-level-set (set ordered-levels)]
