@@ -164,14 +164,19 @@
        (if-not have-logger?
          (fn [data] nil)
          (fn [data]
-           (let [{:keys [level appender-opts output-fn]} data
+           (let [{:keys [level appender-opts output-fn vargs_]} data
                  {:keys []} appender-opts
-                 output (output-fn data)]
+
+                 vargs      (force vargs_)
+                 [v1 vnext] (enc/vsplit-first vargs)
+                 output     (if (= v1 :timbre/raw)
+                              (into-array vnext)
+                              (output-fn data))]
 
              (case (adjust-level level)
                :error (.error js/console output)
                :warn  (.warn  js/console output)
-               (.log   js/console output))))))}}})
+                      (.log   js/console output))))))}}})
 
 (comment
   (set-config! example-config)
