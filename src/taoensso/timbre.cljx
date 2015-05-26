@@ -86,7 +86,7 @@
       :?file           ; String, or nil  ; Waiting on CLJ-865
       :?line           ; Integer, or nil ; Waiting on CLJ-865
 
-      :?err_           ; Delay - first-argument platform error
+      :?err_           ; Delay - first-argument platform error, or nil
       :vargs_          ; Delay - raw args vector
       :hostname_       ; Delay - string (clj only)
       :msg_            ; Delay - args string
@@ -108,13 +108,17 @@
   (merge
     {:level :debug  ; e/o #{:trace :debug :info :warn :error :fatal :report}
 
-     :whitelist  [] ; "my-ns.*", etc.
-     :blacklist  [] ;
+     ;; Control log filtering by namespaces/patterns. Useful for turning off
+     ;; logging in noisy libraries, etc.:
+     :whitelist  [] #_["my-app.foo-ns"]
+     :blacklist  [] #_["taoensso.*"]
+
      :middleware [] ; (fns [data]) -> ?data, applied left->right
 
-     :output-fn default-output-fn ; (fn [data]) -> string
      #+clj :timestamp-opts
      #+clj default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
+
+     :output-fn default-output-fn ; (fn [data]) -> string
 
      :appenders
      #+clj
