@@ -1,15 +1,20 @@
 (ns taoensso.timbre.profiling
   "Logging profiler for Timbre, adapted from clojure.contrib.profile."
   {:author "Peter Taoussanis"}
-  (:require [taoensso.encore :as encore]
+  (:require [taoensso.encore :as enc]
             [taoensso.timbre :as timbre]))
+
+;;;; TODO ns could use some housekeeping
+;; * Boxed math optimizations
+;; * Possible porting to .cljx (any point?)
+;; * Support for explicit `config` args?
+;; * General housekeeping, perf work
 
 ;;;; Utils
 
 (defmacro fq-keyword "Returns namespaced keyword for given id."
-  [id]
-  `(if (and (keyword? ~id) (namespace ~id)) ~id
-     (keyword (timbre/get-compile-time-ns) (name ~id))))
+  [id] `(if (and (keyword? ~id) (namespace ~id)) ~id
+          (keyword ~(str *ns*) (name ~id))))
 
 (comment (map #(fq-keyword %) ["foo" :foo :foo/bar]))
 
@@ -56,7 +61,7 @@
 (declare ^:private format-stats)
 
 (defmacro with-pdata [level & body]
-  `(if-not (timbre/logging-enabled? ~level (timbre/get-compile-time-ns))
+  `(if-not (timbre/log? ~level ~(str *ns*))
      {:result (do ~@body)}
      (binding [*pdata* (atom {})]
        {:result (pspy ::clock-time ~@body)
@@ -73,9 +78,9 @@
   [level id & body]
   `(let [{result# :result stats# :stats} (with-pdata ~level ~@body)]
      (when stats#
-       (timbre/log* {:profile-stats stats#} :format ~level
-                    "Profiling: %s\n%s" (fq-keyword ~id)
-                    (format-stats stats#)))
+       (timbre/log1-macro timbre/*config* ~level :f
+         ["Profiling: %s\n%s" (fq-keyword ~id) (format-stats stats#)]
+         {:profile-stats stats#}))
      result#))
 
 (defmacro sampling-profile
@@ -87,7 +92,7 @@
 
 ;;;; Data capturing & aggregation
 
-(def ^:private ^:constant stats-gc-n 111111)
+(def ^:private stats-gc-n 111111)
 
 (defn capture-time! [id t-elapsed]
   (let [ntimes
@@ -182,7 +187,7 @@
              (let [nanosecs (long nanosecs) ; Truncate any fractional nanosecs
                    pow     #(Math/pow 10 %)
                    ok-pow? #(>= nanosecs (pow %))
-                   to-pow  #(encore/round (/ nanosecs (pow %1)) :round %2)]
+                   to-pow  #(enc/round (/ nanosecs (pow %1)) :round %2)]
                (cond (ok-pow? 9) (str (to-pow 9 1) "s")
                      (ok-pow? 6) (str (to-pow 6 0) "ms")
                      (ok-pow? 3) (str (to-pow 3 0) "μs")
@@ -207,7 +212,7 @@
    '([name doc-string? attr-map? [params*] prepost-map? body]
      [name doc-string? attr-map? ([params*] prepost-map? body)+ attr-map?])}
   [name' & sigs]
-  (let [[name' sigs]  (encore/name-with-attrs name' sigs)
+  (let [[name' sigs]  (enc/name-with-attrs name' sigs)
         single-arity? (vector? (first sigs))
         [sigs func->str]
         (if single-arity?

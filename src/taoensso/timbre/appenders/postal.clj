@@ -3,15 +3,10 @@
   {:author "Peter Taoussanis"}
   (:require [clojure.string  :as str]
             [postal.core     :as postal]
-            [taoensso.timbre :as timbre]))
+            [taoensso.timbre :as timbre]
+            [taoensso.encore :as enc :refer (have have?)]))
 
-(defn- str-trunc [^String s max-len]
-  (if (<= (.length s) max-len) s
-    (.substring s 0 max-len)))
-
-(comment (str-trunc "Hello this is a long string" 5))
-
-(defn make-postal-appender
+(defn make-appender
   "Returns a Postal email appender.
   A Postal config map can be provided here as an argument, or as a :postal key
   in :shared-appender-config.
@@ -20,30 +15,36 @@
    {:postal-config
     ^{:host \"mail.isp.net\" :user \"jsmith\" :pass \"sekrat!!1\"}
     {:from \"Bob's logger <me@draines.com>\" :to \"foo@example.com\"}})"
-  [& [appender-opts {:keys [postal-config subject-len body-fn]
-                     :or   {subject-len 150
-                            body-fn (fn [output] [{:type "text/plain; charset=utf-8"
-                                                  :content output}])}}]]
 
-  (let [default-appender-opts
+  [& [appender-config make-config]]
+  (let [{:keys [postal-config subject-len body-fn]
+         :or   {subject-len 150
+                body-fn (fn [output] [{:type "text/plain; charset=utf-8"
+                                      :content output}])}}
+        make-config
+
+        default-appender-config
         {:enabled?   true
          :min-level  :warn
          :async?     true ; Slow!
-         :rate-limit [5 (* 1000 60 2)] ; 5 calls / 2 mins
-         :fmt-output-opts {:nofonts? true} ; Disable ANSI-escaped stuff
-         }]
+         :rate-limit [[5  (enc/ms :mins  2)]
+                      [50 (enc/ms :hours 24)]]}]
 
-    (merge default-appender-opts appender-opts
+    (merge default-appender-config appender-config
       {:fn
-       (fn [{:keys [ap-config output]}]
-         (when-let [postal-config (or postal-config (:postal ap-config))]
-           (postal/send-message
-            (assoc postal-config
-              :subject (-> (str output)
-                           (str/trim)
-                           (str-trunc subject-len)
-                           (str/replace #"\s+" " "))
-              :body (body-fn output)))))})))
+       (fn [data]
+         (let [{:keys [output-fn appender-opts]} data
+               {:keys [no-fonts?]} appender-opts]
+           (when-let [postal-config (or postal-config (:postal appender-opts))]
+             (let [output (str (output-fn data {:stacktrace-fonts {}}))]
+               (postal/send-message
+                 (assoc postal-config
+                   :subject (-> output
+                                (str/trim)
+                                (str/replace #"\s+" " ")
+                                (enc/substr 0 subject-len))
+                   :body (body-fn output)))))))})))
 
-(def postal-appender "DEPRECATED: Use `make-postal-appender` instead."
-  (make-postal-appender))
+;;;; Deprecated
+
+(def make-postal-appender make-appender)

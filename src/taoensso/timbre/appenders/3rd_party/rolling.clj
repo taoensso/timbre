@@ -1,8 +1,10 @@
-(ns taoensso.timbre.appenders.rolling "Rolling file appender."
+(ns taoensso.timbre.appenders.3rd-party.rolling
+  "Rolling file appender."
+  {:author "Unknown - please let me know?"}
   (:require [clojure.java.io :as io]
             [taoensso.timbre :as timbre])
-  (:import [java.text SimpleDateFormat]
-           [java.util Calendar]))
+  (:import  [java.text SimpleDateFormat]
+            [java.util Calendar]))
 
 (defn- rename-old-create-new-log [log old-log]
   (.renameTo log old-log)
@@ -41,9 +43,11 @@
     cal))
 
 (defn- make-appender-fn [path pattern]
-  (fn [{:keys [ap-config output instant]}]
-    (let [path (or path (-> ap-config :rolling :path))
-          pattern (or pattern (-> ap-config :rolling :pattern) :daily)
+  (fn [data]
+    (let [{:keys [instant appender-opts output-fn]} data
+          output (output-fn data)
+          path (or path (-> appender-opts :path))
+          pattern (or pattern (-> appender-opts :pattern) :daily)
           prev-cal (prev-period-end-cal instant pattern)
           log (io/file path)]
       (when log
@@ -52,20 +56,24 @@
             (if (<= (.lastModified log) (.getTimeInMillis prev-cal))
               (shift-log-period log path prev-cal))
             (.createNewFile log))
-          (spit path (with-out-str (timbre/str-println output)) :append true)
+          (spit path (with-out-str (println output)) :append true)
           (catch java.io.IOException _))))))
 
-(defn make-rolling-appender
+(defn make-appender
   "Returns a Rolling file appender.
-  A rolling config map can be provided here as a second argument, or provided at
-  :rolling in :shared-appender-config.
+  A rolling config map can be provided here as a second argument, or provided in
+  appender's :opts map.
 
   (make-rolling-appender {:enabled? true}
     {:path \"log/app.log\"
      :pattern :daily})
   path: logfile path
   pattern: frequency of rotation, available values: :daily (default), :weekly, :monthly"
-  [& [appender-opts {:keys [path pattern]}]]
-  (let [default-appender-opts {:enabled? true :min-level nil}]
-    (merge default-appender-opts appender-opts
+  [& [appender-config {:keys [path pattern]}]]
+  (let [default-appender-config {:enabled? true :min-level nil}]
+    (merge default-appender-config appender-config
       {:fn (make-appender-fn path pattern)})))
+
+;;;; Deprecated
+
+(def make-rolling-appender make-appender)
