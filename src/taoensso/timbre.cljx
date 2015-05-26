@@ -6,14 +6,13 @@
                    [taoensso.encore    :as enc :refer (have have? qb)])
   #+cljs (:require [clojure.string  :as str]
                    [taoensso.encore :as enc :refer ()])
-  #+cljs (:require-macros [taoensso.encore :as enc :refer (have have?)])
+  #+cljs (:require-macros [taoensso.encore :as enc :refer (have have?)]
+                          [taoensso.timbre :as timbre-macros :refer ()])
   #+clj  (:import [java.util Date Locale]
                   [java.text SimpleDateFormat]
                   [java.io File]))
 
 ;;;; TODO
-;; - Check for successful cljs compile
-;; - Cljs default appenders
 ;; - Try ease backward comp, update README, CHANGELOG
 ;; - Document shutdown-agents,
 ;;   Ref. https://github.com/ptaoussanis/timbre/pull/100/files
@@ -150,7 +149,31 @@
            (when-let [fname (enc/as-?nblank spit-filename)]
              (try (ensure-spit-dir-exists! fname)
                   (spit fname (str (output-fn data) "\n") :append true)
-                  (catch java.io.IOException _)))))}}}))
+                  (catch java.io.IOException _)))))}}
+
+     #+cljs
+     {:console
+      {:doc "Logs to js/console when it exists. Enabled by default."
+       :min-level nil :enabled? true :async? false :rate-limit nil
+       :opts {}
+       :fn
+       (let [have-logger?       (and (exists? js/console) (.-log   js/console))
+             have-warn-logger?  (and have-logger?         (.-warn  js/console))
+             have-error-logger? (and have-logger?         (.-error js/console))
+             adjust-level {:fatal (if have-error-logger? :error :info)
+                           :error (if have-error-logger? :error :info)
+                           :warn  (if have-warn-logger?  :warn  :info)}]
+         (if-not have-logger?
+           (fn [data] nil)
+           (fn [data]
+             (let [{:keys [level appender-opts output-fn]} data
+                   {:keys []} appender-opts
+                   output (output-fn data)]
+
+               (case (adjust-level level)
+                 :error (.error js/console output)
+                 :warn  (.warn  js/console output)
+                        (.log   js/console output))))))}}}))
 
 (comment
   (set-config! example-config)
@@ -269,6 +292,7 @@
 
 (comment (default-data-hash-fn {}))
 
+#+clj
 (enc/defonce* ^:private get-agent
   (enc/memoize_ (fn [appender-id] (agent nil :error-mode :continue))))
 
@@ -383,7 +407,8 @@
 
                 (if-not async?
                   (apfn data) ; Allow errors to throw
-                  (send-off (get-agent id) (fn [_] (apfn data)))))))
+                  #+cljs (apfn data)
+                  #+clj  (send-off (get-agent id) (fn [_] (apfn data)))))))
           nil
           (enc/clj1098 (:appenders config))))))
   nil)
@@ -405,25 +430,25 @@
             ;; TODO Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
             ?line  (:line (meta &form))]
         `(log* ~config ~level ~ns-str ~?file ~?line ~msg-type
-           (delay ~(vec args)) ~base-data)))))
+           (delay [~@args]) ~base-data)))))
 
-(defmacro ^:private def-logger [level]
-  (let [level-name (name level)]
-    `(do
-       (defmacro ~(symbol (str level-name #_"p"))
-         ~(str "Logs at " level " level using print-style args.")
-         ~'{:arglists '([& message] [error & message])}
-         [& sigs#] `(log *config* ~~level :print ~sigs#))
+;;; Log using print-style args
+(defmacro trace   [& args] `(log *config* :trace  :print  ~args))
+(defmacro debug   [& args] `(log *config* :debug  :print  ~args))
+(defmacro info    [& args] `(log *config* :info   :print  ~args))
+(defmacro warn    [& args] `(log *config* :warn   :print  ~args))
+(defmacro error   [& args] `(log *config* :error  :print  ~args))
+(defmacro fatal   [& args] `(log *config* :fatal  :print  ~args))
+(defmacro report  [& args] `(log *config* :report :print  ~args))
 
-       (defmacro ~(symbol (str level-name "f"))
-         ~(str "Logs at " level " level using format-style args.")
-         ~'{:arglists '([fmt & fmt-args] [error fmt & fmt-args])}
-         [& sigs#] `(log *config* ~~level :format ~sigs#)))))
-
-(defmacro def-loggers []
-  `(do ~@(map (fn [level] `(def-logger ~level)) ordered-levels)))
-
-(def-loggers)
+;;; Log using format-style args
+(defmacro tracef  [& args] `(log *config* :trace  :format ~args))
+(defmacro debugf  [& args] `(log *config* :debug  :format ~args))
+(defmacro infof   [& args] `(log *config* :info   :format ~args))
+(defmacro warnf   [& args] `(log *config* :warn   :format ~args))
+(defmacro errorf  [& args] `(log *config* :error  :format ~args))
+(defmacro fatalf  [& args] `(log *config* :fatal  :format ~args))
+(defmacro reportf [& args] `(log *config* :report :format ~args))
 
 (comment
   (infof "hello %s" "world")
@@ -524,5 +549,5 @@
 
 (defmacro sometimes "Handy for sampled logging, etc."
   [probability & body]
-  `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
+   `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
        (when (< (rand) ~probability) ~@body)))

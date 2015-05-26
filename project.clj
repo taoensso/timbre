@@ -56,27 +56,15 @@
     {:source-paths ["src" "test"] :rules :cljs :output-path "target/test-classes"}]}
 
   :cljsbuild
-  {:test-commands {"node"       ["node" :node-runner "target/tests.js"]
-                   ;; "phantom" ["phantomjs" :runner "target/tests.js"]
-                   }
+  {:test-commands {"node"    ["node" :node-runner "target/tests.js"]
+                   "phantom" ["phantomjs" :runner "target/tests.js"]}
    :builds
-   ;; TODO Parallel builds currently cause issues with Expectations v2.1.0,
-   ;; Ref. http://goo.gl/8LDHe5
    [{:id "main"
      :source-paths   ["src" "target/classes"]
      ;; :notify-command ["terminal-notifier" "-title" "cljsbuild" "-message"]
      :compiler       {:output-to "target/main.js"
                       :optimizations :advanced
-                      :pretty-print false}}
-    {:id "tests"
-     :source-paths   ["src" "target/classes" "test" "target/test-classes"]
-     :notify-command ["node" "target/tests.js"]
-     :compiler       {:output-to "target/tests.js"
-                      :optimizations :simple ; Necessary for node.js
-                      :pretty-print true
-                      :target :nodejs
-                      :hashbang false ; Ref. http://goo.gl/vrtNDR
-                      :main "taoensso.encore.tests"}}]}
+                      :pretty-print false}}]}
 
   :auto-clean false
   :prep-tasks [["cljx" "once"] "javac" "compile"]
