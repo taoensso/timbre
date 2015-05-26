@@ -1,6 +1,6 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
-## v4.0.0-beta1 / 2015 May 26
+## v4.0.0-beta2 / 2015 May 26
 
 > This is a **MAJOR** update. Your custom appenders **WILL BREAK**. Your configuration **MIGHT BREAK**. Your call sites should be fine. I've updated all bundled appenders, but **haven't tested** any 3rd-party appenders.
 
@@ -17,7 +17,7 @@
 * **Fix**: auto shutdown agents to prevent slow app shutdown [#61]
 
 ```clojure
-[com.taoensso/timbre "4.0.0-beta1"]
+[com.taoensso/timbre "4.0.0-beta2"]
 ```
 
 ### Migration checklist
@@ -27,6 +27,7 @@
 * Middleware now apply left->right, not right->left
 * Renamed a default appender: `:standard-out` -> `:println`
 * Renamed config opts: `:timestamp-pattern`, `:timestamp-locale` -> `:timestamp-opts {:pattern _ :locale _ :timezone _}`
+* Renamed config opts: `:whitelist` -> `:ns-whitelist`, `:blacklist` -> `:ns-blacklist`
 * Appender :rate-limit format has changed: `[ncalls ms]` -> `[[ncalls ms] <...>]`
 * Renamed appender args: `:ns`->`:?ns-str`, `:file`->`:?file`, `:line`->`:?line`
 * Appender args now wrapped with delays: `:throwable`->`:?err_`, `:message`->`:msg_`, `:timestamp`->`:timestamp_`, `:hostname`->`:hostname_`, `:args`->`:vargs_`

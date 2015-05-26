@@ -136,8 +136,8 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
 
    ;; Control log filtering by namespaces/patterns. Useful for turning off
    ;; logging in noisy libraries, etc.:
-   :whitelist  [] #_["my-app.foo-ns"]
-   :blacklist  [] #_["taoensso.*"]
+   :ns-whitelist  [] #_["my-app.foo-ns"]
+   :ns-blacklist  [] #_["taoensso.*"]
 
    :middleware [] ; (fns [data]) -> ?data, applied left->right
 
