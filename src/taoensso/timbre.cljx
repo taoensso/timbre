@@ -103,8 +103,8 @@
 
    ;; Control log filtering by namespaces/patterns. Useful for turning off
    ;; logging in noisy libraries, etc.:
-   :whitelist  [] #_["my-app.foo-ns"]
-   :blacklist  [] #_["taoensso.*"]
+   :ns-whitelist  [] #_["my-app.foo-ns"]
+   :ns-blacklist  [] #_["taoensso.*"]
 
    :middleware [] ; (fns [data]) -> ?data, applied left->right
 
@@ -316,7 +316,7 @@
   [level & [?ns-str config]]
   (let [config (or config *config*)]
     (and (level>= level (get-active-level config))
-         (ns-filter (:whitelist config) (:blacklist config) (or ?ns-str ""))
+         (ns-filter (:ns-whitelist config) (:ns-blacklist config) (or ?ns-str ""))
          true)))
 
 (comment (log? :trace))
