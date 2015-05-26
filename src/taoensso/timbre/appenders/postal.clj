@@ -6,7 +6,7 @@
             [taoensso.timbre :as timbre]
             [taoensso.encore :as enc :refer (have have?)]))
 
-(defn make-postal-appender
+(defn make-appender
   "Returns a Postal email appender.
   A Postal config map can be provided here as an argument, or as a :postal key
   in :shared-appender-config.
@@ -44,3 +44,7 @@
                                 (str/replace #"\s+" " ")
                                 (enc/substr 0 subject-len))
                    :body (body-fn output)))))))})))
+
+;;;; Deprecated
+
+(def make-postal-appender make-appender)

@@ -144,3 +144,7 @@
 
   (count (query-entries {} :info 2))
   (count (query-entries {} :info 2 :asc)))
+
+;;;; Deprecated
+
+(def make-carmine-appender make-appender)

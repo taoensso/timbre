@@ -35,3 +35,7 @@
                  (zmq/register socket :pollout :pollerr))]
     (merge default-appender-config appender-config
       {:fn (make-appender-fn socket poller)})))
+
+;;;; Deprecated
+
+(def make-zmq-appender make-appender)

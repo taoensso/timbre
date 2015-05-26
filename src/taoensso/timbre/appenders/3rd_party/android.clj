@@ -42,3 +42,7 @@
                :error  (android.util.Log/e ns output)
                :fatal  (android.util.Log/e ns output)
                :report (android.util.Log/i ns output)))))})))
+
+;;;; Deprecated
+
+(def make-logcat-appender make-appender)

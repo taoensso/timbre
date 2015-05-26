@@ -133,79 +133,24 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
   The `example-config` source code contains further settings and details.
   See also `set-config!`, `merge-config!`, `set-level!`."
 
-  (merge
-    {:level :debug  ; e/o #{:trace :debug :info :warn :error :fatal :report}
+  {:level :debug  ; e/o #{:trace :debug :info :warn :error :fatal :report}
 
-     ;; Control log filtering by namespaces/patterns. Useful for turning off
-     ;; logging in noisy libraries, etc.:
-     :whitelist  [] #_["my-app.foo-ns"]
-     :blacklist  [] #_["taoensso.*"]
+   ;; Control log filtering by namespaces/patterns. Useful for turning off
+   ;; logging in noisy libraries, etc.:
+   :whitelist  [] #_["my-app.foo-ns"]
+   :blacklist  [] #_["taoensso.*"]
 
-     :middleware [] ; (fns [data]) -> ?data, applied left->right
+   :middleware [] ; (fns [data]) -> ?data, applied left->right
 
-     #+clj :timestamp-opts
-     #+clj default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
-
-     :output-fn default-output-fn ; (fn [data]) -> string
-
-     :appenders
-     #+clj
-     {:println ; Appender id
-      ;; Appender <map>:
-      {:doc "Prints to (:stream <appender-opts>) IO stream. Enabled by default."
-       :min-level nil :enabled? true :async? false :rate-limit nil
-
-       ;; Any custom appender opts:
-       :opts {:stream :auto ; e/o #{:std-err :std-out :auto <stream>}
-              }
-
-       :fn
-       (fn [data]
-         (let [{:keys [output-fn error? appender-opts]} data
-               {:keys [stream]} appender-opts
-               stream (case stream
-                        (nil :auto) (if error? default-err *out*)
-                        :std-err    default-err
-                        :std-out    default-out
-                        stream)]
-           (binding [*out* stream] (println (output-fn data)))))}
-
-      :spit
-      {:doc "Spits to (:spit-filename <appender-opts>) file."
-       :min-level nil :enabled? false :async? false :rate-limit nil
-       :opts {:spit-filename "timbre-spit.log"}
-       :fn
-       (fn [data]
-         (let [{:keys [output-fn appender-opts]} data
-               {:keys [spit-filename]} appender-opts]
-           (when-let [fname (enc/as-?nblank spit-filename)]
-             (try (ensure-spit-dir-exists! fname)
-                  (spit fname (str (output-fn data) "\n") :append true)
-                  (catch java.io.IOException _)))))}}
-
-     #+cljs
-     {:console
-      {:doc "Logs to js/console when it exists. Enabled by default."
-       :min-level nil :enabled? true :async? false :rate-limit nil
-       :opts {}
-       :fn
-       (let [have-logger?       (and (exists? js/console) (.-log   js/console))
-             have-warn-logger?  (and have-logger?         (.-warn  js/console))
-             have-error-logger? (and have-logger?         (.-error js/console))
-             adjust-level {:fatal (if have-error-logger? :error :info)
-                           :error (if have-error-logger? :error :info)
-                           :warn  (if have-warn-logger?  :warn  :info)}]
-         (if-not have-logger?
-           (fn [data] nil)
-           (fn [data]
-             (let [{:keys [level appender-opts output-fn]} data
-                   {:keys []} appender-opts
-                   output (output-fn data)]
-
-               (case (adjust-level level)
-                 :error (.error js/console output)
-                 :warn  (.warn  js/console output)
-                        (.log   js/console output))))))}}}))
+   :appenders
+   {:simple-println ; Appender id
+     ;; Appender definition (just a map):
+     {:min-level nil :enabled? true :async? false
+      :rate-limit [[1 250] [10 5000]] ; 1/250ms, 10/5s
+      :fn ; Appender's fn
+      (fn [data]
+        (let [{:keys [output-fn]} data]
+          (println (output-fn data))))}}})
 ```
 
 A few things to note:

@@ -73,3 +73,7 @@
   (let [default-appender-config {:enabled? true :min-level nil}]
     (merge default-appender-config appender-config
       {:fn (make-appender-fn path pattern)})))
+
+;;;; Deprecated
+
+(def make-rolling-appender make-appender)

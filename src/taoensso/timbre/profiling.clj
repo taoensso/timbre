@@ -78,7 +78,7 @@
   [level id & body]
   `(let [{result# :result stats# :stats} (with-pdata ~level ~@body)]
      (when stats#
-       (timbre/log timbre/*config* ~level :format
+       (timbre/log1-macro timbre/*config* ~level :f
          ["Profiling: %s\n%s" (fq-keyword ~id) (format-stats stats#)]
          {:profile-stats stats#}))
      result#))

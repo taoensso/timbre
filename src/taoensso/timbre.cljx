@@ -12,11 +12,6 @@
                   [java.text SimpleDateFormat]
                   [java.io File]))
 
-;;;; TODO
-;; - Try ease backward comp, update README, CHANGELOG
-;; - Document shutdown-agents,
-;;   Ref. https://github.com/ptaoussanis/timbre/pull/100/files
-
 ;;;; Encore version check
 
 #+clj
@@ -105,79 +100,78 @@
   The `example-config` source code contains further settings and details.
   See also `set-config!`, `merge-config!`, `set-level!`."
 
-  (merge
-    {:level :debug  ; e/o #{:trace :debug :info :warn :error :fatal :report}
+  {:level :debug  ; e/o #{:trace :debug :info :warn :error :fatal :report}
 
-     ;; Control log filtering by namespaces/patterns. Useful for turning off
-     ;; logging in noisy libraries, etc.:
-     :whitelist  [] #_["my-app.foo-ns"]
-     :blacklist  [] #_["taoensso.*"]
+   ;; Control log filtering by namespaces/patterns. Useful for turning off
+   ;; logging in noisy libraries, etc.:
+   :whitelist  [] #_["my-app.foo-ns"]
+   :blacklist  [] #_["taoensso.*"]
 
-     :middleware [] ; (fns [data]) -> ?data, applied left->right
+   :middleware [] ; (fns [data]) -> ?data, applied left->right
 
-     #+clj :timestamp-opts
-     #+clj default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
+   #+clj :timestamp-opts
+   #+clj default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
 
-     :output-fn default-output-fn ; (fn [data]) -> string
+   :output-fn default-output-fn ; (fn [data]) -> string
 
-     :appenders
-     #+clj
-     {:println ; Appender id
-      ;; Appender <map>:
-      {:doc "Prints to (:stream <appender-opts>) IO stream. Enabled by default."
-       :min-level nil :enabled? true :async? false :rate-limit nil
+   :appenders
+   #+clj
+   {:println ; Appender id
+    ;; Appender map:
+    {:doc "Prints to (:stream <appender-opts>) IO stream. Enabled by default."
+     :min-level nil :enabled? true :async? false :rate-limit nil
 
-       ;; Any custom appender opts:
-       :opts {:stream :auto ; e/o #{:std-err :std-out :auto <stream>}
-              }
+     ;; Any custom appender opts:
+     :opts {:stream :auto ; e/o #{:std-err :std-out :auto <stream>}
+            }
 
-       :fn
-       (fn [data]
-         (let [{:keys [output-fn error? appender-opts]} data
-               {:keys [stream]} appender-opts
-               stream (case stream
-                        (nil :auto) (if error? default-err *out*)
-                        :std-err    default-err
-                        :std-out    default-out
-                        stream)]
-           (binding [*out* stream] (println (output-fn data)))))}
+     :fn
+     (fn [data]
+       (let [{:keys [output-fn error? appender-opts]} data
+             {:keys [stream]} appender-opts
+             stream (case stream
+                      (nil :auto) (if error? default-err *out*)
+                      :std-err    default-err
+                      :std-out    default-out
+                      stream)]
+         (binding [*out* stream] (println (output-fn data)))))}
 
-      :spit
-      {:doc "Spits to (:spit-filename <appender-opts>) file."
-       :min-level nil :enabled? false :async? false :rate-limit nil
-       :opts {:spit-filename "timbre-spit.log"}
-       :fn
-       (fn [data]
-         (let [{:keys [output-fn appender-opts]} data
-               {:keys [spit-filename]} appender-opts]
-           (when-let [fname (enc/as-?nblank spit-filename)]
-             (try (ensure-spit-dir-exists! fname)
-                  (spit fname (str (output-fn data) "\n") :append true)
-                  (catch java.io.IOException _)))))}}
+    :spit
+    {:doc "Spits to (:spit-filename <appender-opts>) file."
+     :min-level nil :enabled? false :async? false :rate-limit nil
+     :opts {:spit-filename "timbre-spit.log"}
+     :fn
+     (fn [data]
+       (let [{:keys [output-fn appender-opts]} data
+             {:keys [spit-filename]} appender-opts]
+         (when-let [fname (enc/as-?nblank spit-filename)]
+           (try (ensure-spit-dir-exists! fname)
+                (spit fname (str (output-fn data) "\n") :append true)
+                (catch java.io.IOException _)))))}}
 
-     #+cljs
-     {:console
-      {:doc "Logs to js/console when it exists. Enabled by default."
-       :min-level nil :enabled? true :async? false :rate-limit nil
-       :opts {}
-       :fn
-       (let [have-logger?       (and (exists? js/console) (.-log   js/console))
-             have-warn-logger?  (and have-logger?         (.-warn  js/console))
-             have-error-logger? (and have-logger?         (.-error js/console))
-             adjust-level {:fatal (if have-error-logger? :error :info)
-                           :error (if have-error-logger? :error :info)
-                           :warn  (if have-warn-logger?  :warn  :info)}]
-         (if-not have-logger?
-           (fn [data] nil)
-           (fn [data]
-             (let [{:keys [level appender-opts output-fn]} data
-                   {:keys []} appender-opts
-                   output (output-fn data)]
+   #+cljs
+   {:console
+    {:doc "Logs to js/console when it exists. Enabled by default."
+     :min-level nil :enabled? true :async? false :rate-limit nil
+     :opts {}
+     :fn
+     (let [have-logger?       (and (exists? js/console) (.-log   js/console))
+           have-warn-logger?  (and have-logger?         (.-warn  js/console))
+           have-error-logger? (and have-logger?         (.-error js/console))
+           adjust-level {:fatal (if have-error-logger? :error :info)
+                         :error (if have-error-logger? :error :info)
+                         :warn  (if have-warn-logger?  :warn  :info)}]
+       (if-not have-logger?
+         (fn [data] nil)
+         (fn [data]
+           (let [{:keys [level appender-opts output-fn]} data
+                 {:keys []} appender-opts
+                 output (output-fn data)]
 
-               (case (adjust-level level)
-                 :error (.error js/console output)
-                 :warn  (.warn  js/console output)
-                        (.log   js/console output))))))}}}))
+             (case (adjust-level level)
+               :error (.error js/console output)
+               :warn  (.warn  js/console output)
+               (.log   js/console output))))))}}})
 
 (comment
   (set-config! example-config)
@@ -195,8 +189,8 @@
 (defn   set-config! [m] (swap-config! (fn [_old] m)))
 (defn merge-config! [m] (swap-config! (fn [old] (enc/nested-merge old m))))
 
-(defn set-level! [level] (swap-config! (fn [m] (merge m {:level level}))))
-(defn with-level [level & body]
+(defn     set-level! [level] (swap-config! (fn [m] (merge m {:level level}))))
+(defmacro with-level [level & body]
   `(binding [*config* (merge *config* {:level ~level})] ~@body))
 
 (comment (set-level! :info) *config*)
@@ -205,11 +199,11 @@
 
 (def ordered-levels [:trace :debug :info :warn :error :fatal :report])
 (def ^:private scored-levels  (zipmap ordered-levels (next (range))))
+(def ^:private valid-levels   (set ordered-levels))
 (def ^:private valid-level
-  (let [valid-level-set (set ordered-levels)]
-    (fn [level]
-      (or (valid-level-set level)
-        (throw (ex-info (str "Invalid logging level: " level) {:level level}))))))
+  (fn [level]
+    (or (valid-levels level)
+        (throw (ex-info (str "Invalid logging level: " level) {:level level})))))
 
 (comment (valid-level :info))
 
@@ -220,7 +214,9 @@
 
 #+clj (defn- env-val [id] (when-let [s (System/getenv id)] (enc/read-edn s)))
 #+clj (def ^:private compile-time-level
-        (have [:or nil? valid-level] (keyword (env-val "TIMBRE_LEVEL"))))
+        (have [:or nil? valid-level]
+          (keyword (or (env-val "TIMBRE_LEVEL")
+                       (env-val "TIMBRE_LOG_LEVEL")))))
 
 (defn get-active-level [& [config]] (or (:level (or config *config*)) :report))
 
@@ -307,7 +303,7 @@
 
 (comment (def rf (get-rate-limiter :my-appender [[10 5000]])))
 
-;;;; Logging core
+;;;; Internal logging core
 
 (defn log?
   "Would Timbre currently log at the given logging level?
@@ -328,14 +324,15 @@
 
 (declare get-hostname)
 
-(defn log* "Core fn-level logger. Implementation detail."
-  [config level ?ns-str ?file ?line msg-type vargs_ & [base-data]]
+(defn log1-fn
+  "Core fn-level logger. Implementation detail!"
+  [config level ?ns-str ?file ?line msg-type vargs_ & [?base-data]]
   (when (log? level ?ns-str config)
     (let [instant (enc/now-dt)
           vargs*_ (delay (vsplit-err1 (force vargs_)))
           ?err_   (delay (get @vargs*_ 0))
           vargs_  (delay (get @vargs*_ 1))
-          data    (merge base-data *context*
+          data    (merge ?base-data *context*
                     {:config  config ; Entire config!
                      ;; :context *context* ; Extra destructure's a nuisance
                      :instant instant
@@ -352,9 +349,9 @@
             (when-not (nil? msg-type)
               (when-let [vargs (have [:or nil? vector?] (force vargs_))]
                 (case msg-type
-                  :print  (enc/spaced-str vargs)
-                  :format (let [[fmt args] (enc/vsplit-first vargs)]
-                            (enc/format* fmt args))))))
+                  :p (enc/spaced-str vargs)
+                  :f (let [[fmt args] (enc/vsplit-first vargs)]
+                       (enc/format* fmt args))))))
           ?data
           (reduce ; Apply middleware: data->?data
             (fn [acc mf]
@@ -418,41 +415,49 @@
   nil)
 
 (comment
-  (log* *config* :info nil nil nil :print (delay [(do (println "hi") :x) :y])))
+  (log1-fn *config* :info nil nil nil :p (delay [(do (println "hi") :x) :y]) nil))
 
-;;;; Logging macros
-
-(defmacro log "Core macro-level logger."
-  [config level msg-type args & [base-data]]
+(defmacro log1-macro
+  "Core macro-level logger. Implementation detail!"
+  [config level msg-type args & [?base-data]]
 
   ;; Compile-time elision:
-  (when (or (nil? compile-time-level) (level>= level compile-time-level))
+  (when (or (nil? compile-time-level)
+            (not (valid-levels level)) ; Not a compile-time level
+            (level>= level compile-time-level))
+
     (when (compile-time-ns-filter (str *ns*))
 
       (let [ns-str (str *ns*)
             ?file  (let [f *file*] (when (not= f "NO_SOURCE_PATH") f))
             ;; TODO Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
             ?line  (:line (meta &form))]
-        `(log* ~config ~level ~ns-str ~?file ~?line ~msg-type
-           (delay [~@args]) ~base-data)))))
+        `(log1-fn ~config ~level ~ns-str ~?file ~?line ~msg-type
+           (delay [~@args]) ~?base-data)))))
+
+;;;; API-level stuff
 
 ;;; Log using print-style args
-(defmacro trace   [& args] `(log *config* :trace  :print  ~args))
-(defmacro debug   [& args] `(log *config* :debug  :print  ~args))
-(defmacro info    [& args] `(log *config* :info   :print  ~args))
-(defmacro warn    [& args] `(log *config* :warn   :print  ~args))
-(defmacro error   [& args] `(log *config* :error  :print  ~args))
-(defmacro fatal   [& args] `(log *config* :fatal  :print  ~args))
-(defmacro report  [& args] `(log *config* :report :print  ~args))
+(defmacro log* [config level & args] `(log1-macro ~config  ~level  :p ~args))
+(defmacro log         [level & args] `(log1-macro *config* ~level  :p ~args))
+(defmacro trace             [& args] `(log1-macro *config* :trace  :p ~args))
+(defmacro debug             [& args] `(log1-macro *config* :debug  :p ~args))
+(defmacro info              [& args] `(log1-macro *config* :info   :p ~args))
+(defmacro warn              [& args] `(log1-macro *config* :warn   :p ~args))
+(defmacro error             [& args] `(log1-macro *config* :error  :p ~args))
+(defmacro fatal             [& args] `(log1-macro *config* :fatal  :p ~args))
+(defmacro report            [& args] `(log1-macro *config* :report :p ~args))
 
 ;;; Log using format-style args
-(defmacro tracef  [& args] `(log *config* :trace  :format ~args))
-(defmacro debugf  [& args] `(log *config* :debug  :format ~args))
-(defmacro infof   [& args] `(log *config* :info   :format ~args))
-(defmacro warnf   [& args] `(log *config* :warn   :format ~args))
-(defmacro errorf  [& args] `(log *config* :error  :format ~args))
-(defmacro fatalf  [& args] `(log *config* :fatal  :format ~args))
-(defmacro reportf [& args] `(log *config* :report :format ~args))
+(defmacro logf* [config level & args] `(log1-macro ~config  ~level  :f ~args))
+(defmacro logf         [level & args] `(log1-macro *config* ~level  :f ~args))
+(defmacro tracef             [& args] `(log1-macro *config* :trace  :f ~args))
+(defmacro debugf             [& args] `(log1-macro *config* :debug  :f ~args))
+(defmacro infof              [& args] `(log1-macro *config* :info   :f ~args))
+(defmacro warnf              [& args] `(log1-macro *config* :warn   :f ~args))
+(defmacro errorf             [& args] `(log1-macro *config* :error  :f ~args))
+(defmacro fatalf             [& args] `(log1-macro *config* :fatal  :f ~args))
+(defmacro reportf            [& args] `(log1-macro *config* :report :f ~args))
 
 (comment
   (infof "hello %s" "world")
@@ -485,7 +490,7 @@
   ([config level name expr]
    `(log-and-rethrow-errors
       (let [result# ~expr]
-        (log ~config ~level :print [~name "=>" result#])
+        (log* ~config ~level [~name "=>" result#])
         result#))))
 
 #+clj
@@ -540,7 +545,7 @@
     (binding [aviso-ex/*fonts* fonts] (aviso-ex/format-exception err))
     (aviso-ex/format-exception err)))
 
-(comment (stacktrace (Exception. "Boo")))
+(comment (stacktrace (Exception. "Boo") {:stacktrace-fonts {}}))
 
 #+clj
 (def ^:private ensure-spit-dir-exists!
@@ -556,9 +561,17 @@
    `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
        (when (< (rand) ~probability) ~@body)))
 
-;;;; Shutdown hook ; Workaround for http://dev.clojure.org/jira/browse/CLJ-124
+;;;; EXPERIMENTAL shutdown hook
+;; Workaround for http://dev.clojure.org/jira/browse/CLJ-124
 
 #+clj
 (defonce ^:private shutdown-hook
   (.addShutdownHook (Runtime/getRuntime)
     (Thread. (fn [] (shutdown-agents)))))
+
+;;;; Deprecated
+
+(defn str-println [& xs] (enc/spaced-str xs))
+(defmacro with-log-level      [level  & body] `(with-level  ~level  ~@body))
+(defmacro with-logging-config [config & body] `(with-config ~config ~@body))
+(defn logging-enabled? [level compile-time-ns] (log? level (str compile-time-ns)))

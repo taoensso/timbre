@@ -73,3 +73,7 @@
         :name "Lazylus Logus"
         :chan "bob"}}}})
   (timbre/error "A multiple\nline message\nfor you"))
+
+;;;; Deprecated
+
+(def make-irc-appender make-appender)
