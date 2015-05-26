@@ -76,14 +76,6 @@ java.lang.Exception: Oh noes
           <...>
 ```
 
-### Timbre slowing down your Clojure app shutdown?
-
-This is due to an outstanding [issue](http://dev.clojure.org/jira/browse/CLJ-124) in Clojure. As a workaround, add the following to your application's startup routine:
-
-```clojure
-(.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (shutdown-agents))))
-```
-
 ### Configuration
 
 This is the biggest win over Java logging IMO. Here's `timbre/example-config` (also Timbre's default config):
