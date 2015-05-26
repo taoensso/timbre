@@ -15,7 +15,7 @@
 
   ;; Limitations inline
   (write! [_ level throwable message]
-    (let [config   *config* ; No support for explicit config
+    (let [config   timbre/*config* ; No support for explicit config
           ?ns-str  nil      ; No support
           ?file    nil      ; ''
           ?line    nil      ; ''

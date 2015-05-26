@@ -14,7 +14,6 @@
 ;;;; TODO
 ;; - Check for successful cljs compile
 ;; - Cljs default appenders
-;; - Port appenders
 ;; - Try ease backward comp, update README, CHANGELOG
 ;; - Document shutdown-agents,
 ;;   Ref. https://github.com/ptaoussanis/timbre/pull/100/files
@@ -36,13 +35,17 @@
 
 #+clj
 (def default-timestamp-opts
+  "Controls (:timestamp_ data)."
   {:pattern     "yy-MMM-dd HH:mm:ss"
    :locale      (java.util.Locale. "en")
    ;; :timezone (java.util.TimeZone/getTimeZone "UTC")
    :timezone    (java.util.TimeZone/getDefault)})
 
 (declare stacktrace)
-(defn default-output-fn [data & [opts]]
+
+(defn default-output-fn
+  "(fn [data & [opts]]) -> string output."
+  [data & [opts]]
   (let [{:keys [level ?err_ vargs_ msg_ ?ns-str hostname_ timestamp_]} data]
     (str
       #+clj (force timestamp_) #+clj " "
@@ -54,33 +57,37 @@
 (declare default-err default-out ensure-spit-dir-exists!)
 
 (def example-config
-  "Example (+default) Timbre config map.
+  "Example (+default) Timbre v4 config map.
 
   APPENDERS
+
+    *** Please see the `taoensso.timbre.appenders.example-appender` ns if you
+        plan to write your own Timbre appender ***
+
     An appender is a map with keys:
-      :doc             ; Optional docstring.
-      :min-level       ; Level keyword, or nil (=> no minimum level).
+      :doc             ; Optional docstring
+      :min-level       ; Level keyword, or nil (=> no minimum level)
       :enabled?        ;
-      :async?          ; Dispatch using agent? Useful for slow appenders.
-      :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil.
+      :async?          ; Dispatch using agent? Useful for slow appenders
+      :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil
       :data-hash-fn    ; Used by rate-limiter, etc.
       :opts            ; Any appender-specific opts
-      :fn              ; (fn [data-map]), with keys described below.
+      :fn              ; (fn [data-map]), with keys described below
 
     An appender's fn takes a single data map with keys:
-      :config          ; Entire config map (this map)
+      :config          ; Entire config map (this map, etc.)
       :appender-id     ; Id of appender currently being dispatched to
       :appender        ; Entire appender map currently being dispatched to
-      :appender-opts   ; (:opts (:appender <data-map>)), for convenience
+      :appender-opts   ; Duplicates (:opts <appender-map>), for convenience
 
-      :instant         ; java.util.Date or js/Date
+      :instant         ; Platform date (java.util.Date or js/Date)
       :level           ; Keyword
       :error-level?    ; Is level :error or :fatal?
       :?ns-str         ; String, or nil
-      :?file           ; String, or nil (waiting on CLJ-865)
-      :?line           ; Integer, or nil ('')
+      :?file           ; String, or nil  ; Waiting on CLJ-865
+      :?line           ; Integer, or nil ; Waiting on CLJ-865
 
-      :?err_           ; Delay - first-argument error
+      :?err_           ; Delay - first-argument platform error
       :vargs_          ; Delay - raw args vector
       :hostname_       ; Delay - string (clj only)
       :msg_            ; Delay - args string
@@ -91,45 +98,46 @@
 
       <Also, any *context* keys, which get merged into data map>
 
-  DELAYS
-    As a matter of middleware hygiene, prefer using `force` to @/`deref`
-    when retrieving getting delayed values.
-
   MIDDLEWARE
-    Middleware are fns (applied left->right) that transform the data map
-    dispatched to appender fns. If any middleware returns nil, NO dispatching
-    will occur (i.e. the event will be filtered).
+    Middleware are simple (fn [data]) -> ?data fns (applied left->right) that
+    transform the data map dispatched to appender fns. If any middleware returns
+    nil, NO dispatching will occur (i.e. the event will be filtered).
 
   The `example-config` source code contains further settings and details.
   See also `set-config!`, `merge-config!`, `set-level!`."
 
   (merge
-    {:level :debug
+    {:level :debug  ; e/o #{:trace :debug :info :warn :error :fatal :report}
 
      :whitelist  [] ; "my-ns.*", etc.
      :blacklist  [] ;
-     :middleware [] ; (fns [data])->?data, applied left->right
+     :middleware [] ; (fns [data]) -> ?data, applied left->right
 
-     :output-fn default-output-fn
-     #+clj :timestamp-opts #+clj default-timestamp-opts
+     :output-fn default-output-fn ; (fn [data]) -> string
+     #+clj :timestamp-opts
+     #+clj default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
 
      :appenders
      #+clj
-     {:println
+     {:println ; Appender id
+      ;; Appender <map>:
       {:doc "Prints to (:stream <appender-opts>) IO stream. Enabled by default."
        :min-level nil :enabled? true :async? false :rate-limit nil
-       :opts {;; e/o #{:std-err :std-out :auto <stream>}:
-              :stream :auto}
+
+       ;; Any custom appender opts:
+       :opts {:stream :auto ; e/o #{:std-err :std-out :auto <stream>}
+              }
+
        :fn
        (fn [data]
          (let [{:keys [output-fn error? appender-opts]} data
                {:keys [stream]} appender-opts
-               out (case stream
-                     (nil :auto) (if error? default-err *out*)
-                     :std-err    default-err
-                     :std-out    default-out
-                     stream)]
-           (binding [*out* out] (println (output-fn data)))))}
+               stream (case stream
+                        (nil :auto) (if error? default-err *out*)
+                        :std-err    default-err
+                        :std-out    default-out
+                        stream)]
+           (binding [*out* stream] (println (output-fn data)))))}
 
       :spit
       {:doc "Spits to (:spit-filename <appender-opts>) file."
@@ -148,7 +156,7 @@
   (set-config! example-config)
   (infof "Hello %s" "world :-)"))
 
-(enc/defonce* ^:dynamic *config* example-config)
+(enc/defonce* ^:dynamic *config* "See `example-config` for info." example-config)
 (defmacro with-config        [config & body] `(binding [*config* ~config] ~@body))
 (defmacro with-merged-config [config & body]
   `(binding [*config* (enc/nested-merge *config* ~config)] ~@body))
@@ -157,7 +165,7 @@
   #+cljs (set!             *config* (f *config*))
   #+clj  (alter-var-root #'*config*  f))
 
-(defn   set-config! [m] (swap-config! (fn [_] m)))
+(defn   set-config! [m] (swap-config! (fn [_old] m)))
 (defn merge-config! [m] (swap-config! (fn [old] (enc/nested-merge old m))))
 
 (defn set-level! [level] (swap-config! (fn [m] (merge m {:level level}))))
@@ -196,6 +204,7 @@
 ;;;; ns filter
 
 (def ^:private compile-ns-filters
+  "(fn [whitelist blacklist]) -> (fn [ns]) -> ?unfiltered-ns"
   (let [->re-pattern
         (fn [x]
           (enc/cond!
@@ -213,7 +222,7 @@
 
               white-filter
               (cond
-                ;; (nil? whitelist)  (fn [ns] false)
+                ;; (nil? whitelist)  (fn [ns] false) ; Might be surprising
                 (empty?  whitelist*) (fn [ns] true)
                 :else (fn [ns] (some #(re-find % ns) whitelist*)))
 
@@ -222,13 +231,13 @@
                 (empty? blacklist*) (fn [ns] true)
                 :else (fn [ns] (not (some #(re-find % ns) blacklist*))))]
 
-          [white-filter black-filter])))))
+          (fn [ns] (when (and (white-filter ns) (black-filter ns)) ns)))))))
 
 (def ^:private ns-filter
+  "(fn [whitelist blacklist ns]) -> ?unfiltered-ns"
   (enc/memoize_
     (fn [whitelist blacklist ns]
-      (let [[white-filter black-filter] (compile-ns-filters whitelist blacklist)]
-        (when (and (white-filter ns) (black-filter ns)) ns)))))
+      ((compile-ns-filters whitelist blacklist) ns))))
 
 (comment (qb 10000 (ns-filter ["foo.*"] ["foo.baz"] "foo.bar")))
 
@@ -240,17 +249,17 @@
 
 ;;;; Utils
 
-(defmacro delay-vec [coll] (mapv (fn [in] `(delay ~in)) coll))
-(comment
-  (qb 10000 (delay :foo) (fn [] :foo))
-  (macroexpand '(delay-vec [(do (println "hi") :x) :y :z])))
-
+(defn- ->delay [x] (if (delay? x) x (delay x)))
 (defn- vsplit-err1 [[v1 :as v]] (if-not (enc/error? v1) [nil v] (enc/vsplit-first v)))
 (comment
   (vsplit-err1 [:a :b :c])
   (vsplit-err1 [(Exception.) :a :b :c]))
 
-(defn default-data-hash-fn [data]
+(defn default-data-hash-fn
+  "Used for rate limiters, some appenders (e.g. Carmine), etc.
+  Goal: (hash data-1) = (hash data-2) iff data-1 \"the same\" as data-2 for
+  rate-limiting purposes, etc."
+  [data]
   (let [{:keys [?ns-str ?line vargs_]} data
         vargs (force vargs_)]
     (str
@@ -272,7 +281,11 @@
 
 ;;;; Logging core
 
-(defn log? [level & [?ns-str config]]
+(defn log?
+  "Would Timbre currently log at the given logging level?
+    * ns filtering requires a compile-time `?ns-str` to be provided.
+    * Non-global config requires an explicit `config` to be provided."
+  [level & [?ns-str config]]
   (let [config (or config *config*)]
     (and (level>= level (get-active-level config))
          (ns-filter (:whitelist config) (:blacklist config) (or ?ns-str ""))
@@ -280,16 +293,18 @@
 
 (comment (log? :trace))
 
-(def ^:dynamic *context* "General-purpose dynamic logging context." nil)
+(def ^:dynamic *context*
+  "General-purpose dynamic logging context. Context will be merged into
+  appender data map at logging time." nil)
 (defmacro with-context [context & body] `(binding [*context* ~context] ~@body))
 
 (declare get-hostname)
 
 (defn log* "Core fn-level logger. Implementation detail."
-  [config level ?ns-str ?file ?line msg-type dvargs & [base-data]]
+  [config level ?ns-str ?file ?line msg-type vargs_ & [base-data]]
   (when (log? level ?ns-str config)
     (let [instant (enc/now-dt)
-          vargs*_ (delay (vsplit-err1 (mapv force dvargs)))
+          vargs*_ (delay (vsplit-err1 (force vargs_)))
           ?err_   (delay (get @vargs*_ 0))
           vargs_  (delay (get @vargs*_ 1))
           data    (merge base-data *context*
@@ -305,7 +320,7 @@
                      #+clj :hostname_ #+clj (delay (get-hostname))
                      :error-level? (#{:error :fatal} level)})
           msg-fn
-          (fn [vargs_] ; *After* middleware, etc.
+          (fn [vargs_] ; For use *after* middleware, etc.
             (when-not (nil? msg-type)
               (when-let [vargs (have [:or nil? vector?] (force vargs_))]
                 (case msg-type
@@ -340,7 +355,7 @@
                         (not (rl-fn data-hash))))))
 
               (let [{:keys [async?] apfn :fn} appender
-                    msg_      (delay (msg-fn (:vargs_ data)))
+                    msg_      (delay (or (msg-fn (:vargs_ data)) #_""))
                     output-fn (or (:output-fn appender)
                                   (:output-fn config)
                                   default-output-fn)
@@ -356,26 +371,25 @@
                                    {:locale locale :timezone timezone})
                           (:instant data))))
 
-                    data
+                    data ; Final data prep before going to appender
                     (merge data
                       {:appender-id id
                        :appender    appender
-                       :appender-opts (:opts appender)
+                       :appender-opts (:opts appender) ; For convenience
                        :msg_        msg_
                        :msg-fn      msg-fn
                        :output-fn   output-fn
                        #+clj :timestamp_ #+clj timestamp_})]
 
                 (if-not async?
-                  (apfn data)
+                  (apfn data) ; Allow errors to throw
                   (send-off (get-agent id) (fn [_] (apfn data)))))))
           nil
           (enc/clj1098 (:appenders config))))))
   nil)
 
 (comment
-  (log* *config* :info
-    nil nil nil :print (delay-vec [(do (println "hi") :x) :y])))
+  (log* *config* :info nil nil nil :print (delay [(do (println "hi") :x) :y])))
 
 ;;;; Logging macros
 
@@ -391,7 +405,7 @@
             ;; TODO Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
             ?line  (:line (meta &form))]
         `(log* ~config ~level ~ns-str ~?file ~?line ~msg-type
-           (delay-vec ~args) ~base-data)))))
+           (delay ~(vec args)) ~base-data)))))
 
 (defmacro ^:private def-logger [level]
   (let [level-name (name level)]
@@ -462,7 +476,7 @@
   (require '[taoensso.timbre.profiling :as profiling
              :refer (pspy pspy* profile defnp p p*)]))
 
-;;;; Public utils
+;;;; Misc public utils
 
 #+clj
 (defn color-str [color & xs]
@@ -475,7 +489,6 @@
 
 #+clj (def default-out (java.io.OutputStreamWriter. System/out))
 #+clj (def default-err (java.io.PrintWriter.        System/err))
-
 (defmacro with-default-outs [& body]
   `(binding [*out* default-out, *err* default-err] ~@body))
 
