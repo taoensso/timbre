@@ -64,24 +64,23 @@
       :enabled?        ;
       :async?          ; Dispatch using agent? Useful for slow appenders
       :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil
-      :data-hash-fn    ; Used by rate-limiter, etc.
       :opts            ; Any appender-specific opts
       :fn              ; (fn [data-map]), with keys described below
 
     An appender's fn takes a single data map with keys:
       :config          ; Entire config map (this map, etc.)
-      :appender-id     ; Id of appender currently being dispatched to
-      :appender        ; Entire appender map currently being dispatched to
-      :appender-opts   ; Duplicates (:opts <appender-map>), for convenience
+      :appender-id     ; Id of appender currently dispatching
+      :appender        ; Entire map of appender currently dispatching
+      :appender-opts   ; Duplicates (:opts <appender-map>) for convenience
 
       :instant         ; Platform date (java.util.Date or js/Date)
       :level           ; Keyword
-      :error-level?    ; Is level :error or :fatal?
+      :error-level?    ; Is level e/o #{:error :fatal}?
       :?ns-str         ; String, or nil
       :?file           ; String, or nil  ; Waiting on CLJ-865
       :?line           ; Integer, or nil ; Waiting on CLJ-865
 
-      :?err_           ; Delay - first-argument platform error, or nil
+      :?err_           ; Delay - first-arg platform error, or nil
       :vargs_          ; Delay - raw args vector
       :hostname_       ; Delay - string (clj only)
       :msg_            ; Delay - args string
@@ -90,7 +89,7 @@
 
       :profile-stats   ; From `profile` macro
 
-      <Also, any *context* keys, which get merged into data map>
+      <Also incl. any *context* keys, which get merged into data map>
 
   MIDDLEWARE
     Middleware are simple (fn [data]) -> ?data fns (applied left->right) that

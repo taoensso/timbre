@@ -7,23 +7,23 @@
 
 # Timbre, a (sane) Clojure/Script logging & profiling library
 
-Java logging is a tragic comedy full of crazy, unnecessary complexity that buys you _nothing_. It can be maddeningly, unnecessarily hard to get even the simplest logging working. We can do **so** much better with Clojure/Script.
+Java logging is a tragic comedy of crazy, unnecessary complexity that buys you _nothing_. It can be maddeningly, unnecessarily hard to get even the simplest logging working. We can do **so** much better with Clojure/Script.
 
 Timbre brings functional, Clojure-y goodness to all your logging needs. It's fast, deeply flexible, and easy to configure. **No XML**!
 
 ## What's in the box™?
-  * Full **Clojure** + **ClojureScript** support (v4+).
-  * No XML or properties files. **One config map**, and you're set.
-  * Deeply flexible **fn appender model** with **middleware**.
-  * **Fantastic performance** at any scale.
-  * Filter logging by levels and **namespace whitelist/blacklist patterns**.
-  * **Zero overhead** with **complete Clj+Cljs elision** for compile-time level/ns filters.
-  * Useful built-in appenders for **out-the-box** Clj+Cljs logging.
-  * Powerful, easy-to-configure per-appender **rate limits** and **async logging**.
-  * [Logs as Clojure values](#redis-carmine-appender-v3) (v3+).
-  * [tools.logging](https://github.com/clojure/tools.logging) support (optional, useful when integrating with legacy logging systems).
-  * Logging-level-aware **logging profiler**.
-  * Tiny, **simple**, cross-platform codebase.
+  * Full **Clojure** + **ClojureScript** support (v4+)
+  * No XML or properties files. **One config map**, and you're set
+  * Deeply flexible **fn appender model** with **middleware**
+  * **Fantastic performance** at any scale
+  * Filter logging by levels and **namespace whitelist/blacklist patterns**
+  * **Zero overhead** with **complete Clj+Cljs elision** for compile-time level/ns filters
+  * Useful built-in appenders for **out-the-box** Clj+Cljs logging
+  * Powerful, easy-to-configure per-appender **rate limits** and **async logging**
+  * [Logs as Clojure values](#redis-carmine-appender-v3) (v3+)
+  * [tools.logging](https://github.com/clojure/tools.logging) support (optional, useful when integrating with legacy logging systems)
+  * Level and ns-filter aware **logging profiler**
+  * Tiny, **simple**, cross-platform codebase
 
 ## 3rd-party tools, appenders, etc.
   * [log-config](https://github.com/palletops/log-config) by [Hugo Duncan](https://github.com/hugoduncan) - library to help manage Timbre logging config.
@@ -53,7 +53,7 @@ You can also use `timbre/refer-timbre` to setup these ns refers automatically (C
 
 ### Logging
 
-By default, Timbre gives you basic print stream or `js/console` (v4+) output at a `debug` logging level:
+By default, Timbre gives you basic print stream or `js/console` (v4+) output at a `debug` log level:
 
 ```clojure
 (info "This will print") => nil
@@ -62,7 +62,7 @@ By default, Timbre gives you basic print stream or `js/console` (v4+) output at 
 (spy :info (* 5 4 3 2 1)) => 120
 %> 2012-May-28 17:26:14:138 +0700 localhost INFO [my-app] - (* 5 4 3 2 1) 120
 
-(trace "This won't print due to insufficient logging level") => nil
+(trace "This won't print due to insufficient log level") => nil
 ```
 
 First-argument exceptions generate a nicely cleaned-up stack trace using [io.aviso.exception](https://github.com/AvisoNovate/pretty) (Clj only):
@@ -80,7 +80,7 @@ java.lang.Exception: Oh noes
 
 This is the biggest win over Java logging IMO. Here's `timbre/example-config` (also Timbre's default config):
 
-> The example here shows config for **Timbre v4**. See [here](https://github.com/ptaoussanis/timbre/tree/v3.4.0#configuration) for an example of **Timbre v3** config.
+> The example below shows config for **Timbre v4**. See [here](https://github.com/ptaoussanis/timbre/tree/v3.4.0#configuration) for an example of **Timbre v3** config.
 
 ```clojure
 (def example-config
@@ -97,24 +97,23 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
       :enabled?        ;
       :async?          ; Dispatch using agent? Useful for slow appenders
       :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil
-      :data-hash-fn    ; Used by rate-limiter, etc.
       :opts            ; Any appender-specific opts
       :fn              ; (fn [data-map]), with keys described below
 
     An appender's fn takes a single data map with keys:
       :config          ; Entire config map (this map, etc.)
-      :appender-id     ; Id of appender currently being dispatched to
-      :appender        ; Entire appender map currently being dispatched to
-      :appender-opts   ; Duplicates (:opts <appender-map>), for convenience
+      :appender-id     ; Id of appender currently dispatching
+      :appender        ; Entire map of appender currently dispatching
+      :appender-opts   ; Duplicates (:opts <appender-map>) for convenience
 
       :instant         ; Platform date (java.util.Date or js/Date)
       :level           ; Keyword
-      :error-level?    ; Is level :error or :fatal?
+      :error-level?    ; Is level e/o #{:error :fatal}?
       :?ns-str         ; String, or nil
       :?file           ; String, or nil  ; Waiting on CLJ-865
       :?line           ; Integer, or nil ; Waiting on CLJ-865
 
-      :?err_           ; Delay - first-argument platform error, or nil
+      :?err_           ; Delay - first-arg platform error, or nil
       :vargs_          ; Delay - raw args vector
       :hostname_       ; Delay - string (clj only)
       :msg_            ; Delay - args string
@@ -123,7 +122,7 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
 
       :profile-stats   ; From `profile` macro
 
-      <Also, any *context* keys, which get merged into data map>
+      <Also incl. any *context* keys, which get merged into data map>
 
   MIDDLEWARE
     Middleware are simple (fn [data]) -> ?data fns (applied left->right) that
@@ -158,7 +157,7 @@ A few things to note:
   * Appenders are _trivial_ to write & configure - **they're just fns**. It's Timbre's job to dispatch useful args to appenders when appropriate, it's their job to do something interesting with them.
   * Being 'just fns', appenders have basically limitless potential: write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
 
-The **logging level** may be set:
+The **log level** may be set:
   * At compile-time: (`TIMBRE_LEVEL` environment variable).
   * Statically using: `timbre/set-level!`/`timbre/merge-level!`.
   * Dynamically using: `timbre/with-level`.
@@ -179,7 +178,7 @@ There are also variants of the logging utils that take explicit config args.
 This gives us a high-performance Redis appender:
   * **All raw logging args are preserved** in serialized form (**even errors!**).
   * Only the most recent instance of each **unique entry** is kept (hash fn used to determine uniqueness is configurable).
-  * Configurable number of entries to keep per logging level.
+  * Configurable number of entries to keep per log level.
   * **Log is just a value**: a vector of Clojure maps: **query+manipulate with standard seq fns**: group-by hostname, sort/filter by ns & severity, explore exception stacktraces, filter by raw arguments, stick into or query with **Datomic**, etc.
 
 A simple query utility is provided: `car-appender/query-entries`.
@@ -249,11 +248,11 @@ The `profile` macro can now be used to log times for any wrapped forms:
 
 You can also use the `defnp` macro to conveniently wrap whole fns.
 
-It's important to note that Timbre profiling is fully **logging-level aware**: if the  level is insufficient, you *won't pay for profiling* (there is a minimal dynamic-var deref cost). Likewise, normal namespace filtering applies. (Performance characteristics for both checks are inherited from Timbre itself).
+Timbre profiling is fully **log level & ns filter aware**: if the level is insufficient or ns filtered, you **won't pay for profiling**.
 
-And since `p` and `profile` **always return their body's result** regardless of whether profiling actually happens or not, it becomes feasible to use profiling more often as part of your normal workflow: just *leave profiling code in production as you do for logging code*.
+And since `p` and `profile` **always return their body's result**, it becomes feasible to use profiling more often as part of your normal workflow: just *leave profiling code in production as you do logging code*.
 
-A simple **sampling profiler** is also available: `taoensso.timbre.profiling/sampling-profile`.
+A simple sampling profiler is also included.
 
 ## This project supports the CDS and ![ClojureWerkz](https://raw.github.com/clojurewerkz/clojurewerkz.org/master/assets/images/logos/clojurewerkz_long_h_50.png) goals
 
