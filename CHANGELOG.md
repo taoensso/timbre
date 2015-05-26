@@ -2,14 +2,14 @@
 
 ## v4.0.0-beta1 / 2015 May 26
 
-> This is a **MAJOR** update. Your custom appenders **WILL BREAK**. Your configuration **MIGHT BREAK**. Your call sites should be fine. I've updated all included appenders, but **haven't tested** any 3rd-party appenders.
+> This is a **MAJOR** update. Your custom appenders **WILL BREAK**. Your configuration **MIGHT BREAK**. Your call sites should be fine. I've updated all bundled appenders, but **haven't tested** any 3rd-party appenders.
 
 * **New**: full **ClojureScript** support, including a default js/console appender [#51]
 * **New**: support for compile-time ns filtering + elision (both Clj+Cljs)
 * **New**: support for MDC-like contexts [#42]
 * **New**: default :println appender has picked up a :stream opt [#49]
 * **New**: create necessary spit appender paths [#93]
-* **New**: full-power fn-level `log*` util [#99]
+* **New**: full-power fn-level `log1-fn` util [#99]
 * **New**: added a reference appender example [here](https://github.com/ptaoussanis/timbre/blob/master/src/taoensso/timbre/appenders/example_appender.clj)
 * **Implementation**: modernized + simplified codebase
 * **Implementation**: significant performance improvements across the board
@@ -25,15 +25,15 @@
 * Removed vars: `timbre/config`, `timbre/level-atom`, `default-fmt-output-fn`
 * The fn signature for `set-config!` has changed: `[ks val]` -> `[config]`
 * Middleware now apply left->right, not right->left
-* Renamed default appender: `:standard-out` -> `:println`
+* Renamed a default appender: `:standard-out` -> `:println`
 * Renamed config opts: `:timestamp-pattern`, `:timestamp-locale` -> `:timestamp-opts {:pattern _ :locale _ :timezone _}`
 * Appender :rate-limit format has changed: `[ncalls ms]` -> `[[ncalls ms] <...>]`
 * Renamed appender args: `:ns`->`:?ns-str`, `:file`->`:?file`, `:line`->`:?line`
 * Appender args now wrapped with delays: `:throwable`->`:?err_`, `:message`->`:msg_`, `:timestamp`->`:timestamp_`, `:hostname`->`:hostname_`, `:args`->`:vargs_`
 * Appender args removed: `:output`, `:ap-config`
-* Appender args added: `:output-fn (fn [data])`, `:appender-opts`
+* Appender args added: `:output-fn (fn [data]) -> string`, `:appender-opts`
 * `stacktrace` util fn signature changed: `[throwable & [sep fonts]` -> `[err & [opts]]`
-* All bundles 3rd-party appenders have moved to a new `3rd-party` ns
+* All bundled 3rd-party appenders have moved to a new `3rd-party` ns
 
 Apologies for the hassle in migrating. The changes made here all bring serious benefits (performance, simplicity, future extensibility, cross-platform support) and I'm confident that v4's the last time I'll need to touch the core design. Future work will be focused on polish, stability, and better+more bundled appenders.
 
