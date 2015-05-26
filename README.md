@@ -149,8 +149,9 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
       :rate-limit [[1 250] [10 5000]] ; 1/250ms, 10/5s
       :fn ; Appender's fn
       (fn [data]
-        (let [{:keys [output-fn]} data]
-          (println (output-fn data))))}}})
+        (let [{:keys [output-fn]} data
+              formatted-output-str (output-fn data)]
+          (println formatted-output-str)))}}})
 ```
 
 A few things to note:
@@ -159,8 +160,10 @@ A few things to note:
 
 The **logging level** may be set:
   * At compile-time: (`TIMBRE_LEVEL` environment variable).
-  * With `timbre/set-level!`/`timbre/merge-level!`.
-  * With `timbre/with-level`.
+  * Statically using: `timbre/set-level!`/`timbre/merge-level!`.
+  * Dynamically using: `timbre/with-level`.
+
+There are also variants of the logging utils that take explicit config args.
 
 ### Built-in appenders
 
@@ -204,9 +207,7 @@ A simple query utility is provided: `car-appender/query-entries`.
 
 #### Other included appenders
 
-A number of 3rd-party appenders are included out-the-box [here](https://github.com/ptaoussanis/timbre/src/taoensso/timbre/appenders/3rd_party). **Please see the relevant docstring for details**.
-
-Thanks to the respective authors! Just give me a shout if you've got an appender you'd like to have added.
+A number of 3rd-party appenders are included out-the-box [here](https://github.com/ptaoussanis/timbre/tree/master/src/taoensso/timbre/appenders/3rd_party). **Please see the relevant docstring for details**. Thank you to the respective authors! Just give me a shout if you've got an appender you'd like to have added.
 
 ## Profiling (currently Clj only)
 
