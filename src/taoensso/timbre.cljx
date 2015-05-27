@@ -1,21 +1,26 @@
 (ns taoensso.timbre
   "Simple, flexible logging for Clojure/Script. No XML."
   {:author "Peter Taoussanis"}
-  #+clj  (:require [clojure.string     :as str]
-                   [io.aviso.exception :as aviso-ex]
-                   [taoensso.encore    :as enc :refer (have have? qb)])
-  #+cljs (:require [clojure.string  :as str]
-                   [taoensso.encore :as enc :refer ()])
-  #+cljs (:require-macros [taoensso.encore :as enc :refer (have have?)]
-                          [taoensso.timbre :as timbre-macros :refer ()])
-  #+clj  (:import [java.util Date Locale]
-                  [java.text SimpleDateFormat]
-                  [java.io File]))
+  #+clj
+  (:require
+   [clojure.string     :as str]
+   [io.aviso.exception :as aviso-ex]
+   [taoensso.encore    :as enc :refer (have have? qb)]
+   [taoensso.timbre.appenders.core :as core-appenders])
+
+  #+cljs
+  (:require
+   [clojure.string  :as str]
+   [taoensso.encore :as enc :refer () :refer-macros (have have?)]
+   [taoensso.timbre.appenders.core :as core-appenders])
+
+  #+cljs
+  (:require-macros [taoensso.timbre :as timbre-macros :refer ()]))
 
 ;;;; Encore version check
 
 #+clj
-(let [min-encore-version 1.31]
+(let [min-encore-version 1.32]
   (if-let [assert! (ns-resolve 'taoensso.encore 'assert-min-encore-version)]
     (assert! min-encore-version)
     (throw
@@ -36,42 +41,44 @@
    :timezone    (java.util.TimeZone/getDefault)})
 
 (declare stacktrace)
+(defn default-output-fn "(fn [data]) -> string output."
+  ([data] (default-output-fn nil data))
+  ([opts data] ; Allow partials for common modified fns
+   (let [{:keys [level ?err_ vargs_ msg_ ?ns-str hostname_ timestamp_]} data
+         {:keys [no-stacktrace?]} opts]
+     (str
+       #+clj (force timestamp_) #+clj " "
+       #+clj (force hostname_)  #+clj " "
+       (str/upper-case (name level))  " "
+       "[" (or ?ns-str "?ns") "] - "
+       (force msg_)
+       (when-not no-stacktrace?
+         (when-let [err (force ?err_)]
+           (str "\n" (stacktrace err opts))))))))
 
-(defn default-output-fn
-  "(fn [data & [opts]]) -> string output."
-  [data & [opts]]
-  (let [{:keys [level ?err_ vargs_ msg_ ?ns-str hostname_ timestamp_]} data]
-    (str
-      #+clj (force timestamp_) #+clj " "
-      #+clj (force hostname_)  #+clj " "
-      (str/upper-case (name level))
-      " [" (or ?ns-str "?ns") "] - " (force msg_)
-      (when-let [err (force ?err_)] (str "\n" (stacktrace err opts))))))
-
-(declare default-err default-out ensure-spit-dir-exists!)
+;;; Alias core appenders here for user convenience
+(declare default-err default-out)
+#+clj  (enc/defalias          core-appenders/println-appender)
+#+clj  (enc/defalias          core-appenders/spit-appender)
+#+cljs (def println-appender  core-appenders/println-appender)
+#+cljs (def console-?appender core-appenders/console-?appender)
 
 (def example-config
   "Example (+default) Timbre v4 config map.
 
   APPENDERS
-
-    *** Please see the `taoensso.timbre.appenders.example-appender` ns if you
-        plan to write your own Timbre appender ***
-
     An appender is a map with keys:
-      :doc             ; Optional docstring
       :min-level       ; Level keyword, or nil (=> no minimum level)
       :enabled?        ;
       :async?          ; Dispatch using agent? Useful for slow appenders
       :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil
-      :opts            ; Any appender-specific opts
-      :fn              ; (fn [data-map]), with keys described below
+      :output-fn       ; Optional override for inherited (fn [data]) -> string
+      :fn              ; (fn [data]) -> side effects, with keys described below
 
     An appender's fn takes a single data map with keys:
       :config          ; Entire config map (this map, etc.)
       :appender-id     ; Id of appender currently dispatching
       :appender        ; Entire map of appender currently dispatching
-      :appender-opts   ; Duplicates (:opts <appender-map>) for convenience
 
       :instant         ; Platform date (java.util.Date or js/Date)
       :level           ; Keyword
@@ -85,7 +92,7 @@
       :hostname_       ; Delay - string (clj only)
       :msg_            ; Delay - args string
       :timestamp_      ; Delay - string
-      :output-fn       ; (fn [data & [opts]]) -> formatted output string
+      :output-fn       ; (fn [data]) -> formatted output string
 
       :profile-stats   ; From `profile` macro
 
@@ -111,71 +118,17 @@
    #+clj :timestamp-opts
    #+clj default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
 
-   :output-fn default-output-fn ; (fn [data & [opts]]) -> string
+   :output-fn default-output-fn ; (fn [data]) -> string
 
    :appenders
    #+clj
-   {:println ; Appender id
-    ;; Appender map:
-    {:doc "Prints to (:stream <appender-opts>) IO stream. Enabled by default."
-     :min-level nil :enabled? true :async? false :rate-limit nil
-
-     ;; Any custom appender opts:
-     :opts {:stream :auto ; e/o #{:std-err :std-out :auto <stream>}
-            }
-
-     :fn
-     (fn [data]
-       (let [{:keys [output-fn error? appender-opts]} data
-             {:keys [stream]} appender-opts
-             stream (case stream
-                      (nil :auto) (if error? default-err *out*)
-                      :std-err    default-err
-                      :std-out    default-out
-                      stream)]
-         (binding [*out* stream] (println (output-fn data)))))}
-
-    :spit
-    {:doc "Spits to (:spit-filename <appender-opts>) file."
-     :min-level nil :enabled? false :async? false :rate-limit nil
-     :opts {:spit-filename "timbre-spit.log"}
-     :fn
-     (fn [data]
-       (let [{:keys [output-fn appender-opts]} data
-             {:keys [spit-filename]} appender-opts]
-         (when-let [fname (enc/as-?nblank spit-filename)]
-           (try (ensure-spit-dir-exists! fname)
-                (spit fname (str (output-fn data) "\n") :append true)
-                (catch java.io.IOException _)))))}}
+   {:println (println-appender {:stream :auto})
+    ;; :spit (spit-appender {:fname "./timbre-spit.log"})
+    }
 
    #+cljs
-   {:console
-    {:doc "Logs to js/console when it exists. Enabled by default."
-     :min-level nil :enabled? true :async? false :rate-limit nil
-     :opts {}
-     :fn
-     (let [have-logger?       (and (exists? js/console) (.-log   js/console))
-           have-warn-logger?  (and have-logger?         (.-warn  js/console))
-           have-error-logger? (and have-logger?         (.-error js/console))
-           adjust-level {:fatal (if have-error-logger? :error :info)
-                         :error (if have-error-logger? :error :info)
-                         :warn  (if have-warn-logger?  :warn  :info)}]
-       (if-not have-logger?
-         (fn [data] nil)
-         (fn [data]
-           (let [{:keys [level appender-opts output-fn vargs_]} data
-                 {:keys []} appender-opts
-
-                 vargs      (force vargs_)
-                 [v1 vnext] (enc/vsplit-first vargs)
-                 output     (if (= v1 :timbre/raw)
-                              (into-array vnext)
-                              (output-fn data))]
-
-             (case (adjust-level level)
-               :error (.error js/console output)
-               :warn  (.warn  js/console output)
-                      (.log   js/console output))))))}}})
+   {;; :println (println-appender {})
+    :console (console-?appender {})}})
 
 (comment
   (set-config! example-config)
@@ -331,6 +284,21 @@
 
 (declare get-hostname)
 
+(defn- inherit-over [k appender config default]
+  (or
+    (let [a (get appender k)] (when-not (enc/kw-identical? a :inherit) a))
+    (get config k)
+    default))
+
+(defn- inherit-into [k appender config default]
+  (merge default
+    (get config k)
+    (let [a (get appender k)] (when-not (enc/kw-identical? a :inherit) a))))
+
+(comment
+  (inherit-over :foo {:foo :inherit} {:foo :bar} nil)
+  (inherit-into :foo {:foo {:a :A :b :B :c :C}} {:foo {:a 1 :b 2 :c 3 :d 4}} nil))
+
 (defn log1-fn
   "Core fn-level logger. Implementation detail!"
   [config level ?ns-str ?file ?line msg-type vargs_ ?base-data]
@@ -372,51 +340,50 @@
       (when-let [data ?data] ; Not filtered by middleware
         (reduce-kv
           (fn [_ id appender]
-            (when
-                (and
-                  (:enabled? appender)
-                  (level>= level (or (:min-level appender) :trace))
-                  (let [rate-limit-specs (:rate-limit appender)]
-                    (if (empty? rate-limit-specs)
-                      true
-                      (let [rl-fn   (get-rate-limiter id rate-limit-specs)
-                            hash-fn (or (:data-hash-fn appender)
-                                        (:data-hash-fn config)
-                                        default-data-hash-fn)
-                            data-hash (hash-fn data)]
-                        (not (rl-fn data-hash))))))
+            (when (and (:enabled? appender)
+                       (level>= level (or (:min-level appender) :trace)))
 
-              (let [{:keys [async?] apfn :fn} appender
-                    msg_      (delay (or (msg-fn (:vargs_ data)) #_""))
-                    output-fn (or (:output-fn appender)
-                                  (:output-fn config)
-                                  default-output-fn)
+              (let [rate-limit-specs (:rate-limit appender)
+                    data-hash-fn (inherit-over :data-hash-fn appender config
+                                   default-data-hash-fn)
+                    rate-limit-okay?
+                    (or (empty? rate-limit-specs)
+                        (let [rl-fn     (get-rate-limiter id rate-limit-specs)
+                              data-hash (data-hash-fn data)]
+                          (not (rl-fn data-hash))))]
 
-                    #+clj timestamp_
-                    #+clj
-                    (delay
-                      (let [timestamp-opts (merge default-timestamp-opts
-                                                  (:timestamp-opts config)
-                                                  (:timestamp-opts appender))
-                            {:keys [pattern locale timezone]} timestamp-opts]
-                        (.format (enc/simple-date-format pattern
-                                   {:locale locale :timezone timezone})
-                          (:instant data))))
+                (when rate-limit-okay?
+                  (let [{:keys [async?] apfn :fn} appender
+                        msg_      (delay (or (msg-fn (:vargs_ data)) #_""))
+                        output-fn (inherit-over :output-fn appender config
+                                    default-output-fn)
 
-                    data ; Final data prep before going to appender
-                    (merge data
-                      {:appender-id id
-                       :appender    appender
-                       :appender-opts (:opts appender) ; For convenience
-                       :msg_        msg_
-                       :msg-fn      msg-fn
-                       :output-fn   output-fn
-                       #+clj :timestamp_ #+clj timestamp_})]
+                        #+clj timestamp_
+                        #+clj
+                        (delay
+                          (let [timestamp-opts (inherit-into :timestamp-opts
+                                                 appender config
+                                                 default-timestamp-opts)
+                                {:keys [pattern locale timezone]} timestamp-opts]
+                            (.format (enc/simple-date-format pattern
+                                       {:locale locale :timezone timezone})
+                              (:instant data))))
 
-                (if-not async?
-                  (apfn data) ; Allow errors to throw
-                  #+cljs (apfn data)
-                  #+clj  (send-off (get-agent id) (fn [_] (apfn data)))))))
+                        data ; Final data prep before going to appender
+                        (merge data
+                          {:appender-id  id
+                           :appender     appender
+                           ;; :appender-opts (:opts appender) ; For convenience
+                           :msg_         msg_
+                           :msg-fn       msg-fn
+                           :output-fn    output-fn
+                           :data-hash-fn data-hash-fn
+                           #+clj :timestamp_ #+clj timestamp_})]
+
+                    (if-not async?
+                      (apfn data) ; Allow errors to throw
+                      #+cljs (apfn data)
+                      #+clj  (send-off (get-agent id) (fn [_] (apfn data)))))))))
           nil
           (enc/clj1098 (:appenders config))))))
   nil)
@@ -554,19 +521,10 @@
 
 (comment (stacktrace (Exception. "Boo") {:stacktrace-fonts {}}))
 
-#+clj
-(def ^:private ensure-spit-dir-exists!
-  (enc/memoize* (enc/ms :mins 1)
-    (fn [fname]
-      (when-not (str/blank? fname)
-        (let [file (File. ^String fname)
-              dir  (.getParentFile (.getCanonicalFile file))]
-          (when-not (.exists dir) (.mkdirs dir)))))))
-
 (defmacro sometimes "Handy for sampled logging, etc."
   [probability & body]
    `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
-       (when (< (rand) ~probability) ~@body)))
+        (when (< (rand) ~probability) ~@body)))
 
 ;;;; EXPERIMENTAL shutdown hook
 ;; Workaround for http://dev.clojure.org/jira/browse/CLJ-124

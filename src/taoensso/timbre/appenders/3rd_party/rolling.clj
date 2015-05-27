@@ -6,6 +6,8 @@
   (:import  [java.text SimpleDateFormat]
             [java.util Calendar]))
 
+;; TODO Test port to Timbre v4
+
 (defn- rename-old-create-new-log [log old-log]
   (.renameTo log old-log)
   (.createNewFile log))
@@ -23,10 +25,7 @@
             (rename-old-create-new-log log index-log))))
       (rename-old-create-new-log log old-log))))
 
-(defn- log-cal [date]
-  (let [now (Calendar/getInstance)]
-    (.setTime now date)
-    now))
+(defn- log-cal [date] (let [now (Calendar/getInstance)] (.setTime now date) now))
 
 (defn- prev-period-end-cal [date pattern]
   (let [cal (log-cal date)
@@ -42,38 +41,36 @@
     (.set cal Calendar/MILLISECOND 999)
     cal))
 
-(defn- make-appender-fn [path pattern]
-  (fn [data]
-    (let [{:keys [instant appender-opts output-fn]} data
-          output (output-fn data)
-          path (or path (-> appender-opts :path))
-          pattern (or pattern (-> appender-opts :pattern) :daily)
-          prev-cal (prev-period-end-cal instant pattern)
-          log (io/file path)]
-      (when log
-        (try
-          (if (.exists log)
-            (if (<= (.lastModified log) (.getTimeInMillis prev-cal))
-              (shift-log-period log path prev-cal))
-            (.createNewFile log))
-          (spit path (with-out-str (println output)) :append true)
-          (catch java.io.IOException _))))))
+(defn rolling-appender
+  "Returns a Rolling file appender. Opts:
+    :path    - logfile path.
+    :pattern - frequency of rotation, e/o {:daily :weekly :monthly}."
+  [& [{:keys [path pattern]
+       :or   {path    "./timbre-rolling.log"
+              pattern :daily}}]]
 
-(defn make-appender
-  "Returns a Rolling file appender.
-  A rolling config map can be provided here as a second argument, or provided in
-  appender's :opts map.
-
-  (make-rolling-appender {:enabled? true}
-    {:path \"log/app.log\"
-     :pattern :daily})
-  path: logfile path
-  pattern: frequency of rotation, available values: :daily (default), :weekly, :monthly"
-  [& [appender-config {:keys [path pattern]}]]
-  (let [default-appender-config {:enabled? true :min-level nil}]
-    (merge default-appender-config appender-config
-      {:fn (make-appender-fn path pattern)})))
+  {:enabled?   true
+   :async?     false
+   :min-level  nil
+   :rate-limit nil
+   :output-fn  :inherit
+   :fn
+   (fn [data]
+     (let [{:keys [instant output-fn]} data
+           output-str (output-fn data)
+           prev-cal   (prev-period-end-cal instant pattern)]
+       (when-let [log (io/file path)]
+         (try
+           (if (.exists log)
+             (if (<= (.lastModified log) (.getTimeInMillis prev-cal))
+               (shift-log-period log path prev-cal))
+             (.createNewFile log))
+           (spit path (with-out-str (println output-str)) :append true)
+           (catch java.io.IOException _)))))})
 
 ;;;; Deprecated
 
-(def make-rolling-appender make-appender)
+(defn make-rolling-appender
+  "DEPRECATED. Please use `rolling-appender` instead."
+  [& [appender-merge opts]]
+  (merge (rolling-appender opts) appender-merge))

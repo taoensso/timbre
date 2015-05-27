@@ -87,24 +87,18 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
   "Example (+default) Timbre v4 config map.
 
   APPENDERS
-
-    *** Please see the `taoensso.timbre.appenders.example-appender` ns if you
-        plan to write your own Timbre appender ***
-
     An appender is a map with keys:
-      :doc             ; Optional docstring
       :min-level       ; Level keyword, or nil (=> no minimum level)
       :enabled?        ;
       :async?          ; Dispatch using agent? Useful for slow appenders
       :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil
-      :opts            ; Any appender-specific opts
-      :fn              ; (fn [data-map]), with keys described below
+      :output-fn       ; Optional override for inherited (fn [data]) -> string
+      :fn              ; (fn [data]) -> side effects, with keys described below
 
     An appender's fn takes a single data map with keys:
       :config          ; Entire config map (this map, etc.)
       :appender-id     ; Id of appender currently dispatching
       :appender        ; Entire map of appender currently dispatching
-      :appender-opts   ; Duplicates (:opts <appender-map>) for convenience
 
       :instant         ; Platform date (java.util.Date or js/Date)
       :level           ; Keyword
@@ -118,7 +112,7 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
       :hostname_       ; Delay - string (clj only)
       :msg_            ; Delay - args string
       :timestamp_      ; Delay - string
-      :output-fn       ; (fn [data & [opts]]) -> formatted output string
+      :output-fn       ; (fn [data]) -> formatted output string
 
       :profile-stats   ; From `profile` macro
 
@@ -141,11 +135,19 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
 
    :middleware [] ; (fns [data]) -> ?data, applied left->right
 
+   ;; Clj only:
+   :timestamp-opts default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
+
+   :output-fn default-output-fn ; (fn [data]) -> string
+
    :appenders
-   {:simple-println ; Appender id
+   {:example-println-appender ; Appender id
      ;; Appender definition (just a map):
-     {:min-level nil :enabled? true :async? false
+     {:enabled?   true
+      :async?     false
+      :min-level  nil
       :rate-limit [[1 250] [10 5000]] ; 1/250ms, 10/5s
+      :output-fn  :inherit
       :fn ; Appender's fn
       (fn [data]
         (let [{:keys [output-fn]} data

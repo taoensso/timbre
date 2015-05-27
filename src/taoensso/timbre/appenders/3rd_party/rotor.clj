@@ -4,6 +4,8 @@
             [taoensso.timbre :as timbre])
   (:import  [java.io File FilenameFilter]))
 
+;; TODO Test port to Timbre v4
+
 (defn- ^FilenameFilter file-filter
   "Returns a Java FilenameFilter instance which only matches
   files with the given `basename`."
@@ -43,27 +45,30 @@
             (reverse (map vector logs-to-rotate (iterate inc 1)))]
       (.renameTo log-file (io/file (format "%s.%03d" abs-path n))))))
 
-(defn make-appender-fn [make-config]
-  (fn [data]
-    (let [{:keys [appender-opts output-fn]} data
-          {:keys [path max-size backlog]
-           :or   {max-size (* 1024 1024)
-                  backlog 5}} appender-opts]
-      (when path
-        (try
-          (when (> (.length (io/file path)) max-size)
-            (rotate-logs path backlog))
-          (spit path (str (output-fn data) "\n") :append true)
-          (catch java.io.IOException _))))))
+(defn rotor-appender
+  "Returns a rotating file appender."
+  [& [{:keys [path max-size backlog]
+       :or   {path     "./timbre-rotor.log"
+              max-size (* 1024 1024)
+              backlog  5}}]]
+  {:enabled?   true
+   :async?     false
+   :min-level  :warn
+   :rate-limit nil
+   :output-fn  :inherit
+   :fn
+   (fn [data]
+     (let [{:keys [output-fn]} data]
+       (when path
+         (try
+           (when (> (.length (io/file path)) max-size)
+             (rotate-logs path backlog))
+           (spit path (str (output-fn data) "\n") :append true)
+           (catch java.io.IOException _)))))})
 
-(defn make-appender
-  "Simple Rotating File Appender.
-  Needs :opts map in appender, e.g.:
-  {:path \"logs/app.log\"
-   :max-size (* 512 1024)
-   :backlog 5}"
-  [& [appender-config make-config]]
-  (let [default-appender-config
-        {:min-level :warn :enabled? true}]
-    (merge default-appender-config appender-config
-      {:fn (make-appender-fn make-config)})))
+;;;; Deprecated
+
+(defn make-rotor-appender
+  "DEPRECATED. Please use `rotor-appender` instead."
+  [& [appender-merge opts]]
+  (merge (rotor-appender opts) appender-merge))
