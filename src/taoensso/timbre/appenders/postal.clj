@@ -1,50 +1,45 @@
 (ns taoensso.timbre.appenders.postal
-  "Email appender. Requires https://github.com/drewr/postal."
+  "Email (Postal) appender. Requires https://github.com/drewr/postal."
   {:author "Peter Taoussanis"}
   (:require [clojure.string  :as str]
             [postal.core     :as postal]
             [taoensso.timbre :as timbre]
             [taoensso.encore :as enc :refer (have have?)]))
 
-(defn make-appender
+(defn postal-appender
   "Returns a Postal email appender.
-  A Postal config map can be provided here as an argument, or as a :postal key
-  in :shared-appender-config.
-
-  (make-postal-appender {:enabled? true}
-   {:postal-config
+  (postal-appender
     ^{:host \"mail.isp.net\" :user \"jsmith\" :pass \"sekrat!!1\"}
-    {:from \"Bob's logger <me@draines.com>\" :to \"foo@example.com\"}})"
+    {:from \"Bob's logger <me@draines.com>\" :to \"foo@example.com\"})"
 
-  [& [appender-config make-config]]
-  (let [{:keys [postal-config subject-len body-fn]
-         :or   {subject-len 150
-                body-fn (fn [output] [{:type "text/plain; charset=utf-8"
-                                      :content output}])}}
-        make-config
+  [postal-config &
+   [{:keys [subject-len body-fn]
+     :or   {subject-len 150
+            body-fn (fn [output-str] [{:type "text/plain; charset=utf-8"
+                                      :content output-str}])}}]]
+  {:enabled?   true
+   :async?     true  ; Slow!
+   :min-level  :warn ; Elevated
+   :rate-limit [[5  (enc/ms :mins  2)]
+                [50 (enc/ms :hours 24)]]
 
-        default-appender-config
-        {:enabled?   true
-         :min-level  :warn
-         :async?     true ; Slow!
-         :rate-limit [[5  (enc/ms :mins  2)]
-                      [50 (enc/ms :hours 24)]]}]
-
-    (merge default-appender-config appender-config
-      {:fn
-       (fn [data]
-         (let [{:keys [output-fn appender-opts]} data
-               {:keys [no-fonts?]} appender-opts]
-           (when-let [postal-config (or postal-config (:postal appender-opts))]
-             (let [output (str (output-fn data {:stacktrace-fonts {}}))]
-               (postal/send-message
-                 (assoc postal-config
-                   :subject (-> output
-                                (str/trim)
-                                (str/replace #"\s+" " ")
-                                (enc/substr 0 subject-len))
-                   :body (body-fn output)))))))})))
+   :output-fn  (fn [data] (timbre/default-output-fn {:stacktrace-fonts {}} data))
+   :fn
+   (fn [data]
+     (let [{:keys [output-fn]} data
+           output-str (output-fn data)]
+       (postal/send-message
+         (assoc postal-config
+           :subject (-> output-str
+                        (str/trim)
+                        (str/replace #"\s+" " ")
+                        (enc/substr 0 subject-len))
+           :body (body-fn output-str)))))})
 
 ;;;; Deprecated
 
-(def make-postal-appender make-appender)
+(defn make-postal-appender
+  "DEPRECATED. Please use `postal-appender` instead."
+  [& [appender-merge opts]]
+  (merge (postal-appender (:postal-config opts) (dissoc opts :postal-config))
+    appender-merge))

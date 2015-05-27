@@ -12,7 +12,7 @@
 
   :dependencies
   [[org.clojure/clojure "1.4.0"]
-   [com.taoensso/encore "1.31.0"]
+   [com.taoensso/encore "1.32.0"]
    [io.aviso/pretty     "0.1.18"]]
 
   :plugins

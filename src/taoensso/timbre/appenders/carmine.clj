@@ -19,11 +19,11 @@
 (defn default-keyfn [level] {:pre [(have? string? level)]}
   (str "carmine:timbre:default:" level))
 
-(defn make-appender
+(defn carmine-appender
   "Returns a Carmine Redis appender (experimental, subject to change):
     * All raw logging args are preserved in serialized form (even Throwables!).
-    * Only the most recent instance of each unique entry is kept (hash fn used
-     to determine uniqueness is configurable).
+    * Only the most recent instance of each unique entry is kept (uniqueness
+      determined by data-hash-fn).
     * Configurable number of entries to keep per logging level.
     * Log is just a value: a vector of Clojure maps: query+manipulate with
       standard seq fns: group-by hostname, sort/filter by ns & severity, explore
@@ -31,63 +31,68 @@
       also offer interesting opportunities here.
 
   See accompanying `query-entries` fn to return deserialized log entries."
-  [& [appender-config
-      {:keys [conn-opts keyfn data-hash-fn nentries-by-level]
+  [& [{:keys [conn-opts keyfn nentries-by-level]
        :or   {keyfn        default-keyfn
-              data-hash-fn timbre/default-data-hash-fn
               nentries-by-level {:trace    50
                                  :debug    50
                                  :info     50
                                  :warn    100
                                  :error   100
                                  :fatal   100
-                                 :report  100}}
-       :as make-config}]]
+                                 :report  100}}}]]
+
   {:pre [(have? string? (keyfn "test"))
          (have? [:ks>= timbre/ordered-levels] nentries-by-level)
          (have? [:and integer? #(<= 0 % 100000)] :in (vals nentries-by-level))]}
 
-  (let [default-appender-config {:enabled? true :min-level nil}]
-    (merge default-appender-config appender-config
-      {:fn
-       (fn [data]
-         (let [{:keys [level instant]} data
-               entry-hash (sha48 (data-hash-fn data))
-               entry      {:?ns-str         (:?ns-str       data)
-                           :hostname (force (:hostname_     data))
-                           :vargs    (force (:vargs_        data))
-                           :?err     (force (:?err_         data))
-                           :profile-stats   (:profile-stats data)}
+  {:enabled?   true
+   :async?     false
+   :min-level  nil
+   :rate-limit nil
+   :output-fn  :inherit
+   :fn
+   (fn [data]
+     (let [{:keys [level instant data-hash-fn]} data
+           entry-hash (sha48 (data-hash-fn data))
+           entry      (merge
+                        {:instant instant
+                         :level   level
+                         :?ns-str         (:?ns-str       data)
+                         :hostname (force (:hostname_     data))
+                         :vargs    (force (:vargs_        data))
+                         :?err     (force (:?err_         data))}
+                        (when-let [pstats (:profile-stats data)]
+                          {:profile-stats pstats}))
 
-               k-zset (keyfn (name level))
-               k-hash (str k-zset ":entries")
-               udt (.getTime ^java.util.Date instant) ; Use as zscore
-               nmax-entries (nentries-by-level level)]
+           k-zset (keyfn (name level))
+           k-hash (str k-zset ":entries")
+           udt (.getTime ^java.util.Date instant) ; Use as zscore
+           nmax-entries (nentries-by-level level)]
 
-           (when (> nmax-entries 0)
-             (car/wcar conn-opts
-               (binding [nippy/*final-freeze-fallback* nippy/freeze-fallback-as-str]
-                 (car/hset k-hash entry-hash entry))
-               (car/zadd k-zset udt entry-hash)
+       (when (> nmax-entries 0)
+         (car/wcar conn-opts
+           (binding [nippy/*final-freeze-fallback* nippy/freeze-fallback-as-str]
+             (car/hset k-hash entry-hash entry))
+           (car/zadd k-zset udt entry-hash)
 
-               (when (< (rand) 0.01) ; Occasionally GC
-                 ;; This is necessary since we're doing zset->entry-hash->entry
-                 ;; rather than zset->entry. We want the former for the control
-                 ;; it gives us over what should constitute a 'unique' entry.
-                 (car/lua
-                  "-- -ive idx used to prune from the right (lowest score first)
-                   local max_idx = (0 - (tonumber(_:nmax-entries)) - 1)
-                   local entries_to_prune =
-                     redis.call('zrange', _:k-zset, 0, max_idx)
-                   redis.call('zremrangebyrank', _:k-zset, 0, max_idx) -- Prune zset
+           (when (< (rand) 0.01) ; Occasionally GC
+             ;; This is necessary since we're doing zset->entry-hash->entry
+             ;; rather than zset->entry. We want the former for the control
+             ;; it gives us over what should constitute a 'unique' entry.
+             (car/lua
+               "-- -ive idx used to prune from the right (lowest score first)
+               local max_idx = (0 - (tonumber(_:nmax-entries)) - 1)
+               local entries_to_prune =
+                 redis.call('zrange', _:k-zset, 0, max_idx)
+               redis.call('zremrangebyrank', _:k-zset, 0, max_idx) -- Prune zset
 
-                   for i,entry in pairs(entries_to_prune) do
-                     redis.call('hdel', _:k-hash, entry) -- Prune hash
-                   end
-                   return nil"
-                {:k-zset k-zset
-                 :k-hash k-hash}
-                {:nmax-entries nmax-entries}))))))})))
+               for i,entry in pairs(entries_to_prune) do
+                 redis.call('hdel', _:k-hash, entry) -- Prune hash
+               end
+               return nil"
+               {:k-zset k-zset
+                :k-hash k-hash}
+               {:nmax-entries nmax-entries}))))))})
 
 ;;;; Query utils
 
@@ -128,10 +133,17 @@
               (-> (merge m1 m2-or-ex)           (dissoc :hash))))
           entries-zset entries-hash)))
 
+;;;; Deprecated
+
+(defn make-carmine-appender
+  "DEPRECATED. Please use `carmine-appender` instead."
+  [& [appender-merge opts]]
+  (merge (carmine-appender opts) appender-merge))
+
 ;;;; Dev/tests
 
 (comment
-  (timbre/with-merged-config {:appenders {:carmine (make-appender)}}
+  (timbre/with-merged-config {:appenders {:carmine (carmine-appender)}}
     (timbre/info "Hello1" "Hello2"))
 
   (car/wcar {} (car/keys (default-keyfn "*")))
@@ -144,7 +156,3 @@
 
   (count (query-entries {} :info 2))
   (count (query-entries {} :info 2 :asc)))
-
-;;;; Deprecated
-
-(def make-carmine-appender make-appender)

@@ -6,7 +6,7 @@
   (:import  [java.net Socket InetAddress]
             [java.io BufferedReader InputStreamReader PrintWriter]))
 
-(def conn (atom nil))
+;; TODO Test port to Timbre v4
 
 (defn listener-fun [in out]
   (loop [lines (-> in
@@ -21,32 +21,40 @@
     (.setDaemon true)
     (.start)))
 
+(def conn (atom nil))
 (defn connect [{:keys [port listen-addr]}]
   (let [addr (when (not= :all listen-addr)
                (InetAddress/getByName listen-addr))]
     (with-redefs [server.socket/on-thread on-thread-daemon]
       (create-server port listener-fun 0 ^InetAddress addr))))
 
-(defn ensure-conn [socket-config]
-  (swap! conn #(or % (connect socket-config))))
+(defn ensure-conn [socket-config] (swap! conn #(or % (connect socket-config))))
 
-(defn make-appender-fn [make-config]
-  (fn [data]
-    (let [{:keys [appender-opts output-fn ?err_]} data]
-      (when-let [socket-config appender-opts]
-        (let [c (ensure-conn socket-config)]
-          (doseq [sock @(:connections c)]
-            (let [out (PrintWriter. (.getOutputStream ^Socket sock))]
-              (binding [*out* out]
-                (println (output-fn data))))))))))
+(defn socket-appender
+  "Returns a TCP socket appender.
+  (socket-appender {:listener-addr :all :port 9000})"
+  [& [socket-config]]
+  (let [{:keys [listener-addr port]
+         :or   {listener-addr :all
+                port 9000}} socket-config]
 
-(defn make-appender
-  "Logs to a listening socket.
-  Needs :opts map in appender, e.g.:
-  {:listen-addr :all
-   :port 9000}"
-  [& [appender-config make-config]]
-  (let [default-appender-config
-        {:min-level :trace :enabled? true}]
-    (merge default-appender-config appender-config
-      {:fn (make-appender-fn make-config)})))
+    {:enabled?   true
+     :async?     false
+     :min-level  nil
+     :rate-limit nil
+     :output-fn  :inherit
+     :fn
+     (fn [data]
+       (let [{:keys [output-fn]} data]
+         (let [c (ensure-conn socket-config)]
+           (doseq [sock @(:connections c)]
+             (let [out (PrintWriter. (.getOutputStream ^Socket sock))]
+               (binding [*out* out]
+                 (println (output-fn data))))))))}))
+
+;;;; Deprecated
+
+(defn make-socket-appender
+  "DEPRECATED. Please use `socket-appender` instead."
+  [& [appender-merge opts]]
+  (merge (socket-appender opts) appender-merge))

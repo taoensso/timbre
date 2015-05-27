@@ -4,45 +4,54 @@
   (:require [clojure.string  :as str]
             [taoensso.timbre :as timbre]))
 
-(defn make-appender
+;; TODO Test port to Timbre v4
+
+(defn logcat-appender
   "Returns an appender that writes to Android LogCat. Obviously only works if
   running within the Android runtime (device or emulator). You may want to
   disable std-out to prevent printing nested timestamps, etc."
-  [& [appender-config make-config]]
-  (let [default-appender-config
-        {:enabled?  true
-         :min-level :debug}]
+  []
+  {:enabled?   true
+   :async?     false
+   :min-level  :debug
+   :rate-limit nil
 
-    (merge default-appender-config appender-config
-      {:fn
-       (fn [data]
-         (let [{:keys [level ?ns-str ?err_ msg_ timestamp_]} data
-               msg       (or (force msg_) "")
-               timestamp (force timestamp_)
-               ns        (or ?ns-str "")
-               output    (format "%s %s - %s" timestamp
-                           (-> level name str/upper-case)
-                           msg)]
+   :output-fn ; Drop hostname, ns, stacktrace
+   (fn [data]
+     (let [{:keys [level timestamp_ msg_]} data]
+       (str
+         (force timestamp_) " "
+         (str/upper-case (name level))  " "
+         (force msg_))))
 
-           (if-let [throwable (force ?err_)]
-             (case level
-               :trace  (android.util.Log/d ns output throwable)
-               :debug  (android.util.Log/d ns output throwable)
-               :info   (android.util.Log/i ns output throwable)
-               :warn   (android.util.Log/w ns output throwable)
-               :error  (android.util.Log/e ns output throwable)
-               :fatal  (android.util.Log/e ns output throwable)
-               :report (android.util.Log/i ns output throwable))
+   :fn
+   (fn [data]
+     (let [{:keys [level ?ns-str ?err_ output-fn]} data
+           ns         (str ?ns-str "")
+           output-str (output-fn data)]
 
-             (case level
-               :trace  (android.util.Log/d ns output)
-               :debug  (android.util.Log/d ns output)
-               :info   (android.util.Log/i ns output)
-               :warn   (android.util.Log/w ns output)
-               :error  (android.util.Log/e ns output)
-               :fatal  (android.util.Log/e ns output)
-               :report (android.util.Log/i ns output)))))})))
+       (if-let [throwable (force ?err_)]
+         (case level
+           :trace  (android.util.Log/d ns output-str throwable)
+           :debug  (android.util.Log/d ns output-str throwable)
+           :info   (android.util.Log/i ns output-str throwable)
+           :warn   (android.util.Log/w ns output-str throwable)
+           :error  (android.util.Log/e ns output-str throwable)
+           :fatal  (android.util.Log/e ns output-str throwable)
+           :report (android.util.Log/i ns output-str throwable))
+
+         (case level
+           :trace  (android.util.Log/d ns output-str)
+           :debug  (android.util.Log/d ns output-str)
+           :info   (android.util.Log/i ns output-str)
+           :warn   (android.util.Log/w ns output-str)
+           :error  (android.util.Log/e ns output-str)
+           :fatal  (android.util.Log/e ns output-str)
+           :report (android.util.Log/i ns output-str)))))})
 
 ;;;; Deprecated
 
-(def make-logcat-appender make-appender)
+(defn make-logcat-appender
+  "DEPRECATED. Please use `logcat-appender` instead."
+  [& [appender-merge opts]]
+  (merge (logcat-appender opts) appender-merge))
