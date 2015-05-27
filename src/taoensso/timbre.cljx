@@ -111,7 +111,7 @@
    #+clj :timestamp-opts
    #+clj default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
 
-   :output-fn default-output-fn ; (fn [data]) -> string
+   :output-fn default-output-fn ; (fn [data & [opts]]) -> string
 
    :appenders
    #+clj
@@ -202,8 +202,8 @@
 ;;;; Levels
 
 (def ordered-levels [:trace :debug :info :warn :error :fatal :report])
-(def ^:private scored-levels  (zipmap ordered-levels (next (range))))
-(def ^:private valid-levels   (set ordered-levels))
+(def ^:private scored-levels (zipmap ordered-levels (next (range))))
+(def ^:private valid-levels  (set ordered-levels))
 (def ^:private valid-level
   (fn [level]
     (or (valid-levels level)
@@ -221,12 +221,6 @@
         (have [:or nil? valid-level]
           (keyword (or (env-val "TIMBRE_LEVEL")
                        (env-val "TIMBRE_LOG_LEVEL")))))
-
-(defn get-active-level [& [config]] (or (:level (or config *config*)) :report))
-
-(comment
-  (qb 10000 (get-active-level))
-  (binding [*config* {:level :trace}] (level>= :trace (get-active-level))))
 
 ;;;; ns filter
 
@@ -311,15 +305,24 @@
 
 (defn log?
   "Would Timbre currently log at the given logging level?
-    * ns filtering requires a compile-time `?ns-str` to be provided.
-    * Non-global config requires an explicit `config` to be provided."
+    * Compile-time `?ns-str` arg required to support ns filtering.
+    * `config` arg required to support non-global config."
   [level & [?ns-str config]]
-  (let [config (or config *config*)]
-    (and (level>= level (get-active-level config))
+  (let [config (or config *config*)
+        active-level (or (:level config) :report)]
+    (and (level>= level active-level)
          (ns-filter (:ns-whitelist config) (:ns-blacklist config) (or ?ns-str ""))
          true)))
 
-(comment (log? :trace))
+(comment
+  (set-level! :debug)
+  (log? :trace)
+  (with-level :trace (log? :trace))
+  (qb 10000 (log? :trace))       ; ~2.5ms
+  (qb 10000 (log? :trace "foo")) ; ~6ms
+  (qb 10000 (tracef "foo"))      ; ~7.5ms
+  (qb 10000 (when false "foo"))  ; ~0.5ms
+  )
 
 (def ^:dynamic *context*
   "General-purpose dynamic logging context. Context will be merged into
@@ -330,7 +333,7 @@
 
 (defn log1-fn
   "Core fn-level logger. Implementation detail!"
-  [config level ?ns-str ?file ?line msg-type vargs_ & [?base-data]]
+  [config level ?ns-str ?file ?line msg-type vargs_ ?base-data]
   (when (log? level ?ns-str config)
     (let [instant (enc/now-dt)
           vargs*_ (delay (vsplit-err1 (force vargs_)))
