@@ -1,7 +1,8 @@
 (ns taoensso.timbre.appenders.example-appender
-  "An example of how Timbre appenders should be written.
-  Please mention any requirements/dependencies in this docstring."
-  {:author "Peter Taoussanis"} ; <- Your name here
+  "An example of how Timbre library-style appenders should be written for
+  bundling with Timbre. Please mention any requirements/dependencies in this
+  docstring, thanks!"
+  {:author "Your name here"}
   (:require [clojure.string  :as str]
             [taoensso.timbre :as timbre]
             [taoensso.encore :as encore]))
@@ -45,8 +46,8 @@
             ;; provided for you under the :output-fn key. Prefer using this fn
             ;; to your own formatter when possible, since the user can
             ;; configure the :output-fn formatter in a standard way that'll
-            ;; influence all participating appenders. It may help to look at
-            ;; the source code for `taoensso.timbre/default-output-fn`!
+            ;; influence all participating appenders. Take a look at the
+            ;; `taoensso.timbre/default-output-fn` source for details.
             ;;
             any-special-output-fn-opts {} ; Output-fn can use these opts
             output-string (output-fn data any-special-output-fn-opts)]
