@@ -460,10 +460,25 @@
 
 (defmacro logged-future [& body] `(future (log-errors ~@body)))
 
+#+clj
+(defn handle-uncaught-jvm-exceptions!
+  "Sets JVM-global DefaultUncaughtExceptionHandler."
+  [& [handler]]
+  (let [handler
+        (or handler
+          (fn [throwable ^Thread thread]
+            (errorf throwable "Uncaught exception on thread: %s"
+              (.getName thread))))]
+
+    (Thread/setDefaultUncaughtExceptionHandler
+      (reify Thread$UncaughtExceptionHandler
+        (uncaughtException [this thread throwable] (handler throwable thread))))))
+
 (comment
   (log-errors             (/ 0))
   (log-and-rethrow-errors (/ 0))
-  (logged-future          (/ 0)))
+  (logged-future          (/ 0))
+  (handle-uncaught-jvm-exceptions!))
 
 (defmacro spy
   "Evaluates named expression and logs its result. Always returns the result.
