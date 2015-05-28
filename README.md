@@ -2,7 +2,7 @@
 
 ```clojure
 [com.taoensso/timbre "3.4.0"]       ; Stable
-[com.taoensso/timbre "4.0.0-beta1"] ; BREAKING, please see CHANGELOG for details
+[com.taoensso/timbre "4.0.0-beta4"] ; BREAKING, please see CHANGELOG for details
 ```
 
 # Timbre, a (sane) Clojure/Script logging & profiling library
@@ -36,7 +36,7 @@ Timbre brings functional, Clojure-y goodness to all your logging needs. It's fas
 Add the necessary dependency to your [Leiningen][] `project.clj` and use the supplied ns-import helper:
 
 ```clojure
-[com.taoensso/timbre "4.0.0-beta1"] ; Add to your project.clj :dependencies
+[com.taoensso/timbre "4.0.0-beta4"] ; Add to your project.clj :dependencies
 
 (ns my-app ; Your ns
   (:require [taoensso.timbre :as timbre

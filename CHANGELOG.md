@@ -1,6 +1,6 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
-## v4.0.0-beta2 / 2015 May 26
+## v4.0.0-beta4 / 2015 May 28
 
 > This is a **MAJOR** update. Your custom appenders **WILL BREAK**. Your configuration **MIGHT BREAK**. Your call sites should be fine. I've updated all bundled appenders, but **haven't tested** any 3rd-party appenders.
 
@@ -10,14 +10,14 @@
 * **New**: default :println appender has picked up a :stream opt [#49]
 * **New**: create necessary spit appender paths [#93]
 * **New**: full-power fn-level `log1-fn` util [#99]
-* **New**: added a reference appender example [here](https://github.com/ptaoussanis/timbre/blob/master/src/taoensso/timbre/appenders/example_appender.clj)
+* **New**: added a reference appender example [here](https://github.com/ptaoussanis/timbre/blob/master/src/taoensso/timbre/appenders/core.cljx)
 * **Implementation**: modernized + simplified codebase
 * **Implementation**: significant performance improvements across the board
 * **Implementation**: use delays to avoid unnecessarily producing unused arg msgs [#71]
 * **Fix**: auto shutdown agents to prevent slow app shutdown [#61]
 
 ```clojure
-[com.taoensso/timbre "4.0.0-beta2"]
+[com.taoensso/timbre "4.0.0-beta4"]
 ```
 
 ### Migration checklist
@@ -32,9 +32,10 @@
 * Renamed appender args: `:ns`->`:?ns-str`, `:file`->`:?file`, `:line`->`:?line`
 * Appender args now wrapped with delays: `:throwable`->`:?err_`, `:message`->`:msg_`, `:timestamp`->`:timestamp_`, `:hostname`->`:hostname_`, `:args`->`:vargs_`
 * Appender args removed: `:output`, `:ap-config`
-* Appender args added: `:output-fn (fn [data]) -> string`, `:appender-opts`
+* Appender args added: `:output-fn (fn [data]) -> string`
 * `stacktrace` util fn signature changed: `[throwable & [sep fonts]` -> `[err & [opts]]`
-* All bundled 3rd-party appenders have moved to a new `3rd-party` ns
+* All bundled 3rd-party appenders have moved to a new `3rd-party` ns.
+* Bundled 3rd-party appender constructor signatures _may_ have changed, please double check.
 
 Apologies for the hassle in migrating. The changes made here all bring serious benefits (performance, simplicity, future extensibility, cross-platform support) and I'm confident that v4's the last time I'll need to touch the core design. Future work will be focused on polish, stability, and better+more bundled appenders.
 
