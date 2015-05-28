@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.irc
+(ns taoensso.timbre.appenders.3rd-party.irclj
   "IRC appender. Requires https://github.com/flatland/irclj."
   {:author "Emlyn Corrin"}
   (:require [clojure.string  :as str]
@@ -27,7 +27,7 @@
 
 ;;;; Public
 
-(defn irc-appender
+(defn irclj-appender
   "Returns an IRC appender.
   (irc-appender
     {:host \"irc.example.org\" :port 6667 :nick \"logger\"
@@ -60,15 +60,15 @@
 ;;;; Deprecated
 
 (defn make-irc-appender
-  "DEPRECATED. Please use `irc-appender` instead."
+  "DEPRECATED. Please use `irclj-appender` instead."
   [& [appender-merge opts]]
-  (merge (irc-appender (:irc-config opts) (dissoc :irc-config opts))
+  (merge (irclj-appender (:irc-config opts) (dissoc :irc-config opts))
     appender-merge))
 
 ;;;;
 
 (comment
-  (timbre/merge-config! {:appenders {:irc (irc-appender)}})
+  (timbre/merge-config! {:appenders {:irc (irclj-appender)}})
   (timbre/merge-config!
     {:appenders
      {:irc

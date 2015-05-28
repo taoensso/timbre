@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.socket
+(ns taoensso.timbre.appenders.3rd-party.server-socket
   "TCP socket appender. Requires https://github.com/technomancy/server-socket."
   {:author "Emlyn Corrin"}
   (:require [server.socket :refer [create-server]]
@@ -30,7 +30,7 @@
 
 (defn ensure-conn [socket-config] (swap! conn #(or % (connect socket-config))))
 
-(defn socket-appender
+(defn server-socket-appender
   "Returns a TCP socket appender.
   (socket-appender {:listener-addr :all :port 9000})"
   [& [socket-config]]
@@ -55,6 +55,6 @@
 ;;;; Deprecated
 
 (defn make-socket-appender
-  "DEPRECATED. Please use `socket-appender` instead."
+  "DEPRECATED. Please use `server-socket-appender` instead."
   [& [appender-merge opts]]
-  (merge (socket-appender opts) appender-merge))
+  (merge (server-socket-appender opts) appender-merge))

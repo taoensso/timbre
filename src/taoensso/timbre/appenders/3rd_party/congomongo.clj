@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.mongo
+(ns taoensso.timbre.appenders.3rd-party.congomongo
   "MongoDB appender. Requires on https://github.com/aboekhoff/congomongo."
   {:author "Emlyn Corrin"}
   (:require [somnium.congomongo :as mongo]

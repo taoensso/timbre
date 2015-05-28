@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.android
+(ns taoensso.timbre.appenders.3rd-party.android-logcat
   "Android LogCat appender. Requires Android runtime."
   {:author "Adam Clements"}
   (:require [clojure.string  :as str]
@@ -6,7 +6,7 @@
 
 ;; TODO Test port to Timbre v4
 
-(defn logcat-appender
+(defn android-logcat-appender
   "Returns an appender that writes to Android LogCat. Obviously only works if
   running within the Android runtime (device or emulator). You may want to
   disable std-out to prevent printing nested timestamps, etc."
@@ -52,6 +52,6 @@
 ;;;; Deprecated
 
 (defn make-logcat-appender
-  "DEPRECATED. Please use `logcat-appender` instead."
+  "DEPRECATED. Please use `android-logcat-appender` instead."
   [& [appender-merge opts]]
-  (merge (logcat-appender opts) appender-merge))
+  (merge (android-logcat-appender opts) appender-merge))

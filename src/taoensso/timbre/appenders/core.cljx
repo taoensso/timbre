@@ -31,7 +31,7 @@
                 [100 (enc/ms :hours 1)] ; 100 calls/hour
                 ]
 
-   :output-fn :inherit ; or (fn [data]) -> string
+   :output-fn :inherit ; or a custom (fn [data]) -> string
    :fn
    (fn [data]
      (let [;; See `timbre/example-config` for info on all available args:
@@ -47,9 +47,13 @@
 
            ;; You'll often want an output string with ns, timestamp, vargs, etc.
            ;; A (fn [data]) -> string formatter is provided under the :output-fn
-           ;; key. Prefer using this fn to your own formatter when possible,
-           ;; since the user can configure the :output-fn formatter in a
-           ;; standard way that'll influence all participating appenders. See
+           ;; key, defined as:
+           ;; `(or (:output-fn <this appender's map>)
+           ;;      (:output-fn <user's config map)
+           ;;      timbre/default-output-fn)`
+           ;;
+           ;; Users therefore get a standardized way to control appender ouput
+           ;; formatting for all participating appenders. See
            ;; `taoensso.timbre/default-output-fn` source for details.
            ;;
            output-str (output-fn data)]
@@ -133,9 +137,9 @@
   "Returns a simple js/console appender for ClojureScript, or nil if no
   js/console exists."
   []
-  (when-let [have-logger? (and (exists? js/console) (.-log   js/console))]
-    (let [have-warn-logger?  (and have-logger?      (.-warn  js/console))
-          have-error-logger? (and have-logger?      (.-error js/console))
+  (when-let [have-logger? (and (exists? js/console) (.-log js/console))]
+    (let [have-warn-logger?  (.-warn  js/console)
+          have-error-logger? (.-error js/console)
           level->logger {:fatal (if have-error-logger? :error :info)
                          :error (if have-error-logger? :error :info)
                          :warn  (if have-warn-logger?  :warn  :info)}]
