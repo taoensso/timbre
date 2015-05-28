@@ -275,6 +275,16 @@
   (qb 10000 (log? :trace "foo")) ; ~6ms
   (qb 10000 (tracef "foo"))      ; ~7.5ms
   (qb 10000 (when false "foo"))  ; ~0.5ms
+
+  ;;; Full benchmarks
+  (defmacro with-sole-appender [appender & body]
+    `(with-config (assoc *config* :appenders {:appender ~appender}) ~@body))
+
+  (with-sole-appender {:enabled? true :fn (fn [data] nil)}
+    (qb 10000 (info "foo"))) ; ~88ms ; Time to delays ready
+
+  (with-sole-appender {:enabled? true :fn (fn [data] ((:output-fn data) data))}
+    (qb 10000 (info "foo"))) ; ~218ms ; Time to output ready
   )
 
 (def ^:dynamic *context*
