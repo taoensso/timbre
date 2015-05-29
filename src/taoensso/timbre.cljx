@@ -219,6 +219,14 @@
 (def ^:private compile-time-ns-filter
   (let [whitelist (have [:or nil? vector?] (env-val "TIMBRE_NS_WHITELIST"))
         blacklist (have [:or nil? vector?] (env-val "TIMBRE_NS_BLACKLIST"))]
+
+    (when compile-time-level
+      (println (str "Compile-time (elision) Timbre level: " compile-time-level)))
+    (when whitelist
+      (println (str "Compile-time (elision) Timbre ns whitelist: " whitelist)))
+    (when blacklist
+      (println (str "Compile-time (elision) Timbre ns blacklist: " blacklist)))
+
     (partial ns-filter whitelist blacklist)))
 
 ;;;; Utils
