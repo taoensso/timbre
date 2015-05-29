@@ -71,7 +71,7 @@
   "Returns a simple `println` appender for Clojure/Script.
   Use with ClojureScript requires that `cljs.core/*print-fn*` be set.
 
-  :stream (clj only) - e/o #{:auto :std-err :std-out <io-stream>}."
+  :stream (clj only) - e/o #{:auto :*out* :*err* :std-err :std-out <io-stream>}."
 
   ;; Unfortunately no easy way to check if *print-fn* is set. Metadata on the
   ;; default throwing fn would be nice...
@@ -93,8 +93,10 @@
        (let [{:keys [output-fn]} data]
          #+cljs (println (output-fn data))
          #+clj
-         (let [stream (if (= stream :auto)
-                        (if (:error? data) *err* *out*)
+         (let [stream (case stream
+                        :auto  (if (:error? data) *err* *out*)
+                        :*out* *out*
+                        :*err* *err*
                         stream)]
            (binding [*out* stream] (println (output-fn data))))))}))
 
