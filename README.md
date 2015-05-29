@@ -38,18 +38,22 @@ Add the necessary dependency to your [Leiningen][] `project.clj` and use the sup
 ```clojure
 [com.taoensso/timbre "4.0.0-beta4"] ; Add to your project.clj :dependencies
 
-(ns my-app ; Your ns
-  (:require [taoensso.timbre :as timbre
-             :refer (log  trace  debug  info  warn  error  fatal  report
-                     logf tracef debugf infof warnf errorf fatalf reportf
-                     spy)]
+(ns my-clj-ns ; Clj ns => use `:refer`
+  (:require
+    [taoensso.timbre :as timbre
+      :refer (log  trace  debug  info  warn  error  fatal  report
+              logf tracef debugf infof warnf errorf fatalf reportf spy)]
+    [taoensso.timbre.profiling :as profiling
+      :refer (pspy pspy* profile defnp p p*)]))
 
-            ;; Clj only:
-            [taoensso.timbre.profiling :as profiling
-             :refer (pspy pspy* profile defnp p p*)]))
+(ns my-cljs-ns ; Cljs ns => use `:refer-macros`
+  (:require
+    [taoensso.timbre :as timbre
+      :refer-macros (log  trace  debug  info  warn  error  fatal  report
+                     logf tracef debugf infof warnf errorf fatalf reportf spy)]))
 ```
 
-You can also use `timbre/refer-timbre` to setup these ns refers automatically (Clj only).
+You can also use `timbre/refer-timbre` to setup these ns referrals automatically (Clj only).
 
 ### Logging
 
