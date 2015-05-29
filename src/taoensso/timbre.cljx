@@ -497,8 +497,9 @@
   ([config level name expr]
    `(log-and-rethrow-errors
       (let [result# ~expr]
-        (log* ~config ~level [~name "=>" result#])
-        result#))))
+        (log* ~config ~level [~name "=>" result#]) ; Subject to elision
+        result# ; NOT subject to elision
+        ))))
 
 #+clj
 (defn refer-timbre

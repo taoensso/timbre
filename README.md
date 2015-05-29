@@ -53,11 +53,11 @@ Add the necessary dependency to your [Leiningen][] `project.clj` and use the sup
                      logf tracef debugf infof warnf errorf fatalf reportf spy)]))
 ```
 
-You can also use `timbre/refer-timbre` to setup these ns referrals automatically (Clj only).
+You can also use `timbre/refer-timbre` to configure Clj ns referrals automatically.
 
 ### Logging
 
-By default, Timbre gives you basic print stream or `js/console` (v4+) output at a `debug` log level:
+By default, Timbre gives you basic `println` and `js/console` (v4+) output at a `:debug` log level:
 
 ```clojure
 (info "This will print") => nil
@@ -163,12 +163,32 @@ A few things to note:
   * Appenders are _trivial_ to write & configure - **they're just fns**. It's Timbre's job to dispatch useful args to appenders when appropriate, it's their job to do something interesting with them.
   * Being 'just fns', appenders have basically limitless potential: write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
 
+#### Log levels and ns filters
+
 The **log level** may be set:
   * At compile-time: (`TIMBRE_LEVEL` environment variable).
   * Statically using: `timbre/set-level!`/`timbre/merge-level!`.
   * Dynamically using: `timbre/with-level`.
 
+The **ns filters** may be set:
+  * At compile-time: (`TIMBRE_NS_WHITELIST`, `TIMBRE_NS_BLACKLIST` env vars).
+  * Statically using: `timbre/set-config!`/`timbre-merge-config!`.
+  * Dynamically using: `timbre/with-config`.
+
 There are also variants of the logging utils that take explicit config args.
+
+Logging calls excluded by a compile-time option (e.g. during Cljs compilation) will be **entirely elided from your codebase**, e.g.:
+```bash
+#!/bin/bash
+
+# edn values welcome:
+export TIMBRE_LEVEL=':warn'               # Elide all lower logging calls
+export TIMBRE_NS_WHITELIST='["my-app.*"]' # Elide all other ns logging calls
+export TIMBRE_NS_BLACKLIST='["my-app.foo" "my-app.bar.*"]'
+
+lein cljsbuild once # Compile js with appropriate logging calls excluded
+lein uberjar        # Compile jar ''
+```
 
 ### Built-in appenders
 
