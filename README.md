@@ -9,13 +9,13 @@
 
 Java logging is a tragic comedy of crazy, unnecessary complexity that buys you _nothing_. It can be maddeningly, unnecessarily hard to get even the simplest logging working. We can do **so** much better with Clojure/Script.
 
-Timbre brings functional, Clojure-y goodness to all your logging needs. It's fast, deeply flexible, and easy to configure. **No XML**!
+Timbre brings functional, Clojure-y goodness to all your logging needs. It's fast, deeply flexible, and easy to configure. **No XML**, **works out-the-box**!
 
 ## What's in the box™?
   * Full **Clojure** + **ClojureScript** support (v4+)
-  * No XML or properties files. **One config map**, and you're set
+  * No XML or properties files. **A single, simple config map**, and you're set
   * Deeply flexible **fn appender model** with **middleware**
-  * **Fantastic performance** at any scale
+  * **Great performance** at any scale
   * Filter logging by levels and **namespace whitelist/blacklist patterns**
   * **Zero overhead** with **complete Clj+Cljs elision** for compile-time level/ns filters
   * Useful built-in appenders for **out-the-box** Clj+Cljs logging
