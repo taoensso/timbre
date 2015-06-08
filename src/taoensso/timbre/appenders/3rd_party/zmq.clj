@@ -4,6 +4,8 @@
   (:require [zeromq.zmq      :as zmq]
             [taoensso.timbre :as timbre]))
 
+;; TODO Test port to Timbre v4
+
 (defn make-zmq-socket [context transport address port]
   (doto (zmq/socket context :push)
     (zmq/connect (format "%s://%s:%d" transport address port))))
