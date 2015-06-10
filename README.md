@@ -226,8 +226,10 @@ A simple query utility is provided: `car-appender/query-entries`.
 #### File appender
 
 ```clojure
+;; (:require [taoensso.timbre.appenders.core :as appenders]) ; Add to ns
+
 (timbre/merge-config!
-  {:appenders {:spit {:enabled? true :opts {:spit-finame "/path/my-file.log"}}}})
+  {:appenders {:spit (appenders/spit-appender {:fname "/path/my-file.log"})}})
 ```
 
 #### Other included appenders
