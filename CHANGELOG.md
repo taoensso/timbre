@@ -1,6 +1,6 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
-## v4.0.0-beta4 / 2015 May 28
+## v4.0.0 / 2015 June 10
 
 > This is a **MAJOR** update. Your custom appenders **WILL BREAK**. Your configuration **MIGHT BREAK**. Your call sites should be fine. I've updated all bundled appenders, but **haven't tested** any 3rd-party appenders.
 
@@ -17,7 +17,7 @@
 * **Fix**: auto shutdown agents to prevent slow app shutdown [#61]
 
 ```clojure
-[com.taoensso/timbre "4.0.0-beta4"]
+[com.taoensso/timbre "4.0.0"]
 ```
 
 ### Migration checklist
