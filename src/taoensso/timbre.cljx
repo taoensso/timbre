@@ -497,9 +497,23 @@
   ([config level name expr]
    `(log-and-rethrow-errors
       (let [result# ~expr]
-        (log* ~config ~level [~name "=>" result#]) ; Subject to elision
+        (log* ~config ~level ~name "=>" result#) ; Subject to elision
         result# ; NOT subject to elision
         ))))
+
+(defmacro get-env [] `(zipmap '~(keys &env) [~@(keys &env)]))
+(defmacro log-env
+  "Logs named &env value.
+  Defaults to :debug logging level and \"&env\" as name."
+  ([                 ] `(log-env :debug))
+  ([       level     ] `(log-env ~level "&env"))
+  ([       level name] `(log-env *config* ~level ~name))
+  ([config level name] `(log* ~config ~level ~name "=>" (get-env))))
+
+(comment
+  (macroexpand '(log-env))
+  (defn foo [x y] (log-env) (+ x y))
+  (foo 5 10))
 
 #+clj
 (defn refer-timbre
