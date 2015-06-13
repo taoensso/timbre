@@ -1,15 +1,15 @@
 **[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contrib](#contact--contributing) | current [Break Version][]:
 
 ```clojure
-[com.taoensso/timbre "4.0.0"] ; BREAKING, please see CHANGELOG for details
+[com.taoensso/timbre "4.0.1"] ; BREAKING, please see CHANGELOG for details
 [com.taoensso/timbre "3.4.0"] ; Legacy
 ```
 
 # Timbre, a (sane) Clojure/Script logging & profiling library
 
-Java logging is a tragic comedy of crazy, unnecessary complexity that buys you _nothing_. It can be maddeningly, unnecessarily hard to get even the simplest logging working. We can do **so** much better with Clojure/Script.
+Java logging is a mess of complexity that buys you _nothing_. It can be _absurdly_ hard to get even the simplest logging working, and it's no better at scale.
 
-Timbre brings functional, Clojure-y goodness to all your logging needs. It's fast, deeply flexible, and easy to configure. **No XML**, **works out-the-box**!
+Timbre offers an alternative **all Clojure/Script** logging experience that's fast, deeply flexible, easy to configure, and that **works out the box**. No XML!
 
 ## What's in the box™?
   * Full **Clojure** + **ClojureScript** support (v4+)
@@ -36,13 +36,14 @@ Timbre brings functional, Clojure-y goodness to all your logging needs. It's fas
 Add the necessary dependency to your [Leiningen][] `project.clj` and use the supplied ns-import helper:
 
 ```clojure
-[com.taoensso/timbre "4.0.0"] ; Add to your project.clj :dependencies
+[com.taoensso/timbre "4.0.1"] ; Add to your project.clj :dependencies
 
 (ns my-clj-ns ; Clj ns => use `:refer`
   (:require
     [taoensso.timbre :as timbre
       :refer (log  trace  debug  info  warn  error  fatal  report
-              logf tracef debugf infof warnf errorf fatalf reportf spy)]
+              logf tracef debugf infof warnf errorf fatalf reportf
+              spy get-env log-env)]
     [taoensso.timbre.profiling :as profiling
       :refer (pspy pspy* profile defnp p p*)]))
 
@@ -50,7 +51,8 @@ Add the necessary dependency to your [Leiningen][] `project.clj` and use the sup
   (:require
     [taoensso.timbre :as timbre
       :refer-macros (log  trace  debug  info  warn  error  fatal  report
-                     logf tracef debugf infof warnf errorf fatalf reportf spy)]))
+                     logf tracef debugf infof warnf errorf fatalf reportf
+                     spy get-env log-env)]))
 ```
 
 You can also use `timbre/refer-timbre` to configure Clj ns referrals automatically.
@@ -61,10 +63,14 @@ By default, Timbre gives you basic `println` and `js/console` (v4+) output at a 
 
 ```clojure
 (info "This will print") => nil
-%> 2012-May-28 17:26:11:444 +0700 localhost INFO [my-app] - This will print
+%> 15-Jun-13 19:18:33 localhost INFO [my-app.core] - This will print
 
 (spy :info (* 5 4 3 2 1)) => 120
-%> 2012-May-28 17:26:14:138 +0700 localhost INFO [my-app] - (* 5 4 3 2 1) 120
+%> 15-Jun-13 19:19:13 localhost INFO [my-app.core] - (* 5 4 3 2 1) => 120
+
+(defn my-mult [x y] (info "Lexical env:" (get-env)) (* x y)) => #'my-mult
+(my-mult 4 7) => 28
+%> 15-Jun-13 19:21:53 localhost INFO [my-app.core] - Lexical env: {x 4, y 7}
 
 (trace "This won't print due to insufficient log level") => nil
 ```
@@ -73,12 +79,12 @@ First-argument exceptions generate a nicely cleaned-up stack trace using [io.avi
 
 ```clojure
 (info (Exception. "Oh noes") "arg1" "arg2")
-%> 2012-May-28 17:35:16:132 +0700 localhost INFO [my-app] - arg1 arg2
-java.lang.Exception: Oh noes
-            NO_SOURCE_FILE:1 my-app/eval6409
-          Compiler.java:6511 clojure.lang.Compiler.eval
-          <...>
+%> 15-Jun-13 19:22:55 localhost INFO [my-app.core] - arg1 arg2
+java.lang.Exception: On noes
+<Stacktrace>
 ```
+
+Other utils include: `log-errors`, `log-and-rethrow-errors`, `logged-future`, and `handle-uncaught-jvm-exceptions!` (please see the [API docs][] for details).
 
 ### Configuration
 

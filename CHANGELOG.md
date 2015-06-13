@@ -1,5 +1,16 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.0.1 / 2015 June 13
+
+> This is a minor, non-breaking feature release
+
+* **New**: add `get-env`, `log-env` macros [#103 @RickMoynihan]
+
+```clojure
+[com.taoensso/timbre "4.0.1"]
+```
+
+
 ## v4.0.0 / 2015 June 10
 
 > This is a **MAJOR** update. Your custom appenders **WILL BREAK**. Your configuration **MIGHT BREAK**. Your call sites should be fine. I've updated all bundled appenders, but **haven't tested** any 3rd-party appenders.
