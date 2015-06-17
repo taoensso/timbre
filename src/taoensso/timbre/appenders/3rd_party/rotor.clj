@@ -53,7 +53,7 @@
               backlog  5}}]]
   {:enabled?   true
    :async?     false
-   :min-level  :warn
+   :min-level  nil
    :rate-limit nil
    :output-fn  :inherit
    :fn
