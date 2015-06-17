@@ -50,7 +50,7 @@
   [& [{:keys [path max-size backlog]
        :or   {path     "./timbre-rotor.log"
               max-size (* 1024 1024)
-              backlog  5}}]]  
+              backlog  5}}]]
   {:enabled?   true
    :async?     false
    :min-level  nil
