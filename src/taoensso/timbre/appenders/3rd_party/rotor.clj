@@ -53,17 +53,18 @@
               backlog  5}}]]
   {:enabled?   true
    :async?     false
-   :min-level  :warn
+   :min-level  nil
    :rate-limit nil
    :output-fn  :inherit
    :fn
-   (fn [data]
-     (let [{:keys [output-fn]} data]
-       (when path
+   (fn [data]     
+     (let [{:keys [output-fn]} data
+           output-str (output-fn data)]
+       (when-let [log (io/file path)]
          (try
-           (when (> (.length (io/file path)) max-size)
+           (when (> (.length log) max-size)
              (rotate-logs path backlog))
-           (spit path (str (output-fn data) "\n") :append true)
+           (spit path (with-out-str (println output-str)) :append true)
            (catch java.io.IOException _)))))})
 
 ;;;; Deprecated
