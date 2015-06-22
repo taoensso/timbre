@@ -126,7 +126,7 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
 
       :profile-stats   ; From `profile` macro
 
-      <Also incl. any *context* keys, which get merged into data map>
+      Also incl. any `*context*` keys (see `with-context`).
 
   MIDDLEWARE
     Middleware are simple (fn [data]) -> ?data fns (applied left->right) that
