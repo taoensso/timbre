@@ -178,7 +178,7 @@ The **log level** may be set:
 
 The **ns filters** may be set:
   * At compile-time: (`TIMBRE_NS_WHITELIST`, `TIMBRE_NS_BLACKLIST` env vars).
-  * Statically using: `timbre/set-config!`/`timbre-merge-config!`.
+  * Statically using: `timbre/set-config!`/`timbre/merge-config!`.
   * Dynamically using: `timbre/with-config`.
 
 There are also variants of the logging utils that take explicit config args.
