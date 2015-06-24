@@ -21,7 +21,7 @@
           ?line    nil      ; ''
           msg-type :p   ; No support for pre-msg raw args
           ]
-      (timbre/log1-fn config level ?ns-str ?file ?line msg-type [message]))))
+      (timbre/log1-fn config level ?ns-str ?file ?line msg-type [message] nil))))
 
 (deftype LoggerFactory []
   clojure.tools.logging.impl/LoggerFactory
