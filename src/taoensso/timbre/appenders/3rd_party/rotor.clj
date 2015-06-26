@@ -64,7 +64,7 @@
          (try
            (when (> (.length log) max-size)
              (rotate-logs path backlog))
-           (spit path (with-out-str (println output-str)) :append true)
+           (spit path (str (output-fn data) "\n") :append true)
            (catch java.io.IOException _)))))})
 
 ;;;; Deprecated
