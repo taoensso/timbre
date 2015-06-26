@@ -1,5 +1,17 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.0.2 / 2015 June 26
+
+> This is a minor, non-breaking bug fix release
+
+* **Fix**: broken v4 3rd-party appender: rotor [#105 #107 @yogthos]
+* **Fix**: broken tools.logging support [#110 @Guthur]
+
+```clojure
+[com.taoensso/timbre "4.0.2"]
+```
+
+
 ## v4.0.1 / 2015 June 13
 
 > This is a minor, non-breaking feature release
