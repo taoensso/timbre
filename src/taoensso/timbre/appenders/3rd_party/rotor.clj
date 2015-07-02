@@ -4,8 +4,6 @@
             [taoensso.timbre :as timbre])
   (:import  [java.io File FilenameFilter]))
 
-;; TODO Test port to Timbre v4
-
 (defn- ^FilenameFilter file-filter
   "Returns a Java FilenameFilter instance which only matches
   files with the given `basename`."
@@ -50,7 +48,7 @@
   [& [{:keys [path max-size backlog]
        :or   {path     "./timbre-rotor.log"
               max-size (* 1024 1024)
-              backlog  5}}]]
+              backlog  5} :as args}]]
   {:enabled?   true
    :async?     false
    :min-level  nil
