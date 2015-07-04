@@ -207,32 +207,40 @@
 
 ;;;;
 
+(defn fn-sigs "Implementation detail."
+  [fn-name sigs]
+  (let [single-arity? (vector? (first sigs))
+        sigs    (if single-arity? (list sigs) sigs)
+        get-pid (if single-arity?
+                  (fn [fn-name _params]      (name fn-name))
+                  (fn [fn-name  params] (str (name fn-name) \_ (count params))))
+        new-sigs
+        (map
+          (fn [[params & others]]
+            (let [has-prepost-map?      (and (map? (first others)) (next others))
+                  [?prepost-map & body] (if has-prepost-map? others (cons nil others))]
+              (if ?prepost-map
+                `(~params ~?prepost-map (pspy ~(get-pid fn-name params) ~@body))
+                `(~params               (pspy ~(get-pid fn-name params) ~@body)))))
+          sigs)]
+    new-sigs))
+
 (defmacro fnp "Like `fn` but wraps fn bodies with `p` macro."
   {:arglists '([name?  [params*] prepost-map? body]
                [name? ([params*] prepost-map? body)+])}
   [& sigs]
-  (let [[?fn-name sigs]
-        (if (symbol? (first sigs)) [(first sigs) (next sigs)] ['anonymous-fn sigs])
-
-        single-arity? (vector? (first sigs))
-        [sigs get-pid]
-        (if single-arity?
-          [(list sigs) (fn [?fn-name _params]      (name ?fn-name))]
-          [sigs        (fn [?fn-name  params] (str (name ?fn-name) \_ (count params)))])
-
-        new-sigs
-        (map
-          (fn [[params & others]]
-            (let [has-prepost-map?     (and (map? (first others)) (next others))
-                  [prepost-map & body] (if has-prepost-map? others (cons {} others))]
-              `(~params ~prepost-map (pspy ~(get-pid ?fn-name params) ~@body))))
-          sigs)]
-
+  (let [[?fn-name sigs] (if (symbol? (first sigs))
+                          [(first sigs) (next sigs)]
+                          [nil sigs])
+        new-sigs (fn-sigs (or ?fn-name 'anonymous-fn) sigs)]
     (if ?fn-name
       `(fn ~?fn-name ~@new-sigs)
       `(fn           ~@new-sigs))))
 
 (comment
+  (fn-sigs "foo" '([x] (* x x)))
+  (macroexpand '(fnp [x] (* x x)))
+  (macroexpand '(fn   [x] (* x x)))
   (macroexpand '(fnp [x] {:pre [x]} (* x x)))
   (macroexpand '(fn   [x] {:pre [x]} (* x x))))
 
@@ -242,24 +250,13 @@
      [name doc-string? attr-map? ([params*] prepost-map? body)+ attr-map?])}
   [& sigs]
   (let [[fn-name sigs] (enc/name-with-attrs (first sigs) (next sigs))
-        single-arity?  (vector? (first sigs))
-        [sigs get-pid]
-        (if single-arity?
-          [(list sigs) (fn [fn-name _params]      (name fn-name))]
-          [sigs        (fn [fn-name  params] (str (name fn-name) \_ (count params)))])
-
-        new-sigs
-        (map
-          (fn [[params & others]]
-            (let [has-prepost-map?     (and (map? (first others)) (next others))
-                  [prepost-map & body] (if has-prepost-map? others (cons {} others))]
-              `(~params ~prepost-map (pspy ~(get-pid fn-name params) ~@body))))
-          sigs)]
+        new-sigs       (fn-sigs fn-name sigs)]
     `(defn ~fn-name ~@new-sigs)))
 
 (comment
-  (defnp foo "Docstring "[x] "boo" (* x x))
-  (macroexpand '(defnp foo "Docstring" [x] "boo" (* x x)))
+  (defnp foo "Docstring "[x] (* x x))
+  (macroexpand '(defnp foo "Docstring" [x] (* x x)))
+  (macroexpand '(defn  foo "Docstring" [x] (* x x)))
   (macroexpand '(defnp foo "Docstring" ([x]   (* x x))
                                        ([x y] (* x y))))
   (profile :info :defnp-test (foo 5)))
