@@ -96,9 +96,8 @@
       :output-fn       ; (fn [data]) -> formatted output string
                        ; (see `default-output-fn` for details)
 
+      :context         ; *context* value at log time (see `with-context`)
       :profile-stats   ; From `profile` macro
-
-      Also incl. any `*context*` keys (see `with-context`).
 
   MIDDLEWARE
     Middleware are simple (fn [data]) -> ?data fns (applied left->right) that
@@ -298,8 +297,8 @@
   )
 
 (def ^:dynamic *context*
-  "General-purpose dynamic logging context. Context will be merged into
-  appender data map at logging time." nil)
+  "General-purpose dynamic logging context. Context will be included in appender
+  data map at logging time." nil)
 (defmacro with-context [context & body] `(binding [*context* ~context] ~@body))
 
 (declare get-hostname)
@@ -327,9 +326,13 @@
           vargs*_ (delay (vsplit-err1 (force vargs_)))
           ?err_   (delay (get @vargs*_ 0))
           vargs_  (delay (get @vargs*_ 1))
-          data    (merge ?base-data *context*
+          context *context*
+          data    (merge ?base-data
+                    ;; No, better nest than merge (appenders may want to pass
+                    ;; along arb context w/o knowing context keys, etc.):
+                    (when (map? context) context) ; DEPRECATED, for back compat
                     {:config  config ; Entire config!
-                     ;; :context *context* ; Extra destructure's a nuisance
+                     :context context
                      :instant instant
                      :level   level
                      :?ns-str ?ns-str
