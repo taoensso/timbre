@@ -7,9 +7,9 @@
 
 # Timbre, a (sane) Clojure/Script logging & profiling library
 
-Java logging is a mess of complexity that buys you _nothing_. It can be _absurdly_ hard to get even the simplest logging working, and it's no better at scale.
+Java logging is a mess of complexity that buys you _nothing_. It can be comically hard to get even the simplest logging working, and it's no better at scale.
 
-Timbre offers an alternative **all Clojure/Script** logging experience that's fast, deeply flexible, easy to configure, and that **works out the box**. No XML!
+Timbre offers an **all Clojure/Script** alternative that **works out the box**. It's fast, deeply flexible, and easy to configure. **No XML!**
 
 ## What's in the box™?
   * Full **Clojure** + **ClojureScript** support (v4+)
@@ -33,7 +33,7 @@ Timbre offers an alternative **all Clojure/Script** logging experience that's fa
 
 ### Dependencies
 
-Add the necessary dependency to your [Leiningen][] `project.clj` and use the supplied ns-import helper:
+Add the necessary dependency to your [Leiningen][] `project.clj` and `require` the necessary namespaces:
 
 ```clojure
 [com.taoensso/timbre "4.0.2"] ; Add to your project.clj :dependencies
@@ -55,7 +55,7 @@ Add the necessary dependency to your [Leiningen][] `project.clj` and use the sup
                      spy get-env log-env)]))
 ```
 
-You can also use `timbre/refer-timbre` to configure Clj ns referrals automatically.
+> You can also use **`timbre/refer-timbre`** to configure Clj ns referrals **automatically**
 
 ### Logging
 
