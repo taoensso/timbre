@@ -1,7 +1,8 @@
 (ns taoensso.timbre.appenders.3rd-party.rotor
   {:author "Yutaka Matsubara"}
   (:require [clojure.java.io :as io]
-            [taoensso.timbre :as timbre])
+            [taoensso.timbre :as timbre]
+            [io.aviso.exception :as aviso-ex])
   (:import  [java.io File FilenameFilter]))
 
 (defn- ^FilenameFilter file-filter
@@ -57,12 +58,14 @@
    :fn
    (fn [data]
      (let [{:keys [output-fn]} data
-           output-str (output-fn data)]
+           ;; turn off ANSI colors by settings aviso-ex/*fonts* to {}
+           output-str (binding [aviso-ex/*fonts* {}]
+                        (output-fn data))]
        (when-let [log (io/file path)]
          (try
            (when (> (.length log) max-size)
              (rotate-logs path backlog))
-           (spit path (str (output-fn data) "\n") :append true)
+           (spit path (str output-str "\n") :append true)
            (catch java.io.IOException _)))))})
 
 ;;;; Deprecated
