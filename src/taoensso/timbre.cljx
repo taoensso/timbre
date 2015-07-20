@@ -41,11 +41,12 @@
    :timezone    (java.util.TimeZone/getDefault)})
 
 (declare stacktrace)
-(defn default-output-fn "(fn [data]) -> string output."
+(defn default-output-fn
+  "Default (fn [data]) -> string output fn.
+  You can modify default options with `(partial default-output-fn <opts-map>)`."
   ([data] (default-output-fn nil data))
-  ([opts data] ; Allow partials for common modified fns
-   (let [{:keys [level ?err_ vargs_ msg_ ?ns-str hostname_ timestamp_]} data
-         {:keys [no-stacktrace?]} opts]
+  ([{:keys [no-stacktrace? stacktrace-fonts] :as opts} data]
+   (let [{:keys [level ?err_ vargs_ msg_ ?ns-str hostname_ timestamp_]} data]
      (str
        #+clj (force timestamp_) #+clj " "
        #+clj (force hostname_)  #+clj " "
@@ -93,6 +94,7 @@
       :msg_            ; Delay - args string
       :timestamp_      ; Delay - string
       :output-fn       ; (fn [data]) -> formatted output string
+                       ; (see `default-output-fn` for details)
 
       :profile-stats   ; From `profile` macro
 
@@ -560,14 +562,17 @@
 
 (comment (get-hostname))
 
-(defn stacktrace [err & [opts]]
+(defn stacktrace [err & [{:keys [stacktrace-fonts] :as opts}]]
   #+cljs (str err) ; TODO Alternatives?
   #+clj
-  (if-let [fonts (:stacktrace-fonts opts)]
-    (binding [aviso-ex/*fonts* fonts] (aviso-ex/format-exception err))
-    (aviso-ex/format-exception err)))
+  (let [stacktrace-fonts (if (and (nil? stacktrace-fonts)
+                                  (contains? opts :stacktrace-fonts))
+                           {} stacktrace-fonts)]
+    (if-let [fonts stacktrace-fonts]
+      (binding [aviso-ex/*fonts* fonts] (aviso-ex/format-exception err))
+      (aviso-ex/format-exception err))))
 
-(comment (stacktrace (Exception. "Boo") {:stacktrace-fonts {}}))
+(comment (stacktrace (Exception. "Boo") {:stacktrace-fonts nil}))
 
 (defmacro sometimes "Handy for sampled logging, etc."
   [probability & body]

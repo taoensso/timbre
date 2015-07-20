@@ -123,6 +123,7 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
       :msg_            ; Delay - args string
       :timestamp_      ; Delay - string
       :output-fn       ; (fn [data]) -> formatted output string
+                       ; (see `default-output-fn` for details)
 
       :profile-stats   ; From `profile` macro
 
