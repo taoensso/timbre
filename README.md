@@ -182,7 +182,11 @@ The **ns filters** may be set:
   * Statically using: `timbre/set-config!`/`timbre/merge-config!`.
   * Dynamically using: `timbre/with-config`.
 
-There are also variants of the logging utils that take explicit config args.
+There are also variants of the core logging macros that take an **explicit config arg**:
+```clojure
+(timbre/log*  <config-map> <level> <& args>) ; or
+(timbre/logf* <config-map> <level> <& args>)
+```
 
 Logging calls excluded by a compile-time option (e.g. during Cljs compilation) will be **entirely elided from your codebase**, e.g.:
 ```bash
