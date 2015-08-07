@@ -1,7 +1,7 @@
 **[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contrib](#contact--contributing) | current [Break Version][]:
 
 ```clojure
-[com.taoensso/timbre "4.0.2"] ; BREAKING, please see CHANGELOG for details
+[com.taoensso/timbre "4.1.0"] ; Stable, see CHANGELOG for details
 [com.taoensso/timbre "3.4.0"] ; Legacy
 ```
 
@@ -36,7 +36,7 @@ Timbre offers an **all Clojure/Script** alternative that **works out the box**. 
 Add the necessary dependency to your [Leiningen][] `project.clj` and `require` the necessary namespaces:
 
 ```clojure
-[com.taoensso/timbre "4.0.2"] ; Add to your project.clj :dependencies
+[com.taoensso/timbre "4.1.0"] ; Add to your project.clj :dependencies
 
 (ns my-clj-ns ; Clj ns => use `:refer`
   (:require
