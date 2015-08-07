@@ -1,5 +1,17 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.1.0 / 2015 Aug 7
+
+> This is a non-breaking feature release
+
+* **DEPRECATED**: `*context*` val is now located under a `:context` key in appender's data map [#116 @mikesperber]
+* **New**: Added `profiling/fnp` macro
+
+```clojure
+[com.taoensso/timbre "4.1.0"]
+```
+
+
 ## v4.0.2 / 2015 June 26
 
 > This is a minor, non-breaking bug fix release

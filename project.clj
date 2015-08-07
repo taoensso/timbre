@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "4.0.2"
+(defproject com.taoensso/timbre "4.1.0"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Clojure/Script logging & profiling library"
   :url "https://github.com/ptaoussanis/timbre"
@@ -11,8 +11,8 @@
                 *assert*             true}
 
   :dependencies
-  [[org.clojure/clojure "1.4.0"]
-   [com.taoensso/encore "1.37.0"]
+  [[org.clojure/clojure "1.5.1"]
+   [com.taoensso/encore "2.4.2"]
    [io.aviso/pretty     "0.1.18"]]
 
   :plugins
@@ -25,9 +25,9 @@
   :profiles
   {;; :default [:base :system :user :provided :dev]
    :server-jvm {:jvm-opts ^:replace ["-server"]}
-   :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
-   :1.7  {:dependencies [[org.clojure/clojure "1.7.0-RC1"]]}
+   :1.7  {:dependencies [[org.clojure/clojure "1.7.0"]]}
+   :1.8  {:dependencies [[org.clojure/clojure "1.8.0-alpha3"]]}
    :test {:dependencies [[expectations              "2.1.0"]
                          [org.clojure/tools.logging "0.3.1"]
 
@@ -38,7 +38,7 @@
                          [irclj                "0.5.0-alpha4"]]}
    :dev
    [:1.7 :test
-    {:dependencies [[org.clojure/clojurescript "0.0-3297"]]
+    {:dependencies [[org.clojure/clojurescript "1.7.28"]]
      :plugins
      [;; These must be in :dev, Ref. https://github.com/lynaghk/cljx/issues/47:
       [com.keminglabs/cljx "0.6.0"]
@@ -78,7 +78,7 @@
 
   :aliases
   {"test-all"   ["do" "clean," "cljx" "once,"
-                 "with-profile" "default:+1.5:+1.6:+1.7" "expectations,"
+                 "with-profile" "default:+1.6:+1.7:+1.8" "expectations,"
                  "with-profile" "+test" "cljsbuild" "test"]
    "test-auto"  ["with-profile" "+test" "autoexpect"]
    "build-once" ["do" "clean," "cljx" "once," "cljsbuild" "once" "main"]
