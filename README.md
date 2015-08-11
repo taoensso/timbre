@@ -208,7 +208,7 @@ lein uberjar        # Compile jar ''
 ;; [com.taoensso/carmine "2.10.0"] ; Add to project.clj deps
 ;; (:require [taoensso.timbre.appenders (carmine :as car-appender)]) ; Add to ns
 
-(timbre/merge-config! {:appenders {:carmine (car-appender/make-appender)}})
+(timbre/merge-config! {:appenders {:carmine (car-appender/carmine-appender)}})
 ```
 
 This gives us a high-performance Redis appender:
@@ -226,11 +226,11 @@ A simple query utility is provided: `car-appender/query-entries`.
 ;; (:require [taoensso.timbre.appenders (postal :as postal-appender)]) ; Add to ns
 
 (timbre/merge-config!
- {:appenders {:postal
-   (postal-appender/make-appender {}
-   {:postal-config
-    ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
-    {:from "me@draines.com" :to "foo@example.com"}})}})
+  {:appenders
+   {:postal
+    (postal-appender/postal-appender
+      ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
+      {:from "me@draines.com" :to "foo@example.com"})}})
 ```
 
 #### File appender
