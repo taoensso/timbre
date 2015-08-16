@@ -582,14 +582,6 @@
    `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
         (when (< (rand) ~probability) ~@body)))
 
-;;;; EXPERIMENTAL shutdown hook
-;; Workaround for http://dev.clojure.org/jira/browse/CLJ-124
-
-#+clj
-(defonce ^:private shutdown-hook
-  (.addShutdownHook (Runtime/getRuntime)
-    (Thread. (fn [] (shutdown-agents)))))
-
 ;;;; Deprecated
 
 (defn str-println [& xs] (enc/spaced-str xs))
