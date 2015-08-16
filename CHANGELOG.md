@@ -1,5 +1,16 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.1.1 / 2015 Aug 16
+
+> This is a non-breaking hotfix release
+
+* **Fix**: shutdown-agents shutdown hook can interfere with other important hooks [#127 @hadronzoo]
+
+```clojure
+[com.taoensso/timbre "4.1.1"]
+```
+
+
 ## v4.1.0 / 2015 Aug 7
 
 > This is a non-breaking feature release
