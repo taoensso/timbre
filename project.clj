@@ -12,29 +12,29 @@
 
   :dependencies
   [[org.clojure/clojure "1.5.1"]
-   [com.taoensso/encore "2.4.2"]
-   [io.aviso/pretty     "0.1.18"]]
+   [com.taoensso/encore "2.18.0"]
+   [io.aviso/pretty     "0.1.19"]]
 
   :plugins
   [[lein-pprint       "1.1.2"]
    [lein-ancient      "0.6.7"]
    [lein-expectations "0.0.8"]
-   [lein-autoexpect   "1.5.0"]
-   [codox             "0.8.12"]]
+   [lein-autoexpect   "1.6.0"]
+   [codox             "0.8.13"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
    :server-jvm {:jvm-opts ^:replace ["-server"]}
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
    :1.7  {:dependencies [[org.clojure/clojure "1.7.0"]]}
-   :1.8  {:dependencies [[org.clojure/clojure "1.8.0-alpha3"]]}
+   :1.8  {:dependencies [[org.clojure/clojure "1.8.0-alpha5"]]}
    :test {:dependencies [[expectations              "2.1.0"]
                          [org.clojure/tools.logging "0.3.1"]
 
                          ;; Appender deps
-                         [com.taoensso/nippy   "2.9.0"]
+                         [com.taoensso/nippy   "2.9.1"]
                          [com.taoensso/carmine "2.11.1"]
-                         [com.draines/postal   "1.11.3"]
+                         [com.draines/postal   "1.11.4"]
                          [irclj                "0.5.0-alpha4"]]}
    :dev
    [:1.7 :test

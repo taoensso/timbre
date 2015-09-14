@@ -17,18 +17,9 @@
   #+cljs
   (:require-macros [taoensso.timbre :as timbre-macros :refer ()]))
 
-;;;; Encore version check
-
-#+clj
-(let [min-encore-version 1.32]
-  (if-let [assert! (ns-resolve 'taoensso.encore 'assert-min-encore-version)]
-    (assert! min-encore-version)
-    (throw
-      (ex-info
-        (format
-          "Insufficient com.taoensso/encore version (< %s). You may have a Leiningen dependency conflict (see http://goo.gl/qBbLvC for solution)."
-          min-encore-version)
-        {:min-version min-encore-version}))))
+(if (vector? taoensso.encore/encore-version)
+  (enc/assert-min-encore-version [2 11 0])
+  (enc/assert-min-encore-version  2.11))
 
 ;;;; Config
 
