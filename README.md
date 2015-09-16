@@ -172,7 +172,7 @@ A few things to note:
 #### Log levels and ns filters
 
 The **log level** may be set:
-  * At compile-time: (`TIMBRE_LEVEL` environment variable).
+  * At compile-time: (`TIMBRE_LOG_LEVEL` environment variable).
   * Statically using: `timbre/set-level!`/`timbre/merge-level!`.
   * Dynamically using: `timbre/with-level`.
 
