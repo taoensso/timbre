@@ -1,5 +1,16 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.1.2 / 2015 Sep 26
+
+> This is a non-breaking hotfix release
+
+* Bring back deprecated `logp` macro from Timbre v3.x to ease back-compatibility [#67]
+
+```clojure
+[com.taoensso/timbre "4.1.2"]
+```
+
+
 ## v4.1.1 / 2015 Aug 16
 
 > This is a non-breaking hotfix release
