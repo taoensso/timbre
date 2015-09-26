@@ -579,3 +579,4 @@
 (defmacro with-log-level      [level  & body] `(with-level  ~level  ~@body))
 (defmacro with-logging-config [config & body] `(with-config ~config ~@body))
 (defn logging-enabled? [level compile-time-ns] (log? level (str compile-time-ns)))
+(defmacro logp [& sigs] `(log ~@sigs))
