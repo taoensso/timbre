@@ -85,7 +85,7 @@ java.lang.Exception: On noes
 #### Disabling colors
 To turn off ANSI color escape codes (i.e. for log files or email), add to your config:
 ```clojure
-:output-fn (partial log/default-output-fn {:stacktrace-fonts {}})
+:output-fn (partial timbre/default-output-fn {:stacktrace-fonts {}})
 ```
 You can also do this on a per-appender basis by passing the above :output-fn to specific appenders.
 
