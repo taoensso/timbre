@@ -82,15 +82,16 @@ First-argument exceptions generate a nicely cleaned-up stack trace using [io.avi
 java.lang.Exception: On noes
 <Stacktrace>
 ```
+
+Other utils include: `log-errors`, `log-and-rethrow-errors`, `logged-future`, and `handle-uncaught-jvm-exceptions!` (please see the [API docs][] for details).
+
+
 #### Disabling colors
 To turn off ANSI color escape codes (i.e. for log files or email), add to your config:
 ```clojure
 :output-fn (partial timbre/default-output-fn {:stacktrace-fonts {}})
 ```
 You can also do this on a per-appender basis by passing the above :output-fn to specific appenders.
-
-
-Other utils include: `log-errors`, `log-and-rethrow-errors`, `logged-future`, and `handle-uncaught-jvm-exceptions!` (please see the [API docs][] for details).
 
 ### Configuration
 
