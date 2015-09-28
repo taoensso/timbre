@@ -86,12 +86,13 @@ java.lang.Exception: On noes
 Other utils include: `log-errors`, `log-and-rethrow-errors`, `logged-future`, and `handle-uncaught-jvm-exceptions!` (please see the [API docs][] for details).
 
 
-#### Disabling colors
-To turn off ANSI color escape codes (i.e. for log files or email), add to your config:
+#### Disabling stacktrace colors
+
+ANSI colors are enabled by default for stacktraces. To turn these off (e.g. for log files or emails), you can add the following entry to your top-level config **or** individual appender map/s:
+
 ```clojure
 :output-fn (partial timbre/default-output-fn {:stacktrace-fonts {}})
 ```
-You can also do this on a per-appender basis by passing the above :output-fn to specific appenders.
 
 ### Configuration
 
