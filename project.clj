@@ -13,7 +13,8 @@
   :dependencies
   [[org.clojure/clojure "1.5.1"]
    [com.taoensso/encore "2.18.0"]
-   [io.aviso/pretty     "0.1.19"]]
+   ;; Version 0.1.18+ breaks Clojure 1.5 support, Ref. https://goo.gl/5xqVHH:
+   [io.aviso/pretty     "0.1.17"]]
 
   :plugins
   [[lein-pprint       "1.1.2"]
