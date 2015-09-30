@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "4.1.2"
+(defproject com.taoensso/timbre "4.1.4"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Clojure/Script logging & profiling library"
   :url "https://github.com/ptaoussanis/timbre"
@@ -26,6 +26,7 @@
   :profiles
   {;; :default [:base :system :user :provided :dev]
    :server-jvm {:jvm-opts ^:replace ["-server"]}
+   :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
    :1.7  {:dependencies [[org.clojure/clojure "1.7.0"]]}
    :1.8  {:dependencies [[org.clojure/clojure "1.8.0-alpha5"]]}
@@ -79,7 +80,7 @@
 
   :aliases
   {"test-all"   ["do" "clean," "cljx" "once,"
-                 "with-profile" "default:+1.6:+1.7:+1.8" "expectations,"
+                 "with-profile" "+1.5:+1.6:+1.7:+1.8" "expectations,"
                  "with-profile" "+test" "cljsbuild" "test"]
    "test-auto"  ["with-profile" "+test" "autoexpect"]
    "build-once" ["do" "clean," "cljx" "once," "cljsbuild" "once" "main"]

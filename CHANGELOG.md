@@ -1,5 +1,16 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.1.4 / 2015 Sep 30
+
+> This is a non-breaking hotfix release
+
+* Fix broken support for Clojure 1.5
+
+```clojure
+[com.taoensso/timbre "4.1.4"]
+```
+
+
 ## v4.1.2 / 2015 Sep 26
 
 > This is a non-breaking hotfix release
