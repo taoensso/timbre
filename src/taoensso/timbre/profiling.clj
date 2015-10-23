@@ -18,6 +18,11 @@
 
 (comment (map #(fq-keyword %) ["foo" :foo :foo/bar]))
 
+;; TODO May be preferable if our `p` forms could actually take a logging level?
+;; Need to think about this. Might just be time to refactor this entire ns + design
+(def ^:private elide-profiling? "Experimental"
+  (when-let [s (System/getenv "TIMBRE_ELIDE_PROFILING")] (enc/read-edn s)))
+
 ;;;;
 
 (def ^:dynamic *pdata*
@@ -35,20 +40,29 @@
   ;; Note: do NOT implement as `(pspy* ~id (fn [] ~@body))`. The fn wrapping
   ;; can cause unnecessary lazy seq head retention, Ref. http://goo.gl/42Vxph.
   [id & body]
-  `(if-not *pdata* (do ~@body)
-     (let [id# (fq-keyword ~id)
-           t0# (System/nanoTime)]
-       (try (do ~@body)
-            (finally (capture-time! id# (- (System/nanoTime) t0#)))))))
+  (if elide-profiling?
+    `(do ~@body)
+    `(if-not *pdata*
+       (do ~@body)
+       (let [id# (fq-keyword ~id)
+             t0# (System/nanoTime)]
+         (try (do ~@body)
+              (finally (capture-time! id# (- (System/nanoTime) t0#))))))))
 
 (defmacro p [id & body] `(pspy ~id ~@body)) ; Alias
 
-(defn pspy* [id f]
-  (if-not *pdata* (f)
-    (let [id (fq-keyword id)
-          t0 (System/nanoTime)]
-      (try (f)
-           (finally (capture-time! id (- (System/nanoTime) t0)))))))
+(comment (macroexpand '(p :foo (+ 4 2))))
+
+(def pspy*
+  (if elide-profiling?
+    (fn [id f] (f))
+    (fn [id f]
+      (if-not *pdata*
+        (f)
+        (let [id (fq-keyword id)
+              t0 (System/nanoTime)]
+          (try (f)
+               (finally (capture-time! id (- (System/nanoTime) t0)))))))))
 
 (def p* pspy*) ; Alias
 
