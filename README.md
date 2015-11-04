@@ -26,6 +26,7 @@ Timbre offers an **all Clojure/Script** alternative that **works out the box**. 
 
 ## 3rd-party tools, appenders, etc.
   * [log-config](https://github.com/palletops/log-config) by [Hugo Duncan](https://github.com/hugoduncan) - library to help manage Timbre logging config.
+  * [slf4j-timbre](https://github.com/fzakaria/slf4j-timbre) - Timbre all the things! Ever frustrated by having to maintain a log4j/logback/sfl4j configuration for your Java dependencies? Have them all route to Timbre!
   * Other suggestions welcome!
 
 ## Getting started
