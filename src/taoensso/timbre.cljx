@@ -25,11 +25,10 @@
 
 #+clj
 (def default-timestamp-opts
-  "Controls (:timestamp_ data)."
-  {:pattern     "yy-MMM-dd HH:mm:ss"
-   :locale      (java.util.Locale. "en")
-   ;; :timezone (java.util.TimeZone/getTimeZone "UTC")
-   :timezone    (java.util.TimeZone/getDefault)})
+  "Controls (:timestamp_ data)"
+  {:pattern     "yy-MMM-dd HH:mm:ss" #_:iso8601
+   :locale      :jvm-default #_(java.util.Locale. "en")
+   :timezone    :utc         #_(java.util.TimeZone/getTimeZone "Europe/Amsterdam")})
 
 (declare stacktrace)
 (defn default-output-fn
@@ -378,7 +377,25 @@
                           (let [timestamp-opts (inherit-into :timestamp-opts
                                                  appender config
                                                  default-timestamp-opts)
-                                {:keys [pattern locale timezone]} timestamp-opts]
+                                {:keys [pattern locale timezone]} timestamp-opts
+
+                                pattern
+                                (case pattern
+                                  :iso8601 "yyyy-MM-dd HH:mm:ss.SSSZ"
+                                  :rss2 "EEE, dd MMM yyyy HH:mm:ss z"
+                                  pattern)
+
+                                locale
+                                (case locale
+                                  :jvm-default (java.util.Locale/getDefault)
+                                  locale)
+
+                                timezone
+                                (case timezone
+                                  :jvm-default (java.util.TimeZone/getDefault)
+                                  :utc         (java.util.TimeZone/getTimeZone "UTC")
+                                  timezone)]
+
                             (.format (enc/simple-date-format pattern
                                        {:locale locale :timezone timezone})
                               (:instant data))))
