@@ -18,8 +18,8 @@
   (:require-macros [taoensso.timbre :as timbre-macros :refer ()]))
 
 (if (vector? taoensso.encore/encore-version)
-  (enc/assert-min-encore-version [2 11 0])
-  (enc/assert-min-encore-version  2.11))
+  (enc/assert-min-encore-version [2 26 0])
+  (enc/assert-min-encore-version  2.26))
 
 ;;;; Config
 
@@ -377,25 +377,7 @@
                           (let [timestamp-opts (inherit-into :timestamp-opts
                                                  appender config
                                                  default-timestamp-opts)
-                                {:keys [pattern locale timezone]} timestamp-opts
-
-                                pattern
-                                (case pattern
-                                  :iso8601 "yyyy-MM-dd HH:mm:ss.SSSZ"
-                                  :rss2 "EEE, dd MMM yyyy HH:mm:ss z"
-                                  pattern)
-
-                                locale
-                                (case locale
-                                  :jvm-default (java.util.Locale/getDefault)
-                                  locale)
-
-                                timezone
-                                (case timezone
-                                  :jvm-default (java.util.TimeZone/getDefault)
-                                  :utc         (java.util.TimeZone/getTimeZone "UTC")
-                                  timezone)]
-
+                                {:keys [pattern locale timezone]} timestamp-opts]
                             (.format (enc/simple-date-format pattern
                                        {:locale locale :timezone timezone})
                               (:instant data))))
