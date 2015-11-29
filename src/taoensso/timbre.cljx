@@ -131,9 +131,9 @@
 (defmacro with-merged-config [config & body]
   `(binding [*config* (enc/nested-merge *config* ~config)] ~@body))
 
-(defn swap-config! [f]
-  #+cljs (set!             *config* (f *config*))
-  #+clj  (alter-var-root #'*config*  f))
+(defn swap-config! [f & args]
+  #+cljs (set!                   *config* (apply f *config* args))
+  #+clj  (apply alter-var-root #'*config* f args))
 
 (defn   set-config! [m] (swap-config! (fn [_old] m)))
 (defn merge-config! [m] (swap-config! (fn [old] (enc/nested-merge old m))))
