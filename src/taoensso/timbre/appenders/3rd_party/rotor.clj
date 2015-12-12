@@ -60,6 +60,8 @@
            output-str (output-fn data)]
        (when-let [log (io/file path)]
          (try
+           (when-not (.exists log)
+             (io/make-parents log))
            (when (> (.length log) max-size)
              (rotate-logs path backlog))
            (spit path (str (output-fn data) "\n") :append true)
