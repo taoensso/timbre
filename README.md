@@ -4,7 +4,7 @@
 [com.taoensso/timbre "4.1.4"] ; Stable, see CHANGELOG for details
 ```
 
-# Timbre, a (sane) Clojure/Script logging & profiling library
+# Timbre, a pure Clojure/Script logging library
 
 Java logging is a mess of complexity that buys you _nothing_. It can be comically hard to get even the simplest logging working, and it's no better at scale.
 
