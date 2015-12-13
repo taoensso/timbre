@@ -16,11 +16,9 @@
    [io.aviso/pretty     "0.1.20"]]
 
   :plugins
-  [[lein-pprint       "1.1.2"]
-   [lein-ancient      "0.6.8"]
-   [lein-expectations "0.0.8"]
-   [lein-autoexpect   "1.7.0"]
-   [lein-codox        "0.9.0"]]
+  [[lein-pprint  "1.1.2"]
+   [lein-ancient "0.6.8"]
+   [lein-codox   "0.9.0"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
@@ -29,8 +27,7 @@
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
    :1.7  {:dependencies [[org.clojure/clojure "1.7.0"]]}
    :1.8  {:dependencies [[org.clojure/clojure "1.8.0-RC3"]]}
-   :test {:dependencies [[expectations              "2.1.0"]
-                         [org.clojure/tools.logging "0.3.1"]
+   :test {:dependencies [[org.clojure/tools.logging "0.3.1"]
 
                          ;; Appender deps
                          [com.taoensso/nippy   "2.10.0"]
@@ -76,9 +73,8 @@
 
   :aliases
   {"test-all"   ["do" "clean," "cljx" "once,"
-                 "with-profile" "+1.5:+1.6:+1.7:+1.8" "expectations,"
+                 "with-profile" "+1.5:+1.6:+1.7:+1.8" "test"
                  "with-profile" "+test" "cljsbuild" "test"]
-   "test-auto"  ["with-profile" "+test" "autoexpect"]
    "build-once" ["do" "clean," "cljx" "once," "cljsbuild" "once" "main"]
    "deploy-lib" ["do" "build-once," "deploy" "clojars," "install"]
    "start-dev"  ["with-profile" "+server-jvm" "repl" ":headless"]}
