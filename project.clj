@@ -1,6 +1,6 @@
-(defproject com.taoensso/timbre "4.1.5"
+(defproject com.taoensso/timbre "4.2.0"
   :author "Peter Taoussanis <https://www.taoensso.com>"
-  :description "Clojure/Script logging & profiling library"
+  :description "Pure Clojure/Script logging library"
   :url "https://github.com/ptaoussanis/timbre"
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"

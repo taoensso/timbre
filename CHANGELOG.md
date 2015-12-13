@@ -1,8 +1,26 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.2.0 / 2015 Dec 27
+
+> This is a non-breaking feature release
+
+* **Change**: switch default timestamp timezone from JVM default to UTC [#135]
+* **Change**: switch default timestamp pattern from `yy-MMM-dd` -> `yy-MM-dd pattern` (easier to sort) [#135]
+* **New**: `swap-config!` now supports &args [#137 @rsslldnphy]
+* **New**: rotor appender now creates necessary paths [#140 @dsapala]
+* **New**: faster (transducer-based) string joins with Clojure 1.7+ [#133]
+* **New**: records now get a human-readable string representation [#133]
+* **Fix**: application slowdown due to agents shutdown [#141 @ryfow]
+
+```clojure
+[com.taoensso/timbre "4.2.0"]
+```
+
 ## v4.1.5 / 2015 Dec 27
 
-> This is a hotfix release to help fix https://github.com/fzakaria/slf4j-timbre/issues/8
+> This is a non-breaking hotfix release
+
+* Assist fix of https://github.com/fzakaria/slf4j-timbre/issues/8
 
 ```clojure
 [com.taoensso/timbre "4.1.5"]
