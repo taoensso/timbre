@@ -12,16 +12,15 @@
 
   :dependencies
   [[org.clojure/clojure "1.5.1"]
-   [com.taoensso/encore "2.26.0"]
-   ;; Version 0.1.18+ breaks Clojure 1.5 support, Ref. https://goo.gl/5xqVHH:
-   [io.aviso/pretty     "0.1.17"]]
+   [com.taoensso/encore "2.29.0"]
+   [io.aviso/pretty     "0.1.20"]]
 
   :plugins
   [[lein-pprint       "1.1.2"]
-   [lein-ancient      "0.6.7"]
+   [lein-ancient      "0.6.8"]
    [lein-expectations "0.0.8"]
-   [lein-autoexpect   "1.6.0"]
-   [codox             "0.8.13"]]
+   [lein-autoexpect   "1.7.0"]
+   [lein-codox        "0.9.0"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
@@ -29,13 +28,13 @@
    :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
    :1.7  {:dependencies [[org.clojure/clojure "1.7.0"]]}
-   :1.8  {:dependencies [[org.clojure/clojure "1.8.0-alpha5"]]}
+   :1.8  {:dependencies [[org.clojure/clojure "1.8.0-RC3"]]}
    :test {:dependencies [[expectations              "2.1.0"]
                          [org.clojure/tools.logging "0.3.1"]
 
                          ;; Appender deps
-                         [com.taoensso/nippy   "2.9.1"]
-                         [com.taoensso/carmine "2.11.1"]
+                         [com.taoensso/nippy   "2.10.0"]
+                         [com.taoensso/carmine "2.12.1"]
                          [com.draines/postal   "1.11.4"]
                          [irclj                "0.5.0-alpha4"]]}
    :dev
@@ -44,7 +43,7 @@
      :plugins
      [;; These must be in :dev, Ref. https://github.com/lynaghk/cljx/issues/47:
       [com.keminglabs/cljx "0.6.0"]
-      [lein-cljsbuild      "1.0.6"]]}]}
+      [lein-cljsbuild      "1.1.1"]]}]}
 
   ;; :jar-exclusions [#"\.cljx|\.DS_Store"]
   :source-paths ["src" "target/classes"]
@@ -71,12 +70,9 @@
   :auto-clean false
   :prep-tasks [["cljx" "once"] "javac" "compile"]
 
-  :codox {:language :clojure ; [:clojure :clojurescript] cljsbuild  ; No support?
-          :sources  ["target/classes"]
-          :src-linenum-anchor-prefix "L"
-          :src-dir-uri "http://github.com/ptaoussanis/timbre/blob/master/src/"
-          :src-uri-mapping {#"target/classes"
-                            #(.replaceFirst (str %) "(.cljs$|.clj$)" ".cljx")}}
+  :codox
+  {:language :clojure
+   :source-uri "https://github.com/ptaoussanis/timbre/blob/master/{filepath}#L{line}"}
 
   :aliases
   {"test-all"   ["do" "clean," "cljx" "once,"
