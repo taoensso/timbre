@@ -26,10 +26,9 @@
 #+clj
 (def default-timestamp-opts
   "Controls (:timestamp_ data)."
-  {:pattern     "yy-MMM-dd HH:mm:ss"
-   :locale      (java.util.Locale. "en")
-   ;; :timezone (java.util.TimeZone/getTimeZone "UTC")
-   :timezone    (java.util.TimeZone/getDefault)})
+  {:pattern "yyyy-MM-dd'T'HH:mm:ssX"
+   ;; :timezone (java.util.TimeZone/getDefault)
+   :timezone (java.util.TimeZone/getTimeZone "UTC")})
 
 (declare stacktrace)
 (defn default-output-fn
