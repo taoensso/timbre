@@ -5,21 +5,21 @@
   (:require
    [clojure.string     :as str]
    [io.aviso.exception :as aviso-ex]
-   [taoensso.encore    :as enc :refer (have have? qb)]
+   [taoensso.encore    :as enc :refer (compile-if have have? qb)]
    [taoensso.timbre.appenders.core :as core-appenders])
 
   #+cljs
   (:require
    [clojure.string  :as str]
-   [taoensso.encore :as enc :refer () :refer-macros (have have?)]
+   [taoensso.encore :as enc :refer () :refer-macros (compile-if have have?)]
    [taoensso.timbre.appenders.core :as core-appenders])
 
   #+cljs
   (:require-macros [taoensso.timbre :as timbre-macros :refer ()]))
 
 (if (vector? taoensso.encore/encore-version)
-  (enc/assert-min-encore-version [2 26 0])
-  (enc/assert-min-encore-version  2.26))
+  (enc/assert-min-encore-version [2 29 1])
+  (enc/assert-min-encore-version  2.29))
 
 ;;;; Config
 
@@ -222,6 +222,23 @@
 
 ;;;; Utils
 
+(enc/compile-if (do enc/str-join true) ; Encore v2.29.1+ with transducers
+  (defn- str-join [xs]
+    (enc/str-join " "
+      (map
+        (fn [x]
+          (let [x (enc/nil->str x)] ; Undefined, nil -> "nil"
+            (cond
+              (record?          x) (pr-str x)
+              ;; (enc/lazy-seq? x) (pr-str x) ; Dubious?
+              :else x))))
+      xs))
+  (defn- str-join [xs] (enc/spaced-str-with-nils xs)))
+
+(comment
+  (defrecord MyRec [x])
+  (str-join ["foo" (MyRec. "foo")]))
+
 (defn- ->delay [x] (if (delay? x) x (delay x)))
 (defn- vsplit-err1 [[v1 :as v]] (if-not (enc/error? v1) [nil v] (enc/vsplit-first v)))
 (comment
@@ -337,7 +354,7 @@
             (when-not (nil? msg-type)
               (when-let [vargs (have [:or nil? vector?] (force vargs_))]
                 (case msg-type
-                  :p (enc/spaced-str vargs)
+                  :p (str-join vargs)
                   :f (let [[fmt args] (enc/vsplit-first vargs)]
                        (enc/format* fmt args))))))
           ?data
@@ -581,7 +598,7 @@
 
 ;;;; Deprecated
 
-(defn str-println [& xs] (enc/spaced-str xs))
+(defn str-println [& xs] (str-join xs))
 (defmacro with-log-level      [level  & body] `(with-level  ~level  ~@body))
 (defmacro with-logging-config [config & body] `(with-config ~config ~@body))
 (defn logging-enabled? [level compile-time-ns] (log? level (str compile-time-ns)))
