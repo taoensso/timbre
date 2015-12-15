@@ -26,7 +26,7 @@
 #+clj
 (def default-timestamp-opts
   "Controls (:timestamp_ data)"
-  {:pattern     "yy-MMM-dd HH:mm:ss" #_:iso8601
+  {:pattern     "yy-MM-dd HH:mm:ss" #_:iso8601
    :locale      :jvm-default #_(java.util.Locale. "en")
    :timezone    :utc         #_(java.util.TimeZone/getTimeZone "Europe/Amsterdam")})
 
