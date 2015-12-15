@@ -546,13 +546,20 @@
 
 #+clj
 (def get-hostname
-  ;; Note that this triggers slow shutdown, Ref. http://goo.gl/5hx9oK:
   (enc/memoize* (enc/ms :mins 1)
-    (fn []
-      (let [f_ (future ; Android doesn't like this on the main thread
-                 (try (.. java.net.InetAddress getLocalHost getHostName)
-                      (catch java.net.UnknownHostException _ "UnknownHost")))]
-        (deref f_ 5000 "UnknownHost")))))
+                (fn []
+                  ;; Android doesn't like this on the main thread
+                  ;; `future` starts the agent threadpool so we use
+                  ;; java.util.concurrent.
+                  (let [executor (java.util.concurrent.Executors/newSingleThreadExecutor)
+                        f_ (.submit executor
+                                    ^java.util.concurrent.Callable
+                                    (fn []
+                                      (try (.. java.net.InetAddress getLocalHost getHostName)
+                                           (catch java.net.UnknownHostException _ "UnknownHost"))))]
+                    (try
+                      (deref f_ 5000 "UnknownHost")
+                      (finally (.shutdown executor)))))))
 
 (comment (get-hostname))
 
