@@ -513,7 +513,13 @@
         result# ; NOT subject to elision
         ))))
 
-(defmacro get-env [] `(zipmap '~(keys &env) [~@(keys &env)]))
+(defn- clear-meta [x] (if (meta x) (with-meta x nil) x))
+(defmacro get-env [] (let [ks (mapv clear-meta (keys &env))] `(zipmap '~ks [~@ks])))
+
+(comment
+  (let [x :x] (get-env))
+  ((fn [^long x] (get-env)) 0))
+
 (defmacro log-env
   "Logs named &env value.
   Defaults to :debug logging level and \"&env\" as name."
@@ -522,10 +528,7 @@
   ([       level name] `(log-env *config* ~level ~name))
   ([config level name] `(log* ~config ~level ~name "=>" (get-env))))
 
-(comment
-  (macroexpand '(log-env))
-  (defn foo [x y] (log-env) (+ x y))
-  (foo 5 10))
+(comment ((fn foo [x y] (log-env) (+ x y)) 5 10))
 
 #+clj
 (defn refer-timbre
