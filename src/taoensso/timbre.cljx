@@ -18,8 +18,8 @@
   (:require-macros [taoensso.timbre :as timbre-macros :refer ()]))
 
 (if (vector? taoensso.encore/encore-version)
-  (enc/assert-min-encore-version [2 29 1])
-  (enc/assert-min-encore-version  2.29))
+  (enc/assert-min-encore-version [2 31 3])
+  (enc/assert-min-encore-version  2.31))
 
 ;;;; Config
 
@@ -513,13 +513,7 @@
         result# ; NOT subject to elision
         ))))
 
-(defn- clear-meta [x] (if (meta x) (with-meta x nil) x))
-(defmacro get-env [] (let [ks (mapv clear-meta (keys &env))] `(zipmap '~ks [~@ks])))
-
-(comment
-  (let [x :x] (get-env))
-  ((fn [^long x] (get-env)) 0))
-
+(defmacro get-env [] `(enc/get-env))
 (defmacro log-env
   "Logs named &env value.
   Defaults to :debug logging level and \"&env\" as name."
