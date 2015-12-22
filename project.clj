@@ -18,7 +18,7 @@
   :plugins
   [[lein-pprint  "1.1.2"]
    [lein-ancient "0.6.8"]
-   [lein-codox   "0.9.0"]]
+   [lein-codox   "0.9.1"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
@@ -40,7 +40,7 @@
      :plugins
      [;; These must be in :dev, Ref. https://github.com/lynaghk/cljx/issues/47:
       [com.keminglabs/cljx "0.6.0"]
-      [lein-cljsbuild      "1.1.1"]]}]}
+      [lein-cljsbuild      "1.1.2"]]}]}
 
   ;; :jar-exclusions [#"\.cljx|\.DS_Store"]
   :source-paths ["src" "target/classes"]
