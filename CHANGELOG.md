@@ -1,5 +1,14 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.1.5 / 2015 Dec 27
+
+> This is a hotfix release to help fix https://github.com/fzakaria/slf4j-timbre/issues/8
+
+```clojure
+[com.taoensso/timbre "4.1.5"]
+```
+
+
 ## v4.1.4 / 2015 Sep 30
 
 > This is a non-breaking hotfix release
