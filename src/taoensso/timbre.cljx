@@ -564,15 +564,15 @@
       ;; Android doesn't like this on the main thread. Would use a `future` but
       ;; that starts the Clojure agent threadpool which can slow application
       ;; shutdown w/o a `(shutdown-agents)` call
-      (let [executor  (java.util.concurrent.Executors/newSingleThreadExecutor)
-            f_ (.submit executor ^java.util.concurrent.Callable
-                 (fn []
-                   (try
-                     (.. java.net.InetAddress getLocalHost getHostName)
-                     (catch java.net.UnknownHostException _ "UnknownHost")
-                     (finally (.shutdown executor)))))]
+      (let [executor (java.util.concurrent.Executors/newSingleThreadExecutor)
+            ^java.util.concurrent.Callable f
+            (fn []
+              (try
+                (.. java.net.InetAddress getLocalHost getHostName)
+                (catch java.net.UnknownHostException _ "UnknownHost")
+                (finally (.shutdown executor))))]
 
-        (deref f_ 5000 "UnknownHost")))))
+        (deref (.submit executor f) 5000 "UnknownHost")))))
 
 (comment (get-hostname))
 
