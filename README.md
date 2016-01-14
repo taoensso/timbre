@@ -1,28 +1,34 @@
-**[API docs][]** | **[CHANGELOG][]** | [other Clojure libs][] | [Twitter][] | [contact/contrib](#contact--contributing) | current [Break Version][]:
+<a href="https://www.taoensso.com" title="More stuff by @ptaoussanis at www.taoensso.com">
+<img src="https://www.taoensso.com/taoensso-open-source.png" width="400"/></a>
+
+
+**[CHANGELOG]** | [API] | current [Break Version]:
 
 ```clojure
-[com.taoensso/timbre "4.2.1"] ; Stable, see CHANGELOG for details
+[com.taoensso/timbre "4.2.1"] ; Stable
 ```
 
-# Timbre, a pure Clojure/Script logging library
+# Timbre
+
+## A pure Clojure/Script logging library
 
 Java logging is a mess of complexity that buys you _nothing_. It can be comically hard to get even the simplest logging working, and it's no better at scale.
 
 Timbre offers an **all Clojure/Script** alternative that **works out the box**. It's fast, deeply flexible, and easy to configure. **No XML!**
 
-## What's in the box™?
-  * Full **Clojure** + **ClojureScript** support (v4+)
-  * No XML or properties files. **A single, simple config map**, and you're set
-  * Deeply flexible **fn appender model** with **middleware**
-  * **Great performance** at any scale
-  * Filter logging by levels and **namespace whitelist/blacklist patterns**
-  * **Zero overhead** with **complete Clj+Cljs elision** for compile-time level/ns filters
-  * Useful built-in appenders for **out-the-box** Clj+Cljs logging
-  * Powerful, easy-to-configure per-appender **rate limits** and **async logging**
-  * [Logs as Clojure values](#redis-carmine-appender-v3) (v3+)
-  * [tools.logging](https://github.com/clojure/tools.logging) support (optional, useful when integrating with legacy logging systems)
-  * Level and ns-filter aware **logging profiler**
-  * Tiny, **simple**, cross-platform codebase
+## Features
+ * Full **Clojure** + **ClojureScript** support (v4+)
+ * No XML or properties files. **A single, simple config map**, and you're set
+ * Deeply flexible **fn appender model** with **middleware**
+ * **Great performance** at any scale
+ * Filter logging by levels and **namespace whitelist/blacklist patterns**
+ * **Zero overhead** with **complete Clj+Cljs elision** for compile-time level/ns filters
+ * Useful built-in appenders for **out-the-box** Clj+Cljs logging
+ * Powerful, easy-to-configure per-appender **rate limits** and **async logging**
+ * [Logs as Clojure values] (v3+)
+ * [tools.logging] support (optional, useful when integrating with legacy logging systems)
+ * Level and ns-filter aware **logging profiler**
+ * Small, simple, cross-platform codebase
 
 ## 3rd-party tools, appenders, etc.
 
@@ -34,14 +40,17 @@ Your link here?          | **PR's welcome!**
 
 ## Getting started
 
-### Dependencies
-
-Add the necessary dependency to your [Leiningen][] `project.clj` and `require` the necessary namespaces:
+Add the necessary dependency to your project:
 
 ```clojure
-[com.taoensso/timbre "4.2.1"] ; Add to your project.clj :dependencies
+[com.taoensso/timbre "4.2.1"]
+```
 
-(ns my-clj-ns ; Clj ns => use `:refer`
+And setup your namespace imports:
+
+```clojure
+
+(ns my-clj-ns ; Clojure namespace
   (:require
     [taoensso.timbre :as timbre
       :refer (log  trace  debug  info  warn  error  fatal  report
@@ -50,7 +59,7 @@ Add the necessary dependency to your [Leiningen][] `project.clj` and `require` t
     [taoensso.timbre.profiling :as profiling
       :refer (pspy pspy* profile defnp p p*)]))
 
-(ns my-cljs-ns ; Cljs ns => use `:refer-macros`
+(ns my-cljs-ns ; ; ClojureScript namespace
   (:require
     [taoensso.timbre :as timbre
       :refer-macros (log  trace  debug  info  warn  error  fatal  report
@@ -58,7 +67,7 @@ Add the necessary dependency to your [Leiningen][] `project.clj` and `require` t
                      spy get-env log-env)]))
 ```
 
-> You can also use **`timbre/refer-timbre`** to configure Clj ns referrals **automatically**
+> You can also call `(timbre/refer-timbre)` to configure Clj ns referrals **automatically**
 
 ### Logging
 
@@ -78,7 +87,7 @@ By default, Timbre gives you basic `println` and `js/console` (v4+) output at a 
 (trace "This won't print due to insufficient log level") => nil
 ```
 
-First-argument exceptions generate a nicely cleaned-up stack trace using [io.aviso.exception](https://github.com/AvisoNovate/pretty) (Clj only):
+First-argument exceptions generate a nicely cleaned-up stack trace using [io.aviso.exception] (Clj only):
 
 ```clojure
 (info (Exception. "Oh noes") "arg1" "arg2")
@@ -87,8 +96,7 @@ java.lang.Exception: On noes
 <Stacktrace>
 ```
 
-Other utils include: `log-errors`, `log-and-rethrow-errors`, `logged-future`, and `handle-uncaught-jvm-exceptions!` (please see the [API docs][] for details).
-
+Other utils include: `log-errors`, `log-and-rethrow-errors`, `logged-future`, and `handle-uncaught-jvm-exceptions!` (please see the [API] for details).
 
 #### Disabling stacktrace colors
 
@@ -178,20 +186,20 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
 ```
 
 A few things to note:
-  * Appenders are _trivial_ to write & configure - **they're just fns**. It's Timbre's job to dispatch useful args to appenders when appropriate, it's their job to do something interesting with them.
-  * Being 'just fns', appenders have basically limitless potential: write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
+ * Appenders are _trivial_ to write & configure - **they're just fns**. It's Timbre's job to dispatch useful args to appenders when appropriate, it's their job to do something interesting with them.
+ * Being 'just fns', appenders have basically limitless potential: write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
 
 #### Log levels and ns filters
 
 The **log level** may be set:
-  * At compile-time: (`TIMBRE_LEVEL` environment variable).
-  * Statically using: `timbre/set-level!`/`timbre/merge-level!`.
-  * Dynamically using: `timbre/with-level`.
+ * At compile-time: (`TIMBRE_LEVEL` environment variable)
+ * Statically using: `timbre/set-level!`/`timbre/merge-level!`
+ * Dynamically using: `timbre/with-level`
 
 The **ns filters** may be set:
-  * At compile-time: (`TIMBRE_NS_WHITELIST`, `TIMBRE_NS_BLACKLIST` env vars).
-  * Statically using: `timbre/set-config!`/`timbre/merge-config!`.
-  * Dynamically using: `timbre/with-config`.
+ * At compile-time: (`TIMBRE_NS_WHITELIST`, `TIMBRE_NS_BLACKLIST` env vars)
+ * Statically using: `timbre/set-config!`/`timbre/merge-config!`
+ * Dynamically using: `timbre/with-config`
 
 There are also variants of the core logging macros that take an **explicit config arg**:
 ```clojure
@@ -214,27 +222,27 @@ lein uberjar        # Compile jar ''
 
 ### Built-in appenders
 
-#### Redis ([Carmine](https://github.com/ptaoussanis/carmine)) appender (v3+)
+#### Redis ([Carmine]) appender (v3+)
 
 ```clojure
-;; [com.taoensso/carmine "2.10.0"] ; Add to project.clj deps
+;; [com.taoensso/carmine <latest-version>] ; Add to project.clj deps
 ;; (:require [taoensso.timbre.appenders (carmine :as car-appender)]) ; Add to ns
 
 (timbre/merge-config! {:appenders {:carmine (car-appender/carmine-appender)}})
 ```
 
 This gives us a high-performance Redis appender:
-  * **All raw logging args are preserved** in serialized form (**even errors!**).
-  * Only the most recent instance of each **unique entry** is kept (hash fn used to determine uniqueness is configurable).
-  * Configurable number of entries to keep per log level.
-  * **Log is just a value**: a vector of Clojure maps: **query+manipulate with standard seq fns**: group-by hostname, sort/filter by ns & severity, explore exception stacktraces, filter by raw arguments, stick into or query with **Datomic**, etc.
+ * **All raw logging args are preserved** in serialized form (**even errors!**)
+ * Only the most recent instance of each **unique entry** is kept (hash fn used to determine uniqueness is configurable)
+ * Configurable number of entries to keep per log level
+ * **Log is just a value**: a vector of Clojure maps: **query+manipulate with standard seq fns**: group-by hostname, sort/filter by ns & severity, explore exception stacktraces, filter by raw arguments, stick into or query with **Datomic**, etc.
 
 A simple query utility is provided: `car-appender/query-entries`.
 
-#### Email ([Postal](https://github.com/drewr/postal)) appender
+#### Email ([Postal]) appender
 
 ```clojure
-;; [com.draines/postal "1.11.3"] ; Add to project.clj deps
+;; [com.draines/postal <latest-version>] ; Add to project.clj deps
 ;; (:require [taoensso.timbre.appenders (postal :as postal-appender)]) ; Add to ns
 
 (timbre/merge-config!
@@ -260,7 +268,7 @@ A number of 3rd-party appenders are included out-the-box [here](https://github.c
 
 ## Profiling (currently Clj only)
 
-The usual recommendation for Clojure profiling is: use a good **JVM profiler** like [YourKit](http://www.yourkit.com/), [JProfiler](http://www.ej-technologies.com/products/jprofiler/overview.html), or [VisualVM](http://docs.oracle.com/javase/6/docs/technotes/guides/visualvm/index.html).
+The usual recommendation for Clojure profiling is: use a good **JVM profiler** like [YourKit], [JProfiler], or [VisualVM].
 
 And these certainly do the job. But as with many Java tools, they can be a little hairy and often heavy-handed - especially when applied to Clojure. Timbre includes an alternative.
 
@@ -304,38 +312,48 @@ And since `p` and `profile` **always return their body's result**, it becomes fe
 
 A simple sampling profiler is also included.
 
-## This project supports the CDS and ![ClojureWerkz](https://raw.github.com/clojurewerkz/clojurewerkz.org/master/assets/images/logos/clojurewerkz_long_h_50.png) goals
+## This project supports the ![ClojureWerkz-logo] goals
 
-  * [CDS][], the **Clojure Documentation Site**, is a **contributer-friendly** community project aimed at producing top-notch, **beginner-friendly** Clojure tutorials and documentation. Awesome resource.
+ * [ClojureWerkz] is a growing collection of open-source, **batteries-included Clojure libraries** that emphasise modern targets, great documentation, and thorough testing.
 
-  * [ClojureWerkz][] is a growing collection of open-source, **batteries-included Clojure libraries** that emphasise modern targets, great documentation, and thorough testing. They've got a ton of great stuff, check 'em out!
+## Contacting me / contributions
 
-## Contact & contributing
+Please use the project's [GitHub issues page] for all questions, ideas, etc. **Pull requests welcome**. See the project's [GitHub contributors page] for a list of contributors.
 
-`lein start-dev` to get a (headless) development repl that you can connect to with [Cider][] (Emacs) or your IDE.
+Otherwise, you can reach me at [Taoensso.com]. Happy hacking!
 
-Please use the project's GitHub [issues page][] for project questions/comments/suggestions/whatever **(pull requests welcome!)**. Am very open to ideas if you have any!
-
-Otherwise reach me (Peter Taoussanis) at [taoensso.com][] or on [Twitter][]. Cheers!
+\- [Peter Taoussanis]
 
 ## License
 
-Copyright &copy; 2012-2015 Peter Taoussanis. Distributed under the [Eclipse Public License][], the same as Clojure.
+Distributed under the [EPL v1.0] \(same as Clojure).  
+Copyright &copy; 2015-2016 [Peter Taoussanis].
 
-
-[API docs]: http://ptaoussanis.github.io/timbre/
-[CHANGELOG]: https://github.com/ptaoussanis/timbre/releases
-[other Clojure libs]: https://www.taoensso.com/clojure
-[taoensso.com]: https://www.taoensso.com
-[Twitter]: https://twitter.com/ptaoussanis
-[issues page]: https://github.com/ptaoussanis/timbre/issues
-[commit history]: https://github.com/ptaoussanis/timbre/commits/master
+<!--- Standard links -->
+[Taoensso.com]: https://www.taoensso.com
+[Peter Taoussanis]: https://www.taoensso.com
+[@ptaoussanis]: https://www.taoensso.com
+[More by @ptaoussanis]: https://www.taoensso.com
 [Break Version]: https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md
-[Leiningen]: http://leiningen.org/
-[Cider]: https://github.com/clojure-emacs/cider
-[CDS]: http://clojure-doc.org/
-[ClojureWerkz]: http://clojurewerkz.org/
-[Eclipse Public License]: https://raw2.github.com/ptaoussanis/timbre/master/LICENSE
 
+<!--- Standard links (repo specific) -->
+[CHANGELOG]: https://github.com/ptaoussanis/timbre/releases
+[API]: http://ptaoussanis.github.io/timbre/
+[GitHub issues page]: https://github.com/ptaoussanis/timbre/issues
+[GitHub contributors page]: https://github.com/ptaoussanis/timbre/graphs/contributors
+[EPL v1.0]: https://raw.githubusercontent.com/ptaoussanis/timbre/master/LICENSE
+[Hero]: https://raw.githubusercontent.com/ptaoussanis/timbre/master/hero.png "Title"
+
+<!--- Unique links -->
+[Logs as Clojure values]: #redis-carmine-appender-v3
 [@palletops/log-config]: https://github.com/palletops/log-config
 [@fzakaria/slf4j-timbre]: https://github.com/fzakaria/slf4j-timbre
+[tools.logging]: https://github.com/clojure/tools.logging
+[io.aviso.exception]: https://github.com/AvisoNovate/pretty
+[Carmine]: https://github.com/ptaoussanis/carmine
+[Postal]: https://github.com/drewr/postal
+[YourKit]: http://www.yourkit.com/)
+[JProfiler]: http://www.ej-technologies.com/products/jprofiler/overview.html
+[VisualVM]: http://docs.oracle.com/javase/6/docs/technotes/guides/visualvm/index.html
+[ClojureWerkz-logo]: https://raw.github.com/clojurewerkz/clojurewerkz.org/master/assets/images/logos/clojurewerkz_long_h_50.png
+[ClojureWerkz]: http://clojurewerkz.org/
