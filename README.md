@@ -1,5 +1,5 @@
 <a href="https://www.taoensso.com" title="More stuff by @ptaoussanis at www.taoensso.com">
-<img src="https://www.taoensso.com/taoensso-open-source.png" width="400"/></a>
+<img src="https://www.taoensso.com/taoensso-open-source.png" alt="Taoensso open-source" width="400"/></a>
 
 
 **[CHANGELOG]** | [API] | current [Break Version]:
