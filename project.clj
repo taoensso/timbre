@@ -12,8 +12,8 @@
 
   :dependencies
   [[org.clojure/clojure "1.5.1"]
-   [com.taoensso/encore "2.31.3"]
-   [io.aviso/pretty     "0.1.20"]]
+   [com.taoensso/encore "2.32.0"]
+   [io.aviso/pretty     "0.1.21"]]
 
   :plugins
   [[lein-pprint  "1.1.2"]
@@ -26,7 +26,7 @@
    :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
    :1.7  {:dependencies [[org.clojure/clojure "1.7.0"]]}
-   :1.8  {:dependencies [[org.clojure/clojure "1.8.0-RC3"]]}
+   :1.8  {:dependencies [[org.clojure/clojure "1.8.0-RC5"]]}
    :test {:dependencies [[org.clojure/tools.logging "0.3.1"]
 
                          ;; Appender deps
