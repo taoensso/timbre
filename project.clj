@@ -33,7 +33,8 @@
                          [com.taoensso/nippy   "2.10.0"]
                          [com.taoensso/carmine "2.12.1"]
                          [com.draines/postal   "1.11.4"]
-                         [irclj                "0.5.0-alpha4"]]}
+                         [irclj                "0.5.0-alpha4"]
+                         [org.graylog2/gelfclient "1.0.0"]]}
    :dev
    [:1.7 :test
     {:dependencies [[org.clojure/clojurescript "1.7.28"]]
