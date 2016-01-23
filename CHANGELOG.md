@@ -1,5 +1,11 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## Pending
+
+* **New**: added 3rd-party gelf appender [#147 @davewo]
+
+
+
 ## v4.2.1 / 2016 Jan 14
 
 > This is a non-breaking hotfix release
