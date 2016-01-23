@@ -253,7 +253,7 @@
   (let [{:keys [?ns-str ?line vargs_]} data
         vargs @vargs_]
     (str
-      (or (some #(and (map? %) (:timbre/hash %)) vargs) ; Explicit hash given
+      (or (enc/rsome #(and (map? %) (:timbre/hash %)) vargs) ; Explicit hash given
           #_[?ns-str ?line] ; TODO Waiting on http://goo.gl/cVVAYA
           [?ns-str vargs]))))
 
