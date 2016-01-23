@@ -41,9 +41,8 @@
                    ]}
            data
 
-           ;;; Use `force` to realise possibly-delayed args:
-           ?err  (force ?err_)  ; ?err non-nil iff first given arg was an error
-           vargs (force vargs_) ; Vector of raw args (excl. possible first error)
+           ?err  @?err_  ; ?err non-nil iff first given arg was an error
+           vargs @vargs_ ; Vector of raw args (excl. possible first error)
 
            ;; You'll often want an output string with ns, timestamp, vargs, etc.
            ;; A (fn [data]) -> string formatter is provided under the :output-fn
@@ -153,7 +152,7 @@
        :fn
        (fn [data]
          (let [{:keys [level output-fn vargs_]} data
-               vargs      (force vargs_)
+               vargs      @vargs_
                [v1 vnext] (enc/vsplit-first vargs)
                output     (if (= v1 :timbre/raw)
                             (into-array vnext)

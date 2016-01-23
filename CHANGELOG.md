@@ -3,6 +3,7 @@
 ## Pending
 
 * **New**: added 3rd-party gelf appender [#147 @davewo]
+* **Implementation**: appenders no longer need to worry about using `force` instead of `@`/`deref`
 
 
 

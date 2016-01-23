@@ -21,10 +21,10 @@
 (defn log-message [params {:keys [collection logged-keys] :as config}]
   (let [entry {:instant  instant
                :level    level
-               :?ns-str  (str        (:?ns-str       data))
-               :hostname (str (force (:hostname_     data)))
-               :vargs    (str (force (:vargs_        data)))
-               :?err     (str (force (:?err_         data)))}]
+               :?ns-str  (str  (:?ns-str       data))
+               :hostname (str @(:hostname_     data))
+               :vargs    (str @(:vargs_        data))
+               :?err     (str @(:?err_         data))}]
     (mongo/with-mongo (ensure-conn config)
       (mongo/insert! collection entry))))
 

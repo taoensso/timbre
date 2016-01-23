@@ -38,13 +38,13 @@
   ([{:keys [no-stacktrace? stacktrace-fonts] :as opts} data]
    (let [{:keys [level ?err_ vargs_ msg_ ?ns-str hostname_ timestamp_]} data]
      (str
-       #+clj (force timestamp_) #+clj " "
-       #+clj (force hostname_)  #+clj " "
+       #+clj @timestamp_ #+clj " "
+       #+clj @hostname_  #+clj " "
        (str/upper-case (name level))  " "
        "[" (or ?ns-str "?ns") "] - "
-       (force msg_)
+       @msg_
        (when-not no-stacktrace?
-         (when-let [err (force ?err_)]
+         (when-let [err @?err_]
            (str "\n" (stacktrace err opts))))))))
 
 ;;; Alias core appenders here for user convenience
@@ -251,7 +251,7 @@
   rate-limiting purposes, etc."
   [data]
   (let [{:keys [?ns-str ?line vargs_]} data
-        vargs (force vargs_)]
+        vargs @vargs_]
     (str
       (or (some #(and (map? %) (:timbre/hash %)) vargs) ; Explicit hash given
           #_[?ns-str ?line] ; TODO Waiting on http://goo.gl/cVVAYA
@@ -330,7 +330,7 @@
   [config level ?ns-str ?file ?line msg-type vargs_ ?base-data]
   (when (log? level ?ns-str config)
     (let [instant (enc/now-dt)
-          vargs*_ (delay (vsplit-err1 (force vargs_)))
+          vargs*_ (delay (vsplit-err1 @vargs_))
           ?err_   (delay (get @vargs*_ 0))
           vargs_  (delay (get @vargs*_ 1))
           context *context*
@@ -352,7 +352,7 @@
           msg-fn
           (fn [vargs_] ; For use *after* middleware, etc.
             (when-not (nil? msg-type)
-              (when-let [vargs (have [:or nil? vector?] (force vargs_))]
+              (when-let [vargs (have [:or nil? vector?] @vargs_)]
                 (case msg-type
                   :p (str-join vargs)
                   :f (let [[fmt args] (enc/vsplit-first vargs)]
@@ -373,7 +373,15 @@
             (when (and (:enabled? appender)
                        (level>= level (or (:min-level appender) :trace)))
 
-              (let [rate-limit-specs (:rate-limit appender)
+              (let [;; As a convenience to appenders, make sure that middleware
+                    ;; hasn't replaced any delays with non-delays
+                    data
+                    (merge data
+                      {:?err_                 (->delay (:?err_     data))
+                       :vargs_                (->delay (:vargs_    data))
+                       #+clj :hostname_ #+clj (->delay (:hostname_ data))})
+
+                    rate-limit-specs (:rate-limit appender)
                     data-hash-fn (inherit-over :data-hash-fn appender config
                                    default-data-hash-fn)
                     rate-limit-okay?
