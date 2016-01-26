@@ -202,6 +202,7 @@
   "(fn [whitelist blacklist ns]) -> ?unfiltered-ns"
   (enc/memoize_
     (fn [whitelist blacklist ns]
+      {:pre [(have? string? ns)]}
       ((compile-ns-filters whitelist blacklist) ns))))
 
 (comment (qb 10000 (ns-filter ["foo.*"] ["foo.baz"] "foo.bar")))
@@ -218,7 +219,7 @@
     (when blacklist
       (println (str "Compile-time (elision) Timbre ns blacklist: " blacklist)))
 
-    (partial ns-filter whitelist blacklist)))
+    (fn [ns] (ns-filter whitelist blacklist ns))))
 
 ;;;; Utils
 
@@ -273,15 +274,18 @@
 ;;;; Internal logging core
 
 (defn log?
-  "Would Timbre currently log at the given logging level?
-    * Compile-time `?ns-str` arg required to support ns filtering.
-    * `config` arg required to support non-global config."
-  [level & [?ns-str config]]
-  (let [config (or config *config*)
-        active-level (or (:level config) :report)]
-    (and (level>= level active-level)
-         (ns-filter (:ns-whitelist config) (:ns-blacklist config) (or ?ns-str ""))
-         true)))
+  "Would Timbre currently (runtime) log at the given logging level?
+    * `?ns-str` arg required to support ns filtering
+    * `config` arg required to support non-global config"
+  ([level               ] (log? level nil     nil))
+  ([level ?ns-str       ] (log? level ?ns-str nil))
+  ([level ?ns-str config]
+   (let [config       (or config *config*)
+         active-level (or (:level config) :report)]
+     (and
+       (level>= level active-level)
+       (ns-filter (:ns-whitelist config) (:ns-blacklist config) (or ?ns-str ""))
+       true))))
 
 (comment
   (set-level! :debug)
@@ -306,6 +310,7 @@
 (def ^:dynamic *context*
   "General-purpose dynamic logging context. Context will be included in appender
   data map at logging time." nil)
+
 (defmacro with-context [context & body] `(binding [*context* ~context] ~@body))
 
 (declare get-hostname)
@@ -325,14 +330,18 @@
   (inherit-over :foo {:foo :inherit} {:foo :bar} nil)
   (inherit-into :foo {:foo {:a :A :b :B :c :C}} {:foo {:a 1 :b 2 :c 3 :d 4}} nil))
 
-(defn log1-fn
-  "Core fn-level logger. Implementation detail!"
-  [config level ?ns-str ?file ?line msg-type vargs_ ?base-data]
-  (when (log? level ?ns-str config)
-    (let [instant (enc/now-dt)
-          vargs*_ (delay (vsplit-err1 @vargs_))
-          ?err_   (delay (get @vargs*_ 0))
-          vargs_  (delay (get @vargs*_ 1))
+(defn -log! "Core low-level log fn. Implementation detail."
+  [config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data]
+  (when (log? level ?ns-str config) ; Runtime check
+    (let [instant   (enc/now-dt)
+          ;; vargs_ (->delay vargs_)
+
+          ;; Extract ?err as err-type a0 in vargs?:
+          a0-err? (enc/kw-identical? ?err :auto)
+          vargs*_ (if a0-err? (delay (vsplit-err1 @vargs_)) vargs_)
+          ?err_   (if a0-err? (delay (get @vargs*_ 0)) (delay ?err))
+          vargs_  (if a0-err? (delay (get @vargs*_ 1)) vargs_)
+
           context *context*
           data    (merge ?base-data
                     ;; No, better nest than merge (appenders may want to pass
@@ -427,49 +436,76 @@
   nil)
 
 (comment
-  (log1-fn *config* :info nil nil nil :p (delay [(do (println "hi") :x) :y]) nil))
+  (-log! *config* :info nil nil nil :p :auto
+    (delay [(do (println "hi") :x) :y]) nil))
 
-(defmacro log1-macro
-  "Core macro-level logger. Implementation detail!"
-  [config level msg-type args & [?base-data]]
-
-  ;; Compile-time elision:
+(defmacro -with-elision
+  "Implementation detail.
+  Executes body iff given level and ns pass compile-time elision."
+  [level-form ns-str-form & body]
   (when (or (nil? compile-time-level)
-            (not (valid-levels level)) ; Not a compile-time level
-            (level>= level compile-time-level))
+            (not (valid-levels level-form)) ; Not a compile-time level const
+            (level>= level-form compile-time-level))
 
-    (when (compile-time-ns-filter (str *ns*))
+    (when (or (not (string? ns-str-form)) ; Not a compile-time ns-str const
+              (compile-time-ns-filter ns-str-form))
+      `(do ~@body))))
 
-      (let [ns-str (str *ns*)
-            ?file  (let [f *file*] (when (not= f "NO_SOURCE_PATH") f))
-            ;; TODO Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
-            ?line  (:line (meta &form))]
-        `(log1-fn ~config ~level ~ns-str ~?file ~?line ~msg-type
+(comment (-with-elision :info "ns" (println "foo")))
+
+(defmacro log! ; Public wrapper around `-log!`
+  "Core low-level log macro. Useful for tooling, etc.
+
+    * `level`    - must eval to a valid logging level
+    * `msg-type` - must eval to e/o #{:p :f nil}
+    * `opts`     - ks e/o #{:config :?err :?ns-str :?file :?line
+                            :?base-data}
+
+  Supports compile-time elision when compile-time const vals
+  provided for `level` and/or `?ns-str`."
+  [level msg-type args & [opts]]
+  (have sequential? args) ; To allow -> (delay [~@args])
+  (let [{:keys [?ns-str] :or {?ns-str (str *ns*)}} opts]
+    (-with-elision
+      level   ; level-form  (may/not be a compile-time kw const)
+      ?ns-str ; ns-str-form (may/not be a compile-time str const)
+      (let [{:keys [config ?err ?file ?line ?base-data]
+             :or   {config 'taoensso.timbre/*config*
+                    ?err   :auto ; => Extract as err-type a0
+                    ?file  (let [f *file*] (when (not= f "NO_SOURCE_PATH") f))
+                    ;; TODO Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
+                    ?line  (:line (meta &form))}} opts]
+        `(-log! ~config ~level ~?ns-str ~?file ~?line ~msg-type ~?err
            (delay [~@args]) ~?base-data)))))
 
-;;;; API-level stuff
+(comment
+  (log! :info :p ["foo"])
+  (macroexpand '(log! :info :p ["foo"]))
+  (macroexpand '(log! :info :p ["foo"] {:?line 42})))
+
+;;;; Main public API-level stuff
 
 ;;; Log using print-style args
-(defmacro log* [config level & args] `(log1-macro ~config  ~level  :p ~args))
-(defmacro log         [level & args] `(log1-macro *config* ~level  :p ~args))
-(defmacro trace             [& args] `(log1-macro *config* :trace  :p ~args))
-(defmacro debug             [& args] `(log1-macro *config* :debug  :p ~args))
-(defmacro info              [& args] `(log1-macro *config* :info   :p ~args))
-(defmacro warn              [& args] `(log1-macro *config* :warn   :p ~args))
-(defmacro error             [& args] `(log1-macro *config* :error  :p ~args))
-(defmacro fatal             [& args] `(log1-macro *config* :fatal  :p ~args))
-(defmacro report            [& args] `(log1-macro *config* :report :p ~args))
+(defmacro log* [config level & args] `(log! ~level  :p ~args {:config ~config}))
+(defmacro log         [level & args] `(log! ~level  :p ~args))
+(defmacro trace             [& args] `(log! :trace  :p ~args))
+(defmacro debug             [& args] `(log! :debug  :p ~args))
+(defmacro info              [& args] `(log! :info   :p ~args))
+(defmacro warn              [& args] `(log! :warn   :p ~args))
+(defmacro error             [& args] `(log! :error  :p ~args))
+(defmacro fatal             [& args] `(log! :fatal  :p ~args))
+(defmacro report            [& args] `(log! :report :p ~args))
 
 ;;; Log using format-style args
-(defmacro logf* [config level & args] `(log1-macro ~config  ~level  :f ~args))
-(defmacro logf         [level & args] `(log1-macro *config* ~level  :f ~args))
-(defmacro tracef             [& args] `(log1-macro *config* :trace  :f ~args))
-(defmacro debugf             [& args] `(log1-macro *config* :debug  :f ~args))
-(defmacro infof              [& args] `(log1-macro *config* :info   :f ~args))
-(defmacro warnf              [& args] `(log1-macro *config* :warn   :f ~args))
-(defmacro errorf             [& args] `(log1-macro *config* :error  :f ~args))
-(defmacro fatalf             [& args] `(log1-macro *config* :fatal  :f ~args))
-(defmacro reportf            [& args] `(log1-macro *config* :report :f ~args))
+(defmacro logf* [config level & args] `(log! ~level  :f ~args {:config ~config}))
+(defmacro logf         [level & args] `(log! ~level  :f ~args))
+(defmacro tracef             [& args] `(log! :trace  :f ~args))
+(defmacro debugf             [& args] `(log! :debug  :f ~args))
+(defmacro infof              [& args] `(log! :info   :f ~args))
+(defmacro warnf              [& args] `(log! :warn   :f ~args))
+(defmacro errorf             [& args] `(log! :error  :f ~args))
+(defmacro fatalf             [& args] `(log! :fatal  :f ~args))
+(defmacro reportf            [& args] `(log! :report :f ~args))
 
 (comment
   (infof "hello %s" "world")
