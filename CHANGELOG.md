@@ -1,10 +1,17 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
-## Pending
+## v4.3.0-RC1 / 2016 Jan 27
+
+> This is a non-breaking feature release
 
 * **New**: added 3rd-party gelf appender [#147 @davewo]
-* **Implementation**: appenders no longer need to worry about using `force` instead of `@`/`deref`
+* **New**: new `:?hash-arg` data key for use by custom data hash fns
+* **New**: low-level `log!` macro for use in tooling (slf4j-timbre, etc.)
+* **Impln**: appenders no longer need to worry about using `force` instead of `@`/`deref`
 
+```clojure
+[com.taoensso/timbre "4.3.0"]
+```
 
 
 ## v4.2.1 / 2016 Jan 14

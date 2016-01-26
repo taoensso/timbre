@@ -5,7 +5,8 @@
 **[CHANGELOG]** | [API] | current [Break Version]:
 
 ```clojure
-[com.taoensso/timbre "4.2.1"] ; Stable
+[com.taoensso/timbre "4.2.1"]     ; Stable
+[com.taoensso/timbre "4.3.0-RC1"] ; Dev, see CHANGELOG for details
 ```
 
 # Timbre
