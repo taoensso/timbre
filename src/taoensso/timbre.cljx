@@ -18,8 +18,8 @@
   (:require-macros [taoensso.timbre :as timbre-macros :refer ()]))
 
 (if (vector? taoensso.encore/encore-version)
-  (enc/assert-min-encore-version [2 32 0])
-  (enc/assert-min-encore-version  2.32))
+  (enc/assert-min-encore-version [2 33 0])
+  (enc/assert-min-encore-version  2.33))
 
 ;;;; Config
 
@@ -223,6 +223,10 @@
 
 ;;;; Utils
 
+(declare get-hostname)
+
+(defn- ->delay [x] (if (delay? x) x (delay x)))
+
 (enc/compile-if (do enc/str-join true) ; Encore v2.29.1+ with transducers
   (defn- str-join [xs]
     (enc/str-join " "
@@ -240,25 +244,14 @@
   (defrecord MyRec [x])
   (str-join ["foo" (MyRec. "foo")]))
 
-(defn- ->delay [x] (if (delay? x) x (delay x)))
-(defn- vsplit-err1 [[v1 :as v]] (if-not (enc/error? v1) [nil v] (enc/vsplit-first v)))
-(comment
-  (vsplit-err1 [:a :b :c])
-  (vsplit-err1 [(Exception.) :a :b :c]))
-
 (defn default-data-hash-fn
   "Used for rate limiters, some appenders (e.g. Carmine), etc.
   Goal: (hash data-1) = (hash data-2) iff data-1 \"the same\" as data-2 for
   rate-limiting purposes, etc."
   [data]
-  (let [{:keys [?ns-str ?line vargs_]} data
-        vargs @vargs_]
-    (str
-      (or (enc/rsome #(and (map? %) (:timbre/hash %)) vargs) ; Explicit hash given
-          #_[?ns-str ?line] ; TODO Waiting on http://goo.gl/cVVAYA
-          [?ns-str vargs]))))
-
-(comment (default-data-hash-fn {}))
+  (let [{:keys [?hash-arg ?ns-str ?line vargs_]} data]
+    (str (or ?hash-arg ; An explicit hash given as a0
+             [?ns-str (or ?line @vargs_)]))))
 
 #+clj
 (enc/defonce* ^:private get-agent
@@ -271,12 +264,33 @@
 
 (comment (def rf (get-rate-limiter :my-appender [[10 5000]])))
 
+(defn- inherit-over [k appender config default]
+  (or
+    (let [a (get appender k)] (when-not (enc/kw-identical? a :inherit) a))
+    (get config k)
+    default))
+
+(defn- inherit-into [k appender config default]
+  (merge default
+    (get config k)
+    (let [a (get appender k)] (when-not (enc/kw-identical? a :inherit) a))))
+
+(comment
+  (inherit-over :foo {:foo :inherit} {:foo :bar} nil)
+  (inherit-into :foo {:foo {:a :A :b :B :c :C}} {:foo {:a 1 :b 2 :c 3 :d 4}} nil))
+
 ;;;; Internal logging core
 
+(def ^:dynamic *context*
+  "General-purpose dynamic logging context. Context will be included in appender
+  data map at logging time." nil)
+
+(defmacro with-context [context & body] `(binding [*context* ~context] ~@body))
+
 (defn log?
-  "Would Timbre currently (runtime) log at the given logging level?
+  "Runtime check: would Timbre currently log at the given logging level?
     * `?ns-str` arg required to support ns filtering
-    * `config` arg required to support non-global config"
+    * `config`  arg required to support non-global config"
   ([level               ] (log? level nil     nil))
   ([level ?ns-str       ] (log? level ?ns-str nil))
   ([level ?ns-str config]
@@ -307,57 +321,60 @@
     (qb 10000 (info "foo"))) ; ~218ms ; Time to output ready
   )
 
-(def ^:dynamic *context*
-  "General-purpose dynamic logging context. Context will be included in appender
-  data map at logging time." nil)
+(defn- vargs->margs "Processes vargs to extract special a0s"
+  [vargs a0-err?]
+  (let [[v0 :as v] vargs
+        [?err v]
+        (if (and a0-err? (enc/error? v0))
+          [v0 (enc/vnext v)]
+          [nil v])
 
-(defmacro with-context [context & body] `(binding [*context* ~context] ~@body))
+        [v0 :as v] v
+        [?hash-arg v]
+        (if (and (map? v0) (contains? v0 :timbre/hash))
+          [(:timbre/hash v0) (enc/vnext v)]
+          [nil v])]
 
-(declare get-hostname)
-
-(defn- inherit-over [k appender config default]
-  (or
-    (let [a (get appender k)] (when-not (enc/kw-identical? a :inherit) a))
-    (get config k)
-    default))
-
-(defn- inherit-into [k appender config default]
-  (merge default
-    (get config k)
-    (let [a (get appender k)] (when-not (enc/kw-identical? a :inherit) a))))
+    {:?err ?err :?hash-arg ?hash-arg :vargs v}))
 
 (comment
-  (inherit-over :foo {:foo :inherit} {:foo :bar} nil)
-  (inherit-into :foo {:foo {:a :A :b :B :c :C}} {:foo {:a 1 :b 2 :c 3 :d 4}} nil))
+  (vargs->margs [:a :b :c]                true)
+  (vargs->margs [(Exception. "ex") :b :c] true)
 
-(defn -log! "Core low-level log fn. Implementation detail."
+  (infof {:timbre/hash :bar} "Hi %s" "steve")
+  (infof "Hi %s" "steve"))
+
+(defn -log! "Core low-level log fn. Implementation detail!"
   [config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data]
   (when (log? level ?ns-str config) ; Runtime check
-    (let [instant   (enc/now-dt)
-          ;; vargs_ (->delay vargs_)
+    (let [instant    (enc/now-dt)
+          ;; vargs_  (->delay vargs_) ; Should be safe w/o
+          context    *context*
 
-          ;; Extract ?err as err-type a0 in vargs?:
-          a0-err? (enc/kw-identical? ?err :auto)
-          vargs*_ (if a0-err? (delay (vsplit-err1 @vargs_)) vargs_)
-          ?err_   (if a0-err? (delay (get @vargs*_ 0)) (delay ?err))
-          vargs_  (if a0-err? (delay (get @vargs*_ 1)) vargs_)
+          a0-err?    (enc/kw-identical? ?err :auto)
+          margs_     (delay (vargs->margs @vargs_ a0-err?))
+          ?err_      (delay (if a0-err? (:?err      @margs_) ?err))
+          ?hash-arg_ (delay             (:?hash-arg @margs_))
+          vargs_     (delay             (:vargs     @margs_))
 
-          context *context*
-          data    (merge ?base-data
-                    ;; No, better nest than merge (appenders may want to pass
-                    ;; along arb context w/o knowing context keys, etc.):
-                    (when (map? context) context) ; DEPRECATED, for back compat
-                    {:config  config ; Entire config!
-                     :context context
-                     :instant instant
-                     :level   level
-                     :?ns-str ?ns-str
-                     :?file   ?file
-                     :?line   ?line
-                     :?err_   ?err_
-                     :vargs_  vargs_
-                     #+clj :hostname_ #+clj (delay (get-hostname))
-                     :error-level? (#{:error :fatal} level)})
+          data
+          (merge ?base-data
+            ;; No, better nest than merge (appenders may want to pass
+            ;; along arb context w/o knowing context keys, etc.):
+            (when (map? context) context) ; DEPRECATED, for back compat
+            {:config     config ; Entire config!
+             :context    context
+             :instant    instant
+             :level      level
+             :?ns-str    ?ns-str
+             :?file      ?file
+             :?line      ?line
+             :?err_      ?err_
+             :?hash-arg_ ?hash-arg_
+             :vargs_     vargs_
+             #+clj :hostname_ #+clj (delay (get-hostname))
+             :error-level? (#{:error :fatal} level)})
+
           msg-fn
           (fn [vargs_] ; For use *after* middleware, etc.
             (when-not (nil? msg-type)
@@ -366,6 +383,7 @@
                   :p (str-join vargs)
                   :f (let [[fmt args] (enc/vsplit-first vargs)]
                        (enc/format* fmt args))))))
+
           ?data
           (reduce ; Apply middleware: data->?data
             (fn [acc mf]
@@ -374,7 +392,17 @@
                   (reduced nil)
                   result)))
             data
-            (:middleware config))]
+            (:middleware config))
+
+          ;; As a convenience to appenders, make sure that middleware
+          ;; hasn't replaced any delays with non-delays
+          ?data
+          (when-let [data ?data] ; Not filtered by middleware
+            (merge data
+              {:?err_                 (->delay (:?err_      data))
+               :?hash-arg_            (->delay (:?hash-arg_ data))
+               :vargs_                (->delay (:vargs_     data))
+               #+clj :hostname_ #+clj (->delay (:hostname_  data))}))]
 
       (when-let [data ?data] ; Not filtered by middleware
         (reduce-kv
@@ -382,15 +410,7 @@
             (when (and (:enabled? appender)
                        (level>= level (or (:min-level appender) :trace)))
 
-              (let [;; As a convenience to appenders, make sure that middleware
-                    ;; hasn't replaced any delays with non-delays
-                    data
-                    (merge data
-                      {:?err_                 (->delay (:?err_     data))
-                       :vargs_                (->delay (:vargs_    data))
-                       #+clj :hostname_ #+clj (->delay (:hostname_ data))})
-
-                    rate-limit-specs (:rate-limit appender)
+              (let [rate-limit-specs (:rate-limit appender)
                     data-hash-fn (inherit-over :data-hash-fn appender config
                                    default-data-hash-fn)
                     rate-limit-okay?
