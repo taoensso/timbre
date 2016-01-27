@@ -57,10 +57,10 @@
            entry      (merge
                         {:instant instant
                          :level   level
-                         :?ns-str         (:?ns-str       data)
-                         :hostname (force (:hostname_     data))
-                         :vargs    (force (:vargs_        data))
-                         :?err     (force (:?err_         data))}
+                         :?ns-str   (:?ns-str       data)
+                         :hostname @(:hostname_     data)
+                         :vargs    @(:vargs_        data)
+                         :?err     @(:?err_         data)}
                         (when-let [pstats (:profile-stats data)]
                           {:profile-stats pstats}))
 

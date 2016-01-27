@@ -18,8 +18,8 @@
   (:require-macros [taoensso.timbre :as timbre-macros :refer ()]))
 
 (if (vector? taoensso.encore/encore-version)
-  (enc/assert-min-encore-version [2 31 3])
-  (enc/assert-min-encore-version  2.31))
+  (enc/assert-min-encore-version [2 33 0])
+  (enc/assert-min-encore-version  2.33))
 
 ;;;; Config
 
@@ -38,13 +38,13 @@
   ([{:keys [no-stacktrace? stacktrace-fonts] :as opts} data]
    (let [{:keys [level ?err_ vargs_ msg_ ?ns-str hostname_ timestamp_]} data]
      (str
-       #+clj (force timestamp_) #+clj " "
-       #+clj (force hostname_)  #+clj " "
+       #+clj @timestamp_ #+clj " "
+       #+clj @hostname_  #+clj " "
        (str/upper-case (name level))  " "
        "[" (or ?ns-str "?ns") "] - "
-       (force msg_)
+       @msg_
        (when-not no-stacktrace?
-         (when-let [err (force ?err_)]
+         (when-let [err @?err_]
            (str "\n" (stacktrace err opts))))))))
 
 ;;; Alias core appenders here for user convenience
@@ -202,6 +202,7 @@
   "(fn [whitelist blacklist ns]) -> ?unfiltered-ns"
   (enc/memoize_
     (fn [whitelist blacklist ns]
+      {:pre [(have? string? ns)]}
       ((compile-ns-filters whitelist blacklist) ns))))
 
 (comment (qb 10000 (ns-filter ["foo.*"] ["foo.baz"] "foo.bar")))
@@ -218,9 +219,13 @@
     (when blacklist
       (println (str "Compile-time (elision) Timbre ns blacklist: " blacklist)))
 
-    (partial ns-filter whitelist blacklist)))
+    (fn [ns] (ns-filter whitelist blacklist ns))))
 
 ;;;; Utils
+
+(declare get-hostname)
+
+(defn- ->delay [x] (if (delay? x) x (delay x)))
 
 (enc/compile-if (do enc/str-join true) ; Encore v2.29.1+ with transducers
   (defn- str-join [xs]
@@ -239,25 +244,14 @@
   (defrecord MyRec [x])
   (str-join ["foo" (MyRec. "foo")]))
 
-(defn- ->delay [x] (if (delay? x) x (delay x)))
-(defn- vsplit-err1 [[v1 :as v]] (if-not (enc/error? v1) [nil v] (enc/vsplit-first v)))
-(comment
-  (vsplit-err1 [:a :b :c])
-  (vsplit-err1 [(Exception.) :a :b :c]))
-
 (defn default-data-hash-fn
   "Used for rate limiters, some appenders (e.g. Carmine), etc.
   Goal: (hash data-1) = (hash data-2) iff data-1 \"the same\" as data-2 for
   rate-limiting purposes, etc."
   [data]
-  (let [{:keys [?ns-str ?line vargs_]} data
-        vargs (force vargs_)]
-    (str
-      (or (some #(and (map? %) (:timbre/hash %)) vargs) ; Explicit hash given
-          #_[?ns-str ?line] ; TODO Waiting on http://goo.gl/cVVAYA
-          [?ns-str vargs]))))
-
-(comment (default-data-hash-fn {}))
+  (let [{:keys [?hash-arg ?ns-str ?line vargs_]} data]
+    (str (or ?hash-arg ; An explicit hash given as a0
+             [?ns-str (or ?line @vargs_)]))))
 
 #+clj
 (enc/defonce* ^:private get-agent
@@ -270,18 +264,42 @@
 
 (comment (def rf (get-rate-limiter :my-appender [[10 5000]])))
 
+(defn- inherit-over [k appender config default]
+  (or
+    (let [a (get appender k)] (when-not (enc/kw-identical? a :inherit) a))
+    (get config k)
+    default))
+
+(defn- inherit-into [k appender config default]
+  (merge default
+    (get config k)
+    (let [a (get appender k)] (when-not (enc/kw-identical? a :inherit) a))))
+
+(comment
+  (inherit-over :foo {:foo :inherit} {:foo :bar} nil)
+  (inherit-into :foo {:foo {:a :A :b :B :c :C}} {:foo {:a 1 :b 2 :c 3 :d 4}} nil))
+
 ;;;; Internal logging core
 
+(def ^:dynamic *context*
+  "General-purpose dynamic logging context. Context will be included in appender
+  data map at logging time." nil)
+
+(defmacro with-context [context & body] `(binding [*context* ~context] ~@body))
+
 (defn log?
-  "Would Timbre currently log at the given logging level?
-    * Compile-time `?ns-str` arg required to support ns filtering.
-    * `config` arg required to support non-global config."
-  [level & [?ns-str config]]
-  (let [config (or config *config*)
-        active-level (or (:level config) :report)]
-    (and (level>= level active-level)
-         (ns-filter (:ns-whitelist config) (:ns-blacklist config) (or ?ns-str ""))
-         true)))
+  "Runtime check: would Timbre currently log at the given logging level?
+    * `?ns-str` arg required to support ns filtering
+    * `config`  arg required to support non-global config"
+  ([level               ] (log? level nil     nil))
+  ([level ?ns-str       ] (log? level ?ns-str nil))
+  ([level ?ns-str config]
+   (let [config       (or config *config*)
+         active-level (or (:level config) :report)]
+     (and
+       (level>= level active-level)
+       (ns-filter (:ns-whitelist config) (:ns-blacklist config) (or ?ns-str ""))
+       true))))
 
 (comment
   (set-level! :debug)
@@ -303,60 +321,69 @@
     (qb 10000 (info "foo"))) ; ~218ms ; Time to output ready
   )
 
-(def ^:dynamic *context*
-  "General-purpose dynamic logging context. Context will be included in appender
-  data map at logging time." nil)
-(defmacro with-context [context & body] `(binding [*context* ~context] ~@body))
+(defn- vargs->margs "Processes vargs to extract special a0s"
+  [vargs a0-err?]
+  (let [[v0 :as v] vargs
+        [?err v]
+        (if (and a0-err? (enc/error? v0))
+          [v0 (enc/vnext v)]
+          [nil v])
 
-(declare get-hostname)
+        [v0 :as v] v
+        [?hash-arg v]
+        (if (and (map? v0) (contains? v0 :timbre/hash))
+          [(:timbre/hash v0) (enc/vnext v)]
+          [nil v])]
 
-(defn- inherit-over [k appender config default]
-  (or
-    (let [a (get appender k)] (when-not (enc/kw-identical? a :inherit) a))
-    (get config k)
-    default))
-
-(defn- inherit-into [k appender config default]
-  (merge default
-    (get config k)
-    (let [a (get appender k)] (when-not (enc/kw-identical? a :inherit) a))))
+    {:?err ?err :?hash-arg ?hash-arg :vargs v}))
 
 (comment
-  (inherit-over :foo {:foo :inherit} {:foo :bar} nil)
-  (inherit-into :foo {:foo {:a :A :b :B :c :C}} {:foo {:a 1 :b 2 :c 3 :d 4}} nil))
+  (vargs->margs [:a :b :c]                true)
+  (vargs->margs [(Exception. "ex") :b :c] true)
 
-(defn log1-fn
-  "Core fn-level logger. Implementation detail!"
-  [config level ?ns-str ?file ?line msg-type vargs_ ?base-data]
-  (when (log? level ?ns-str config)
-    (let [instant (enc/now-dt)
-          vargs*_ (delay (vsplit-err1 (force vargs_)))
-          ?err_   (delay (get @vargs*_ 0))
-          vargs_  (delay (get @vargs*_ 1))
-          context *context*
-          data    (merge ?base-data
-                    ;; No, better nest than merge (appenders may want to pass
-                    ;; along arb context w/o knowing context keys, etc.):
-                    (when (map? context) context) ; DEPRECATED, for back compat
-                    {:config  config ; Entire config!
-                     :context context
-                     :instant instant
-                     :level   level
-                     :?ns-str ?ns-str
-                     :?file   ?file
-                     :?line   ?line
-                     :?err_   ?err_
-                     :vargs_  vargs_
-                     #+clj :hostname_ #+clj (delay (get-hostname))
-                     :error-level? (#{:error :fatal} level)})
+  (infof {:timbre/hash :bar} "Hi %s" "steve")
+  (infof "Hi %s" "steve"))
+
+(defn -log! "Core low-level log fn. Implementation detail!"
+  [config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data]
+  (when (log? level ?ns-str config) ; Runtime check
+    (let [instant    (enc/now-dt)
+          ;; vargs_  (->delay vargs_) ; Should be safe w/o
+          context    *context*
+
+          a0-err?    (enc/kw-identical? ?err :auto)
+          margs_     (delay (vargs->margs @vargs_ a0-err?))
+          ?err_      (delay (if a0-err? (:?err      @margs_) ?err))
+          ?hash-arg_ (delay             (:?hash-arg @margs_))
+          vargs_     (delay             (:vargs     @margs_))
+
+          data
+          (merge ?base-data
+            ;; No, better nest than merge (appenders may want to pass
+            ;; along arb context w/o knowing context keys, etc.):
+            (when (map? context) context) ; DEPRECATED, for back compat
+            {:config     config ; Entire config!
+             :context    context
+             :instant    instant
+             :level      level
+             :?ns-str    ?ns-str
+             :?file      ?file
+             :?line      ?line
+             :?err_      ?err_
+             :?hash-arg_ ?hash-arg_
+             :vargs_     vargs_
+             #+clj :hostname_ #+clj (delay (get-hostname))
+             :error-level? (#{:error :fatal} level)})
+
           msg-fn
           (fn [vargs_] ; For use *after* middleware, etc.
             (when-not (nil? msg-type)
-              (when-let [vargs (have [:or nil? vector?] (force vargs_))]
+              (when-let [vargs (have [:or nil? vector?] @vargs_)]
                 (case msg-type
                   :p (str-join vargs)
                   :f (let [[fmt args] (enc/vsplit-first vargs)]
                        (enc/format* fmt args))))))
+
           ?data
           (reduce ; Apply middleware: data->?data
             (fn [acc mf]
@@ -365,7 +392,17 @@
                   (reduced nil)
                   result)))
             data
-            (:middleware config))]
+            (:middleware config))
+
+          ;; As a convenience to appenders, make sure that middleware
+          ;; hasn't replaced any delays with non-delays
+          ?data
+          (when-let [data ?data] ; Not filtered by middleware
+            (merge data
+              {:?err_                 (->delay (:?err_      data))
+               :?hash-arg_            (->delay (:?hash-arg_ data))
+               :vargs_                (->delay (:vargs_     data))
+               #+clj :hostname_ #+clj (->delay (:hostname_  data))}))]
 
       (when-let [data ?data] ; Not filtered by middleware
         (reduce-kv
@@ -419,49 +456,76 @@
   nil)
 
 (comment
-  (log1-fn *config* :info nil nil nil :p (delay [(do (println "hi") :x) :y]) nil))
+  (-log! *config* :info nil nil nil :p :auto
+    (delay [(do (println "hi") :x) :y]) nil))
 
-(defmacro log1-macro
-  "Core macro-level logger. Implementation detail!"
-  [config level msg-type args & [?base-data]]
-
-  ;; Compile-time elision:
+(defmacro -with-elision
+  "Implementation detail.
+  Executes body iff given level and ns pass compile-time elision."
+  [level-form ns-str-form & body]
   (when (or (nil? compile-time-level)
-            (not (valid-levels level)) ; Not a compile-time level
-            (level>= level compile-time-level))
+            (not (valid-levels level-form)) ; Not a compile-time level const
+            (level>= level-form compile-time-level))
 
-    (when (compile-time-ns-filter (str *ns*))
+    (when (or (not (string? ns-str-form)) ; Not a compile-time ns-str const
+              (compile-time-ns-filter ns-str-form))
+      `(do ~@body))))
 
-      (let [ns-str (str *ns*)
-            ?file  (let [f *file*] (when (not= f "NO_SOURCE_PATH") f))
-            ;; TODO Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
-            ?line  (:line (meta &form))]
-        `(log1-fn ~config ~level ~ns-str ~?file ~?line ~msg-type
+(comment (-with-elision :info "ns" (println "foo")))
+
+(defmacro log! ; Public wrapper around `-log!`
+  "Core low-level log macro. Useful for tooling, etc.
+
+    * `level`    - must eval to a valid logging level
+    * `msg-type` - must eval to e/o #{:p :f nil}
+    * `opts`     - ks e/o #{:config :?err :?ns-str :?file :?line
+                            :?base-data}
+
+  Supports compile-time elision when compile-time const vals
+  provided for `level` and/or `?ns-str`."
+  [level msg-type args & [opts]]
+  (have sequential? args) ; To allow -> (delay [~@args])
+  (let [{:keys [?ns-str] :or {?ns-str (str *ns*)}} opts]
+    (-with-elision
+      level   ; level-form  (may/not be a compile-time kw const)
+      ?ns-str ; ns-str-form (may/not be a compile-time str const)
+      (let [{:keys [config ?err ?file ?line ?base-data]
+             :or   {config 'taoensso.timbre/*config*
+                    ?err   :auto ; => Extract as err-type a0
+                    ?file  (let [f *file*] (when (not= f "NO_SOURCE_PATH") f))
+                    ;; TODO Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
+                    ?line  (:line (meta &form))}} opts]
+        `(-log! ~config ~level ~?ns-str ~?file ~?line ~msg-type ~?err
            (delay [~@args]) ~?base-data)))))
 
-;;;; API-level stuff
+(comment
+  (log! :info :p ["foo"])
+  (macroexpand '(log! :info :p ["foo"]))
+  (macroexpand '(log! :info :p ["foo"] {:?line 42})))
+
+;;;; Main public API-level stuff
 
 ;;; Log using print-style args
-(defmacro log* [config level & args] `(log1-macro ~config  ~level  :p ~args))
-(defmacro log         [level & args] `(log1-macro *config* ~level  :p ~args))
-(defmacro trace             [& args] `(log1-macro *config* :trace  :p ~args))
-(defmacro debug             [& args] `(log1-macro *config* :debug  :p ~args))
-(defmacro info              [& args] `(log1-macro *config* :info   :p ~args))
-(defmacro warn              [& args] `(log1-macro *config* :warn   :p ~args))
-(defmacro error             [& args] `(log1-macro *config* :error  :p ~args))
-(defmacro fatal             [& args] `(log1-macro *config* :fatal  :p ~args))
-(defmacro report            [& args] `(log1-macro *config* :report :p ~args))
+(defmacro log* [config level & args] `(log! ~level  :p ~args {:config ~config}))
+(defmacro log         [level & args] `(log! ~level  :p ~args))
+(defmacro trace             [& args] `(log! :trace  :p ~args))
+(defmacro debug             [& args] `(log! :debug  :p ~args))
+(defmacro info              [& args] `(log! :info   :p ~args))
+(defmacro warn              [& args] `(log! :warn   :p ~args))
+(defmacro error             [& args] `(log! :error  :p ~args))
+(defmacro fatal             [& args] `(log! :fatal  :p ~args))
+(defmacro report            [& args] `(log! :report :p ~args))
 
 ;;; Log using format-style args
-(defmacro logf* [config level & args] `(log1-macro ~config  ~level  :f ~args))
-(defmacro logf         [level & args] `(log1-macro *config* ~level  :f ~args))
-(defmacro tracef             [& args] `(log1-macro *config* :trace  :f ~args))
-(defmacro debugf             [& args] `(log1-macro *config* :debug  :f ~args))
-(defmacro infof              [& args] `(log1-macro *config* :info   :f ~args))
-(defmacro warnf              [& args] `(log1-macro *config* :warn   :f ~args))
-(defmacro errorf             [& args] `(log1-macro *config* :error  :f ~args))
-(defmacro fatalf             [& args] `(log1-macro *config* :fatal  :f ~args))
-(defmacro reportf            [& args] `(log1-macro *config* :report :f ~args))
+(defmacro logf* [config level & args] `(log! ~level  :f ~args {:config ~config}))
+(defmacro logf         [level & args] `(log! ~level  :f ~args))
+(defmacro tracef             [& args] `(log! :trace  :f ~args))
+(defmacro debugf             [& args] `(log! :debug  :f ~args))
+(defmacro infof              [& args] `(log! :info   :f ~args))
+(defmacro warnf              [& args] `(log! :warn   :f ~args))
+(defmacro errorf             [& args] `(log! :error  :f ~args))
+(defmacro fatalf             [& args] `(log! :fatal  :f ~args))
+(defmacro reportf            [& args] `(log! :report :f ~args))
 
 (comment
   (infof "hello %s" "world")

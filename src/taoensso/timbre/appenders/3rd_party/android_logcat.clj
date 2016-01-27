@@ -20,9 +20,9 @@
    (fn [data]
      (let [{:keys [level timestamp_ msg_]} data]
        (str
-         (force timestamp_) " "
+         @timestamp_ " "
          (str/upper-case (name level))  " "
-         (force msg_))))
+         @msg_)))
 
    :fn
    (fn [data]
@@ -30,7 +30,7 @@
            ns         (str ?ns-str "")
            output-str (output-fn data)]
 
-       (if-let [throwable (force ?err_)]
+       (if-let [throwable @?err_]
          (case level
            :trace  (android.util.Log/d ns output-str throwable)
            :debug  (android.util.Log/d ns output-str throwable)

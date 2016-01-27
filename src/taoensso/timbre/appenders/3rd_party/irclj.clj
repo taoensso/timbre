@@ -46,8 +46,8 @@
        (let [{:keys [level ?err_ msg_]}]
          (format "[%s] %s%s"
            (-> level name (str/upper-case))
-           (or (force msg_) "")
-           (if-let [err (force ?err_)]
+           (or @msg_ "")
+           (if-let [err @?err_]
              (str "\n" (timbre/stacktrace err))
              ""))))
 
