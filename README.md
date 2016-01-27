@@ -50,7 +50,6 @@ Add the necessary dependency to your project:
 And setup your namespace imports:
 
 ```clojure
-
 (ns my-clj-ns ; Clojure namespace
   (:require
     [taoensso.timbre :as timbre
