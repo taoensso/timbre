@@ -26,7 +26,7 @@ Timbre offers an **all Clojure/Script** alternative that **works out the box**. 
  * **Zero overhead** with **complete Clj+Cljs elision** for compile-time level/ns filters
  * Useful built-in appenders for **out-the-box** Clj+Cljs logging
  * Powerful, easy-to-configure per-appender **rate limits** and **async logging**
- * [Logs as Clojure values] (v3+)
+ * [Logs as Clojure values][] (v3+)
  * [tools.logging] support (optional, useful when integrating with legacy logging systems)
  * Level and ns-filter aware **logging profiler**
  * Small, simple, cross-platform codebase
@@ -88,7 +88,7 @@ By default, Timbre gives you basic `println` and `js/console` (v4+) output at a 
 (trace "This won't print due to insufficient log level") => nil
 ```
 
-First-argument exceptions generate a nicely cleaned-up stack trace using [io.aviso.exception] (Clj only):
+First-argument exceptions generate a nicely cleaned-up stack trace using [io.aviso.exception][] (Clj only):
 
 ```clojure
 (info (Exception. "Oh noes") "arg1" "arg2")
