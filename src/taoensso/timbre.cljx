@@ -160,7 +160,7 @@
 
 (comment (qb 10000 (level>= :info :debug)))
 
-#+clj (defn- env-val [id] (when-let [s (System/getenv id)] (enc/read-edn s)))
+#+clj (defn- env-val [id] (when-let [s (or (System/getProperty id) (System/getenv id))] (enc/read-edn s)))
 #+clj (def ^:private compile-time-level
         (have [:or nil? valid-level]
           (keyword (or (env-val "TIMBRE_LEVEL")
