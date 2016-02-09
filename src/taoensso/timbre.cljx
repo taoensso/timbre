@@ -160,11 +160,17 @@
 
 (comment (qb 10000 (level>= :info :debug)))
 
-#+clj (defn- env-val [id] (when-let [s (or (System/getProperty id) (System/getenv id))] (enc/read-edn s)))
-#+clj (def ^:private compile-time-level
-        (have [:or nil? valid-level]
-          (keyword (or (env-val "TIMBRE_LEVEL")
-                       (env-val "TIMBRE_LOG_LEVEL")))))
+#+clj
+(defn- sys-val [id]
+  (when-let [s (or (System/getProperty id)
+                   (System/getenv      id))]
+    (enc/read-edn s)))
+
+#+clj
+(def ^:private compile-time-level
+  (have [:or nil? valid-level]
+    (keyword (or (sys-val "TIMBRE_LEVEL")
+                 (sys-val "TIMBRE_LOG_LEVEL")))))
 
 ;;;; ns filter
 
@@ -209,8 +215,8 @@
 
 #+clj
 (def ^:private compile-time-ns-filter
-  (let [whitelist (have [:or nil? vector?] (env-val "TIMBRE_NS_WHITELIST"))
-        blacklist (have [:or nil? vector?] (env-val "TIMBRE_NS_BLACKLIST"))]
+  (let [whitelist (have [:or nil? vector?] (sys-val "TIMBRE_NS_WHITELIST"))
+        blacklist (have [:or nil? vector?] (sys-val "TIMBRE_NS_BLACKLIST"))]
 
     (when compile-time-level
       (println (str "Compile-time (elision) Timbre level: " compile-time-level)))
