@@ -12,13 +12,13 @@
 
   :dependencies
   [[org.clojure/clojure "1.5.1"]
-   [com.taoensso/encore "2.33.0"]
-   [io.aviso/pretty     "0.1.21"]]
+   [com.taoensso/encore "2.36.2"]
+   [io.aviso/pretty     "0.1.23"]]
 
   :plugins
   [[lein-pprint  "1.1.2"]
    [lein-ancient "0.6.8"]
-   [lein-codox   "0.9.1"]]
+   [lein-codox   "0.9.4"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
@@ -30,7 +30,7 @@
    :test {:dependencies [[org.clojure/tools.logging "0.3.1"]
 
                          ;; Appender deps
-                         [com.taoensso/nippy   "2.10.0"]
+                         [com.taoensso/nippy   "2.11.1"]
                          [com.taoensso/carmine "2.12.2"]
                          [com.draines/postal   "1.11.4"]
                          [irclj                "0.5.0-alpha4"]
