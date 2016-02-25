@@ -135,32 +135,52 @@
 
 #+cljs
 (defn console-?appender
-  "Returns a simple js/console appender for ClojureScript, or nil if no
-  js/console exists."
-  []
-  (when-let [have-logger? (and (exists? js/console) (.-log js/console))]
-    (let [have-warn-logger?  (.-warn  js/console)
-          have-error-logger? (.-error js/console)
-          level->logger {:fatal (if have-error-logger? :error :info)
-                         :error (if have-error-logger? :error :info)
-                         :warn  (if have-warn-logger?  :warn  :info)}]
-      {:enabled?   true
-       :async?     false
-       :min-level  nil
-       :rate-limit nil
-       :output-fn  :inherit
-       :fn
+  "Returns a simple js/console appender for ClojureScript.
+
+  For accurate line numbers in Chrome, add these Blackbox[1] patterns:
+    `/taoensso/timbre/appenders/core\\.js$`
+    `/taoensso/timbre\\.js$`
+    `/cljs/core\\.js$`
+
+  [1] Ref. https://goo.gl/ZejSvR"
+
+  ;; TODO Any way of using something like `Function.prototype.bind`
+  ;; (Ref. https://goo.gl/JQKY2V) to get accurate line numbers in all browsers
+  ;; w/o the need for Blackboxing?
+
+  [& [{:keys [raw-output?]} ; Undocumented (experimental)
+      ]]
+  {:enabled?   true
+   :async?     false
+   :min-level  nil
+   :rate-limit nil
+   :output-fn  :inherit
+   :fn
+   (if (and (exists? js/console) js/console.log)
+     (let [level->logger
+           {:trace  (or js/console.trace js/console.log)
+            :debug  (or js/console.debug js/console.log)
+            :info   (or js/console.info  js/console.log)
+            :warn   (or js/console.warn  js/console.log)
+            :error  (or js/console.error js/console.log)
+            :fatal  (or js/console.error js/console.log)
+            :report (or js/console.info  js/console.log)}]
+
        (fn [data]
          (let [{:keys [level output-fn vargs_]} data
                vargs      @vargs_
                [v1 vnext] (enc/vsplit-first vargs)
-               output     (if (= v1 :timbre/raw)
-                            (into-array vnext)
-                            (output-fn data))]
+               logger     (level->logger level js/console.log)]
 
-           (case (level->logger level)
-             :error (.error js/console output)
-             :warn  (.warn  js/console output)
-                    (.log   js/console output))))})))
+           (if (or raw-output? (= v1 :timbre/raw)) ; Undocumented
+             (let [output (output-fn (merge data {:msg_  (delay "")
+                                                  :?err_ (delay nil)}))
+                   ;; [<output> <raw-error> <raw-arg1> <raw-arg2> ...]:
+                   args (->> vnext (cons @(:?err_ data)) (cons output))]
+
+               (.apply logger js/console (into-array args)))
+             (.call    logger js/console (output-fn data))))))
+
+     (fn [data] nil))})
 
 (comment (console-?appender))

@@ -36,15 +36,16 @@
   You can modify default options with `(partial default-output-fn <opts-map>)`."
   ([data] (default-output-fn nil data))
   ([{:keys [no-stacktrace? stacktrace-fonts] :as opts} data]
-   (let [{:keys [level ?err_ vargs_ msg_ ?ns-str hostname_ timestamp_]} data]
+   (let [{:keys [level ?err_ vargs_ msg_ ?ns-str hostname_
+                 timestamp_ ?line]} data]
      (str
        #+clj @timestamp_ #+clj " "
        #+clj @hostname_  #+clj " "
        (str/upper-case (name level))  " "
-       "[" (or ?ns-str "?ns") "] - "
-       @msg_
+       "[" (or ?ns-str "?") ":" (or ?line "?") "] - "
+       (force msg_)
        (when-not no-stacktrace?
-         (when-let [err @?err_]
+         (when-let [err (force ?err_)]
            (str "\n" (stacktrace err opts))))))))
 
 ;;; Alias core appenders here for user convenience
