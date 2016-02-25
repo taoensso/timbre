@@ -76,7 +76,7 @@
       :level           ; Keyword
       :error-level?    ; Is level e/o #{:error :fatal}?
       :?ns-str         ; String, or nil
-      :?file           ; String, or nil  ; Waiting on CLJ-865
+      :?file           ; String, or nil
       :?line           ; Integer, or nil ; Waiting on CLJ-865
 
       :?err_           ; Delay - first-arg platform error, or nil
@@ -480,6 +480,8 @@
 
 (comment (-with-elision :info "ns" (println "foo")))
 
+(defn- fline [and-form] (:line (meta and-form)))
+
 (defmacro log! ; Public wrapper around `-log!`
   "Core low-level log macro. Useful for tooling, etc.
 
@@ -499,9 +501,12 @@
       (let [{:keys [config ?err ?file ?line ?base-data]
              :or   {config 'taoensso.timbre/*config*
                     ?err   :auto ; => Extract as err-type a0
-                    ?file  (let [f *file*] (when (not= f "NO_SOURCE_PATH") f))
-                    ;; TODO Waiting on http://dev.clojure.org/jira/browse/CLJ-865:
-                    ?line  (:line (meta &form))}} opts]
+                    ?file  *file*
+                    ;; NB waiting on CLJ-865:
+                    ?line  (fline &form)}} opts
+
+            ?file (when (not= ?file "NO_SOURCE_PATH") ?file)]
+
         `(-log! ~config ~level ~?ns-str ~?file ~?line ~msg-type ~?err
            (delay [~@args]) ~?base-data)))))
 
@@ -511,45 +516,55 @@
   (macroexpand '(log! :info :p ["foo"] {:?line 42})))
 
 ;;;; Main public API-level stuff
+;; TODO Have a bunch of cruft here trying to work around CLJ-865 to some extent
 
 ;;; Log using print-style args
-(defmacro log* [config level & args] `(log! ~level  :p ~args {:config ~config}))
-(defmacro log         [level & args] `(log! ~level  :p ~args))
-(defmacro trace             [& args] `(log! :trace  :p ~args))
-(defmacro debug             [& args] `(log! :debug  :p ~args))
-(defmacro info              [& args] `(log! :info   :p ~args))
-(defmacro warn              [& args] `(log! :warn   :p ~args))
-(defmacro error             [& args] `(log! :error  :p ~args))
-(defmacro fatal             [& args] `(log! :fatal  :p ~args))
-(defmacro report            [& args] `(log! :report :p ~args))
+(defmacro log*  [config level & args] `(log! ~level  :p ~args ~{:?line (fline &form) :config config}))
+(defmacro log          [level & args] `(log! ~level  :p ~args ~{:?line (fline &form)}))
+(defmacro trace              [& args] `(log! :trace  :p ~args ~{:?line (fline &form)}))
+(defmacro debug              [& args] `(log! :debug  :p ~args ~{:?line (fline &form)}))
+(defmacro info               [& args] `(log! :info   :p ~args ~{:?line (fline &form)}))
+(defmacro warn               [& args] `(log! :warn   :p ~args ~{:?line (fline &form)}))
+(defmacro error              [& args] `(log! :error  :p ~args ~{:?line (fline &form)}))
+(defmacro fatal              [& args] `(log! :fatal  :p ~args ~{:?line (fline &form)}))
+(defmacro report             [& args] `(log! :report :p ~args ~{:?line (fline &form)}))
 
 ;;; Log using format-style args
-(defmacro logf* [config level & args] `(log! ~level  :f ~args {:config ~config}))
-(defmacro logf         [level & args] `(log! ~level  :f ~args))
-(defmacro tracef             [& args] `(log! :trace  :f ~args))
-(defmacro debugf             [& args] `(log! :debug  :f ~args))
-(defmacro infof              [& args] `(log! :info   :f ~args))
-(defmacro warnf              [& args] `(log! :warn   :f ~args))
-(defmacro errorf             [& args] `(log! :error  :f ~args))
-(defmacro fatalf             [& args] `(log! :fatal  :f ~args))
-(defmacro reportf            [& args] `(log! :report :f ~args))
+(defmacro logf* [config level & args] `(log! ~level  :f ~args ~{:?line (fline &form) :config config}))
+(defmacro logf         [level & args] `(log! ~level  :f ~args ~{:?line (fline &form)}))
+(defmacro tracef             [& args] `(log! :trace  :f ~args ~{:?line (fline &form)}))
+(defmacro debugf             [& args] `(log! :debug  :f ~args ~{:?line (fline &form)}))
+(defmacro infof              [& args] `(log! :info   :f ~args ~{:?line (fline &form)}))
+(defmacro warnf              [& args] `(log! :warn   :f ~args ~{:?line (fline &form)}))
+(defmacro errorf             [& args] `(log! :error  :f ~args ~{:?line (fline &form)}))
+(defmacro fatalf             [& args] `(log! :fatal  :f ~args ~{:?line (fline &form)}))
+(defmacro reportf            [& args] `(log! :report :f ~args ~{:?line (fline &form)}))
 
 (comment
   (infof "hello %s" "world")
   (infof (Exception.) "hello %s" "world")
   (infof (Exception.)))
 
-(defmacro log-errors [& body]
+(defmacro -log-errors [?line & body]
   `(let [[?result# ?error#] (enc/catch-errors ~@body)]
-     (when-let [e# ?error#] (error e#))
+     (when-let [e# ?error#]
+       ;; (error e#) ; CLJ-865
+       (log! :error :p [e#] ~{:?line ?line}))
      ?result#))
 
-(defmacro log-and-rethrow-errors [& body]
+(defmacro -log-and-rethrow-errors [?line & body]
   `(let [[?result# ?error#] (enc/catch-errors ~@body)]
-     (when-let [e# ?error#] (error e#) (throw e#))
+     (when-let [e# ?error#]
+       ;; (error e#) ; CLJ-865
+       (log! :error :p [e#] ~{:?line ?line})
+       (throw e#))
      ?result#))
 
-(defmacro logged-future [& body] `(future (log-errors ~@body)))
+(defmacro -logged-future [?line & body] `(future (-log-errors ~?line ~@body)))
+
+(defmacro log-errors             [& body] `(-log-errors             ~(fline &form) ~@body))
+(defmacro log-and-rethrow-errors [& body] `(-log-and-rethrow-errors ~(fline &form) ~@body))
+(defmacro logged-future          [& body] `(-logged-future          ~(fline &form) ~@body))
 
 #+clj
 (defn handle-uncaught-jvm-exceptions!
@@ -571,29 +586,26 @@
   (logged-future          (/ 0))
   (handle-uncaught-jvm-exceptions!))
 
+(defmacro -spy [?line config level name expr]
+  `(-log-and-rethrow-errors ~?line
+     (let [result# ~expr]
+       ;; Subject to elision:
+       ;; (log* ~config ~level ~name "=>" result#) ; CLJ-865
+       (log! ~level :p [~name "=>" result#] ~{:?line ?line :config config})
+
+       ;; NOT subject to elision:
+       result#)))
+
 (defmacro spy
   "Evaluates named expression and logs its result. Always returns the result.
   Defaults to :debug logging level and unevaluated expression as name."
-  ([                  expr] `(spy :debug ~expr))
-  ([       level      expr] `(spy ~level '~expr ~expr))
-  ([       level name expr] `(spy *config* ~level ~name ~expr))
-  ([config level name expr]
-   `(log-and-rethrow-errors
-      (let [result# ~expr]
-        (log* ~config ~level ~name "=>" result#) ; Subject to elision
-        result# ; NOT subject to elision
-        ))))
+  ([                  expr] `(-spy ~(fline &form) *config* :debug '~expr ~expr))
+  ([       level      expr] `(-spy ~(fline &form) *config* ~level '~expr ~expr))
+  ([       level name expr] `(-spy ~(fline &form) *config* ~level  ~name ~expr))
+  ([config level name expr] `(-spy ~(fline &form) ~config  ~level  ~name ~expr)))
 
 (defmacro get-env [] `(enc/get-env))
-(defmacro log-env
-  "Logs named &env value.
-  Defaults to :debug logging level and \"&env\" as name."
-  ([                 ] `(log-env :debug))
-  ([       level     ] `(log-env ~level "&env"))
-  ([       level name] `(log-env *config* ~level ~name))
-  ([config level name] `(log* ~config ~level ~name "=>" (get-env))))
-
-(comment ((fn foo [x y] (log-env) (+ x y)) 5 10))
+(comment ((fn foo [x y] (get-env)) 5 10))
 
 #+clj
 (defn refer-timbre
@@ -666,8 +678,13 @@
 
 ;;;; Deprecated
 
-(defn str-println [& xs] (str-join xs))
+(defn logging-enabled? [level compile-time-ns] (log? level (str compile-time-ns)))
+(defn str-println      [& xs] (str-join xs))
 (defmacro with-log-level      [level  & body] `(with-level  ~level  ~@body))
 (defmacro with-logging-config [config & body] `(with-config ~config ~@body))
-(defn logging-enabled? [level compile-time-ns] (log? level (str compile-time-ns)))
 (defmacro logp [& sigs] `(log ~@sigs))
+(defmacro log-env
+  ([                 ] `(log-env :debug))
+  ([       level     ] `(log-env ~level "&env"))
+  ([       level name] `(log-env *config* ~level ~name))
+  ([config level name] `(log* ~config ~level ~name "=>" (get-env))))
