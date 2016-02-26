@@ -53,7 +53,7 @@
 #+clj  (enc/defalias          core-appenders/println-appender)
 #+clj  (enc/defalias          core-appenders/spit-appender)
 #+cljs (def println-appender  core-appenders/println-appender)
-#+cljs (def console-?appender core-appenders/console-?appender)
+#+cljs (def console-appender  core-appenders/console-appender)
 
 (def example-config
   "Example (+default) Timbre v4 config map.
@@ -120,7 +120,7 @@
 
    #+cljs
    {;; :println (println-appender {})
-    :console (console-?appender {})}})
+    :console (console-appender {})}})
 
 (comment
   (set-config! example-config)
@@ -678,6 +678,7 @@
 
 ;;;; Deprecated
 
+#+cljs (def console-?appender core-appenders/console-appender)
 (defn logging-enabled? [level compile-time-ns] (log? level (str compile-time-ns)))
 (defn str-println      [& xs] (str-join xs))
 (defmacro with-log-level      [level  & body] `(with-level  ~level  ~@body))

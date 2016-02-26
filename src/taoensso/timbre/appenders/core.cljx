@@ -1,21 +1,20 @@
 (ns taoensso.timbre.appenders.core
-  "Core Timbre appenders without any special dependency requirements. These can
-  be aliased into the main Timbre ns for convenience."
+  "Core Timbre appenders without any special dependency requirements.
+  These can be aliased into the main Timbre ns for convenience."
   {:author "Peter Taoussanis"}
   #+clj
   (:require
    [clojure.string  :as str]
-   [taoensso.encore :as enc    :refer (have have? qb)])
+   [taoensso.encore :as enc :refer (have have? qb)])
 
   #+cljs
   (:require
    [clojure.string  :as str]
-   [taoensso.encore :as enc    :refer () :refer-macros (have have?)]))
+   [taoensso.encore :as enc :refer-macros (have have?)]))
 
-;;;; TODO
-;; * Simple official rolling spit appender?
+;; TODO Add a simple official rolling spit appender?
 
-;;;; Example appender
+;;;; Example appender ---> (COPY THIS TO MAKE YOUR OWN APPENDER) <---
 
 #_
 (defn example-appender
@@ -134,7 +133,7 @@
 ;;;; js/console appender (cljs only)
 
 #+cljs
-(defn console-?appender
+(defn console-appender
   "Returns a simple js/console appender for ClojureScript.
 
   For accurate line numbers in Chrome, add these Blackbox[1] patterns:
@@ -145,8 +144,8 @@
   [1] Ref. https://goo.gl/ZejSvR"
 
   ;; TODO Any way of using something like `Function.prototype.bind`
-  ;; (Ref. https://goo.gl/JQKY2V) to get accurate line numbers in all browsers
-  ;; w/o the need for Blackboxing?
+  ;; (Ref. https://goo.gl/IZzkQB) to get accurate line numbers in all
+  ;; browsers w/o the need for Blackboxing?
 
   [& [{:keys [raw-output?]} ; Undocumented (experimental)
       ]]
@@ -183,4 +182,8 @@
 
      (fn [data] nil))})
 
-(comment (console-?appender))
+(comment (console-appender))
+
+;;;; Deprecated
+
+#+cljs (def console-?appender "DEPRECATED" console-appender)
