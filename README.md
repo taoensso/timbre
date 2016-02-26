@@ -133,7 +133,7 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
       :level           ; Keyword
       :error-level?    ; Is level e/o #{:error :fatal}?
       :?ns-str         ; String, or nil
-      :?file           ; String, or nil  ; Waiting on CLJ-865
+      :?file           ; String, or nil
       :?line           ; Integer, or nil ; Waiting on CLJ-865
 
       :?err_           ; Delay - first-arg platform error, or nil
@@ -170,18 +170,9 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
    :output-fn default-output-fn ; (fn [data]) -> string
 
    :appenders
-   {:example-println-appender ; Appender id
-     ;; Appender definition (just a map):
-     {:enabled?   true
-      :async?     false
-      :min-level  nil
-      :rate-limit [[1 250] [10 5000]] ; 1/250ms, 10/5s
-      :output-fn  :inherit
-      :fn ; Appender's fn
-      (fn [data]
-        (let [{:keys [output-fn]} data
-              formatted-output-str (output-fn data)]
-          (println formatted-output-str)))}}})
+   {:println (println-appender) ; Default Clj appender (see source for options)
+    :console (console-appender) ; Default Cljs appender (see source for options)
+    }})
 ```
 
 A few things to note:
