@@ -1,18 +1,20 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
-## v4.3.0-RC1 / 2016 Jan 27
+## v4.3.0 / 2016 Feb 26
 
-> This is a non-breaking feature release
+> This is a major, non-breaking feature release
 
 * **New**: added 3rd-party gelf appender [#147 @davewo]
 * **New**: new `:?hash-arg` data key for use by custom data hash fns
 * **New**: low-level `log!` macro for use in tooling (slf4j-timbre, etc.)
+* **New**: allow compile-time log level to be set with system property [#151 @DomKM]
+* **New**: ClojureScript console logger docstring now incl. instructions for Chrome Blackboxing [#132 @danskarda]
+* **New**: include line numbers in default output for non-nested macros [#132]
 * **Impln**: appenders no longer need to worry about using `force` instead of `@`/`deref`
 
 ```clojure
 [com.taoensso/timbre "4.3.0"]
 ```
-
 
 ## v4.2.1 / 2016 Jan 14
 
@@ -23,7 +25,6 @@
 ```clojure
 [com.taoensso/timbre "4.2.1"]
 ```
-
 
 ## v4.2.0 / 2015 Dec 27
 
