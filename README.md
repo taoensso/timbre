@@ -107,13 +107,13 @@ ANSI colors are enabled by default for stacktraces. To turn these off (e.g. for 
 
 ### Configuration
 
-This is the biggest win over Java logging IMO. Here's `timbre/example-config` (also Timbre's default config):
+This is the biggest win over Java logging IMO. **All** of Timbre's behaviour is controlled through a single, simple Clojure map.
 
-> The example below shows config for **Timbre v4**. See [here](https://github.com/ptaoussanis/timbre/tree/v3.4.0#configuration) for an example of **Timbre v3** config.
+> See `timbre/example-config` for Timbre's default config map
 
 ```clojure
 (def example-config
-  "Example (+default) Timbre v4 config map.
+  "An example Timbre v4 config map.
 
   APPENDERS
     An appender is a map with keys:
@@ -132,8 +132,8 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
       :instant         ; Platform date (java.util.Date or js/Date)
       :level           ; Keyword
       :error-level?    ; Is level e/o #{:error :fatal}?
-      :?ns-str         ; String, or nil
-      :?file           ; String, or nil  ; Waiting on CLJ-865
+      :?ns-str         ; String,  or nil
+      :?file           ; String,  or nil
       :?line           ; Integer, or nil ; Waiting on CLJ-865
 
       :?err_           ; Delay - first-arg platform error, or nil
@@ -170,18 +170,21 @@ This is the biggest win over Java logging IMO. Here's `timbre/example-config` (a
    :output-fn default-output-fn ; (fn [data]) -> string
 
    :appenders
-   {:example-println-appender ; Appender id
-     ;; Appender definition (just a map):
-     {:enabled?   true
-      :async?     false
-      :min-level  nil
-      :rate-limit [[1 250] [10 5000]] ; 1/250ms, 10/5s
-      :output-fn  :inherit
-      :fn ; Appender's fn
-      (fn [data]
-        (let [{:keys [output-fn]} data
-              formatted-output-str (output-fn data)]
-          (println formatted-output-str)))}}})
+   {;; The standard println appender:
+    ;; :println (println-appender {:stream :auto})
+
+    :an-example-custom-println-appender
+    ;; Inline appender definition (just a map):
+    {:enabled?   true
+     :async?     false
+     :min-level  nil
+     :rate-limit [[1 250] [10 5000]] ; 1/250ms, 10/5s
+     :output-fn  :inherit
+     :fn ; Appender's (fn [data]) -> side effects
+     (fn [data]
+       (let [{:keys [output-fn]} data
+             formatted-output-str (output-fn data)]
+         (println formatted-output-str)))}}})
 ```
 
 A few things to note:
