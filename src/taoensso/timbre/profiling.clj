@@ -92,9 +92,9 @@
   [level id & body]
   `(let [{result# :result stats# :stats} (with-pdata ~level ~@body)]
      (when stats#
-       (timbre/log1-macro timbre/*config* ~level :f
+       (timbre/log! ~level :f
          ["Profiling: %s\n%s" (fq-keyword ~id) (format-stats stats#)]
-         {:profile-stats stats#}))
+         {:?base-data {:profile-stats stats#}}))
      result#))
 
 (defmacro sampling-profile
