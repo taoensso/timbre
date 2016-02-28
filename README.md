@@ -5,7 +5,7 @@
 **[CHANGELOG]** | [API] | current [Break Version]:
 
 ```clojure
-[com.taoensso/timbre "4.3.0"] ; Stable
+[com.taoensso/timbre "4.3.1"] ; Stable
 ```
 
 # Timbre
@@ -43,7 +43,7 @@ Your link here?          | **PR's welcome!**
 Add the necessary dependency to your project:
 
 ```clojure
-[com.taoensso/timbre "4.3.0"]
+[com.taoensso/timbre "4.3.1"]
 ```
 
 And setup your namespace imports:

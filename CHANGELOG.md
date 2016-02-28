@@ -1,5 +1,13 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.3.1 / 2016 Feb 28
+
+* **Hotfix**: had a removed var in the profiling macro
+
+```clojure
+[com.taoensso/timbre "4.3.1"]
+```
+
 ## v4.3.0 / 2016 Feb 26
 
 > This is a major, non-breaking feature release
