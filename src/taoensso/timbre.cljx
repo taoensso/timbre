@@ -459,7 +459,7 @@
                       #+cljs (apfn data)
                       #+clj  (send-off (get-agent id) (fn [_] (apfn data)))))))))
           nil
-          (enc/clj1098 (:appenders config))))))
+          (:appenders config)))))
   nil)
 
 (comment
