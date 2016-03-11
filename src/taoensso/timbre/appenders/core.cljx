@@ -14,51 +14,6 @@
 
 ;; TODO Add a simple official rolling spit appender?
 
-;;;; Example appender ---> (COPY THIS TO MAKE YOUR OWN APPENDER) <---
-
-#_
-(defn example-appender
-  "Docstring to explain any special opts to influence appender construction,
-  etc. Returns the appender map."
-  [& [{:keys [] :as opts}]]
-
-  {:enabled?   true  ; Please enable by default
-   :async?     false ; Use agent for appender dispatch? Useful for slow dispatch.
-   :min-level  nil   ; nil (no min level), or min logging level keyword
-   ;; :rate-limit nil
-   :rate-limit [[5   (enc/ms :mins  1)] ; 5 calls/min
-                [100 (enc/ms :hours 1)] ; 100 calls/hour
-                ]
-
-   :output-fn :inherit ; or a custom (fn [data]) -> string
-   :fn
-   (fn [data]
-     (let [;; See `timbre/example-config` for info on all available args:
-           {:keys [instant level ?err_ vargs_ output-fn
-                   config   ; Entire Timbre config map in effect
-                   appender ; Entire appender map in effect
-                   ]}
-           data
-
-           ?err  @?err_  ; ?err non-nil iff first given arg was an error
-           vargs @vargs_ ; Vector of raw args (excl. possible first error)
-
-           ;; You'll often want an output string with ns, timestamp, vargs, etc.
-           ;; A (fn [data]) -> string formatter is provided under the :output-fn
-           ;; key, defined as:
-           ;; `(or (:output-fn <this appender's map>)
-           ;;      (:output-fn <user's config map)
-           ;;      timbre/default-output-fn)`
-           ;;
-           ;; Users therefore get a standardized way to control appender ouput
-           ;; formatting for all participating appenders. See
-           ;; `taoensso.timbre/default-output-fn` source for details.
-           ;;
-           output-str (output-fn data)]
-       (println output-str)))})
-
-(comment (merge (example-appender) {:min-level :debug}))
-
 ;;;; Println appender (clj & cljs)
 
 #+clj (enc/declare-remote taoensso.timbre/default-out
