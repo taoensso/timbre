@@ -1,4 +1,4 @@
-(ns cljcyclops.appender.pglog
+(ns taoensso.timbre.appenders.3rd-party.postgresdb
   (:require [clojure.java.jdbc  :as j]
             [environ.core       :refer [env]]
             [taoensso.timbre    :as timbre]
