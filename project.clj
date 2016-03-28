@@ -34,7 +34,8 @@
                          [com.taoensso/carmine "2.12.2"]
                          [com.draines/postal   "1.11.4"]
                          [irclj                "0.5.0-alpha4"]
-                         [org.graylog2/gelfclient "1.3.1"]]}
+                         [org.graylog2/gelfclient "1.3.1"]
+                         [org.julienxx/clj-slack  "0.5.3"]]}
    :dev
    [:1.7 :test
     {:dependencies [[org.clojure/clojurescript "1.7.28"]]
