@@ -1,4 +1,5 @@
 (ns taoensso.timbre.appenders.3rd-party.postgresdb
+  "postgresql database appender"
   (:require [clojure.java.jdbc  :as j]
             [environ.core       :refer [env]]
             [taoensso.timbre    :as timbre]
@@ -37,8 +38,36 @@
 
 (defn pglog-appender
   "Returns a postgresqlDB appender.
-  (pglog-appender
-    {:server {:host \"127.0.0.1\" :port 5432}})"
+  (pglog-appender {:server {:host \"127.0.0.1\" :port 5432}})
+
+  For log table creation and rollback, here are sql ddl script to use:
+
+  CREATE TABLE IF NOT EXISTS logs (
+      log_id bigserial primary key,
+      instant timestamp NOT NULL,
+      level varchar(20) NOT NULL,
+      namespace varchar(50) NOT NULL,
+      hostname varchar(30) NOT NULL,
+      content text NOT NULL,
+      error text NOT NULL
+  );
+
+  DROP TABLE IF EXISTS logs;
+
+  To automate database migration, you can use migratus for Leiningen,
+  or use ragtime for Boot.
+
+  Leiningen migratus (in profiles.clj)
+  ------------------------------------
+  :database-url \"postgresql://<db_username>:<db_password>@<db_servername>:<db_port>/<db_schema>\"
+
+  Boot ragtime (in build.boot)
+  ----------------------------
+  ragtime {:driver-class \"org.postgresql.Driver\"
+           :database (str \"jdbc:postgresql://<dbserver_name>:<db_port>/\"
+                        \"<db_schema>\"
+                        \"?user=<db_usernmae>\"
+                        \"&password=<db_password>\")})"
 
   [db-config]
   {:enabled?   true
