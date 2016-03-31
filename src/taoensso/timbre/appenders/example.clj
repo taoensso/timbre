@@ -2,12 +2,14 @@
   "You can copy this namespace if you'd like a starting template for
   writing your own Timbre appender. PRs for new appenders welcome!
 
+  TODO Please document any dependency GitHub links here
+
   - Peter Taoussanis"
-  {:author "Your Name (@your-github-username)"}
+  {:author "TODO Your Name (@your-github-username)"}
   (:require
    [taoensso.timbre :as timbre]))
 
-;; If you add any special ns imports above, please remember to update
+;; TODO If you add any special ns imports above, please remember to update
 ;; Timbre's `project.clj` to include the necessary dependencies under
 ;; the `:test` profile
 
