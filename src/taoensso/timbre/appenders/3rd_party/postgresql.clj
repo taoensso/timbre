@@ -1,5 +1,5 @@
-(ns taoensso.timbre.appenders.3rd-party.postgresdb
-  "PostgreSQL database appender.
+(ns taoensso.timbre.appenders.3rd-party.postgresql
+  "JDBC PostgreSQL database appender.
   Requires https://github.com/clojure/java.jdbc,
            https://github.com/swaldman/c3p0"
   {:author "Yue Liu (@yuliu-mdsol)"}
@@ -41,7 +41,7 @@
     (jdbc/insert! @conn :logs entry)))
 
 (defn pgsql-appender
-  "Returns a PostgreSQL appender for `clojure.java.jdbc`.
+  "Returns a JDBC PostgreSQL appender.
   (pglog-appender {:server {:host \"127.0.0.1\" :port 5432}})
 
   SQL ddl script for table creation and rollback
