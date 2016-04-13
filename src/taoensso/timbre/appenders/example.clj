@@ -2,9 +2,9 @@
   "You can copy this namespace if you'd like a starting template for
   writing your own Timbre appender. PRs for new appenders welcome!
 
-  TODO Please document any dependency GitHub links here
-
-  - Peter Taoussanis"
+  TODO Please document any dependency GitHub links here, e.g.:
+  Requires https://github.com/clojure/java.jdbc,
+           https://github.com/swaldman/c3p0"
   {:author "TODO Your Name (@your-github-username)"}
   (:require
    [taoensso.timbre :as timbre]))
