@@ -13,11 +13,11 @@
   :dependencies
   [[org.clojure/clojure "1.5.1"]
    [com.taoensso/encore "2.36.2"]
-   [io.aviso/pretty     "0.1.23"]]
+   [io.aviso/pretty     "0.1.26"]]
 
   :plugins
   [[lein-pprint  "1.1.2"]
-   [lein-ancient "0.6.8"]
+   [lein-ancient "0.6.10"]
    [lein-codox   "0.9.4"]]
 
   :profiles
@@ -36,7 +36,7 @@
                          [irclj                "0.5.0-alpha4"]
                          [org.graylog2/gelfclient "1.3.1"]
                          [org.julienxx/clj-slack  "0.5.3"]
-                         [org.clojure/java.jdbc   "0.5.0"]
+                         [org.clojure/java.jdbc   "0.5.8"]
                          [com.mchange/c3p0        "0.9.5.2"]]}
    :dev
    [:1.7 :test
@@ -44,7 +44,7 @@
      :plugins
      [;; These must be in :dev, Ref. https://github.com/lynaghk/cljx/issues/47:
       [com.keminglabs/cljx "0.6.0"]
-      [lein-cljsbuild      "1.1.2"]]}]}
+      [lein-cljsbuild      "1.1.3"]]}]}
 
   ;; :jar-exclusions [#"\.cljx|\.DS_Store"]
   :source-paths ["src" "target/classes"]
