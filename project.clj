@@ -13,8 +13,7 @@
   :dependencies
   [[org.clojure/clojure "1.5.1"]
    [com.taoensso/encore "2.50.0"]
-   [io.aviso/pretty     "0.1.26"]
-   [cheshire            "5.5.0"]]
+   [io.aviso/pretty     "0.1.26"]]
 
   :plugins
   [[lein-pprint  "1.1.2"]
@@ -38,7 +37,8 @@
                          [org.graylog2/gelfclient "1.3.1"]
                          [org.julienxx/clj-slack  "0.5.3"]
                          [org.clojure/java.jdbc   "0.5.8"]
-                         [com.mchange/c3p0        "0.9.5.2"]]}
+                         [com.mchange/c3p0        "0.9.5.2"]
+                         [cheshire                "5.5.0"]]}
    :dev
    [:1.7 :test
     {:dependencies [[org.clojure/clojurescript "1.7.28"]]
