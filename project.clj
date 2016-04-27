@@ -13,7 +13,8 @@
   :dependencies
   [[org.clojure/clojure "1.5.1"]
    [com.taoensso/encore "2.50.0"]
-   [io.aviso/pretty     "0.1.26"]]
+   [io.aviso/pretty     "0.1.26"]
+   [cheshire            "5.5.0"]]
 
   :plugins
   [[lein-pprint  "1.1.2"]
