@@ -6,8 +6,7 @@
   Timbre through tools.logging unless you absolutely must (e.g. you're
   working with a legacy codebase)."
 
-  (:require [clojure.tools.logging]
-            [taoensso.encore :as enc]
+  (:require clojure.tools.logging
             [taoensso.timbre :as timbre]))
 
 (deftype Logger [logger-ns]
