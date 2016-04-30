@@ -20,7 +20,7 @@
     (timbre/log! level :p
       [message] ; No support for pre-msg raw args
       {:config  timbre/*config* ; No support for explicit config
-       :?ns-str nil ; Not provided by tools.logging API
+       :?ns-str (str logger-ns)
        :?file   nil ; ''
        :?line   nil ; ''
        :?err    throwable})))
