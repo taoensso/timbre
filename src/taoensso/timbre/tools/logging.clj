@@ -13,8 +13,8 @@
   clojure.tools.logging.impl/Logger
 
   (enabled? [_ level]
-    ;; No support for explicit config, nor ns filtering:
-    (timbre/log? level))
+    ;; No support for explicit config:
+    (timbre/log? level (str logger-ns)))
 
   (write! [_ level throwable message]
     (timbre/log! level :p
