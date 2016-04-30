@@ -9,17 +9,16 @@
   (:require clojure.tools.logging
             [taoensso.timbre :as timbre]))
 
-(deftype Logger [logger-ns]
+(deftype Logger [logger-ns config]
   clojure.tools.logging.impl/Logger
 
   (enabled? [_ level]
-    ;; No support for explicit config:
-    (timbre/log? level (str logger-ns)))
+    (timbre/log? level (str logger-ns) config))
 
   (write! [_ level throwable message]
     (timbre/log! level :p
       [message] ; No support for pre-msg raw args
-      {:config  timbre/*config* ; No support for explicit config
+      {:config  config
        :?ns-str (str logger-ns)
        :?file   nil ; ''
        :?line   nil ; ''
@@ -30,7 +29,7 @@
   (name [_] "Timbre")
   (get-logger [_ logger-ns]
     (or (get @cache logger-ns)
-        (let [logger (Logger. logger-ns)]
+        (let [logger (Logger. logger-ns timbre/*config*)]
           (swap! cache assoc logger-ns logger)
           logger))))
 
