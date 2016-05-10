@@ -111,24 +111,30 @@
    :output-fn  :inherit
    :fn
    (if (and (exists? js/console) js/console.log)
-     (let [level->logger
-           {:trace  (or js/console.trace js/console.log)
-            :debug  (or js/console.debug js/console.log)
-            :info   (or js/console.info  js/console.log)
-            :warn   (or js/console.warn  js/console.log)
-            :error  (or js/console.error js/console.log)
-            :fatal  (or js/console.error js/console.log)
-            :report (or js/console.info  js/console.log)}]
+     (let [;; Don't cache this; some libs dynamically replace js/console
+           level->logger
+           (fn [level]
+             (or
+               (case level
+                 :trace  js/console.trace
+                 :debug  js/console.debug
+                 :info   js/console.info
+                 :warn   js/console.warn
+                 :error  js/console.error
+                 :fatal  js/console.error
+                 :report js/console.info)
+               js/console.log))]
 
        (fn [data]
          (let [{:keys [level output-fn vargs_]} data
                vargs      @vargs_
                [v1 vnext] (enc/vsplit-first vargs)
-               logger     (level->logger level js/console.log)]
+               logger     (level->logger level)]
 
-           (if (or raw-output? (= v1 :timbre/raw)) ; Undocumented
-             (let [output (output-fn (merge data {:msg_  (delay "")
-                                                  :?err_ (delay nil)}))
+           (if (or raw-output? (enc/kw-identical? v1 :timbre/raw)) ; Undocumented
+             (let [output (output-fn (assoc data
+                                       :msg_  (delay "")
+                                       :?err_ (delay nil)))
                    ;; [<output> <raw-error> <raw-arg1> <raw-arg2> ...]:
                    args (->> vnext (cons @(:?err_ data)) (cons output))]
 
