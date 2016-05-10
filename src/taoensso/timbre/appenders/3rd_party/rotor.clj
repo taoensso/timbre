@@ -55,17 +55,20 @@
    :rate-limit nil
    :output-fn  :inherit
    :fn
-   (fn [data]
-     (let [{:keys [output-fn]} data
-           output-str (output-fn data)]
-       (when-let [log (io/file path)]
-         (try
-           (when-not (.exists log)
-             (io/make-parents log))
-           (when (> (.length log) max-size)
-             (rotate-logs path backlog))
-           (spit path (str (output-fn data) "\n") :append true)
-           (catch java.io.IOException _)))))})
+   (let [lock (Object.)]
+     (fn [data]
+       (let [{:keys [output-fn]} data
+             output-str (output-fn data)]
+           (let [log (io/file path)]
+             (try
+               ;; all the filesystem manipulations are unsafe in the face of concurrency
+               (locking lock
+                 (when-not (.exists log)
+                   (io/make-parents log))
+                 (when (> (.length log) max-size)
+                   (rotate-logs path backlog)))
+               (spit path (str (output-fn data) "\n") :append true)
+               (catch java.io.IOException _))))))})
 
 ;;;; Deprecated
 
