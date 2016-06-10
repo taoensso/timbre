@@ -12,13 +12,13 @@
 
   :dependencies
   [[org.clojure/clojure "1.5.1"]
-   [com.taoensso/encore "2.50.0"]
+   [com.taoensso/encore "2.53.1"]
    [io.aviso/pretty     "0.1.26"]]
 
   :plugins
   [[lein-pprint  "1.1.2"]
    [lein-ancient "0.6.10"]
-   [lein-codox   "0.9.4"]]
+   [lein-codox   "0.9.5"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
@@ -26,7 +26,8 @@
    :1.5  {:dependencies [[org.clojure/clojure "1.5.1"]]}
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
    :1.7  {:dependencies [[org.clojure/clojure "1.7.0"]]}
-   :1.8  {:dependencies [[org.clojure/clojure "1.8.0-RC5"]]}
+   :1.8  {:dependencies [[org.clojure/clojure "1.8.0"]]}
+   :1.9  {:dependencies [[org.clojure/clojure "1.9.0-alpha5"]]}
    :test {:dependencies [[org.clojure/tools.logging "0.3.1"]
 
                          ;; Appender deps
@@ -34,14 +35,14 @@
                          [com.taoensso/carmine "2.12.2"]
                          [com.draines/postal   "1.11.4"]
                          [irclj                "0.5.0-alpha4"]
-                         [org.graylog2/gelfclient "1.3.1"]
-                         [org.julienxx/clj-slack  "0.5.3"]
-                         [org.clojure/java.jdbc   "0.5.8"]
+                         [org.graylog2/gelfclient "1.4.0"]
+                         [org.julienxx/clj-slack  "0.5.4"]
+                         [org.clojure/java.jdbc   "0.6.1"]
                          [com.mchange/c3p0        "0.9.5.2"]
-                         [cheshire                "5.5.0"]]}
+                         [cheshire                "5.6.1"]]}
    :dev
-   [:1.7 :test
-    {:dependencies [[org.clojure/clojurescript "1.7.28"]]
+   [:1.9 :test :server-jvm
+    {:dependencies [[org.clojure/clojurescript "1.9.36"]]
      :plugins
      [;; These must be in :dev, Ref. https://github.com/lynaghk/cljx/issues/47:
       [com.keminglabs/cljx "0.6.0"]
@@ -78,11 +79,11 @@
 
   :aliases
   {"test-all"   ["do" "clean," "cljx" "once,"
-                 "with-profile" "+1.5:+1.6:+1.7:+1.8" "test"
+                 "with-profile" "+1.9:+1.8:+1.7:+1.6:+1.5" "test"
                  "with-profile" "+test" "cljsbuild" "test"]
    "build-once" ["do" "clean," "cljx" "once," "cljsbuild" "once" "main"]
    "deploy-lib" ["do" "build-once," "deploy" "clojars," "install"]
-   "start-dev"  ["with-profile" "+server-jvm" "repl" ":headless"]}
+   "start-dev"  ["with-profile" "+dev" "repl" ":headless"]}
 
   :repositories {"sonatype-oss-public"
                  "https://oss.sonatype.org/content/groups/public/"})
