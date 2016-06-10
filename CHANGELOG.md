@@ -1,5 +1,21 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.4.0 / 2016 Jun 10
+
+```clojure
+[com.taoensso/timbre "4.4.0"]
+```
+
+> This is a **major, non-breaking release**, enjoy :-)
+
+* **New**: Add support for appender-level ns filters [#171]
+* **New**: Add 3rd-party logstash appender [#166 @dfrese]
+* **New**: Add PostgreSQL appender [#160 @yuliu-mdsol]
+* **New**: Add Slack appender [#159 @sbelak]
+* **Fix**: Make rotor appender thread-safe [#168 @mikesperber]
+* **Fix**: Don't cache cljs console appender's `js/console` [#165]
+* **Fix**: Fix surprising `merge-config` nil behaviour [#163]
+
 ## v4.3.1 / 2016 Feb 28
 
 * **Hotfix**: had a removed var in the profiling macro

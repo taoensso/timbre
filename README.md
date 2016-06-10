@@ -5,7 +5,7 @@
 **[CHANGELOG]** | [API] | current [Break Version]:
 
 ```clojure
-[com.taoensso/timbre "4.3.1"] ; Stable
+[com.taoensso/timbre "4.4.0"] ; Stable
 ```
 
 Want to help [support taoensso/open-source]?
@@ -45,7 +45,7 @@ Your link here?          | **PR's welcome!**
 Add the necessary dependency to your project:
 
 ```clojure
-[com.taoensso/timbre "4.3.1"]
+[com.taoensso/timbre "4.4.0"]
 ```
 
 And setup your namespace imports:
@@ -125,6 +125,8 @@ This is the biggest win over Java logging IMO. **All** of Timbre's behaviour is 
       :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil
       :output-fn       ; Optional override for inherited (fn [data]) -> string
       :fn              ; (fn [data]) -> side effects, with keys described below
+      :ns-whitelist    ; Optional, stacks with active config's whitelist
+      :ns-blacklist    ; Optional, stacks with active config's blacklist
 
     An appender's fn takes a single data map with keys:
       :config          ; Entire config map (this map, etc.)

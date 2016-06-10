@@ -7,6 +7,7 @@
            https://github.com/swaldman/c3p0"
   {:author "TODO Your Name (@your-github-username)"}
   (:require
+   [taoensso.encore :as enc]
    [taoensso.timbre :as timbre]))
 
 ;; TODO If you add any special ns imports above, please remember to update

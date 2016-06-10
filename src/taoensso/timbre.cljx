@@ -1,6 +1,6 @@
 (ns taoensso.timbre
   "Simple, flexible logging for Clojure/Script. No XML."
-  {:author "Peter Taoussanis"}
+  {:author "Peter Taoussanis (@ptaoussanis)"}
   #+clj
   (:require
    [clojure.string     :as str]
