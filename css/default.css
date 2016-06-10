@@ -465,11 +465,12 @@ p {
     border: 1px solid #e0e0e0;
     border-radius: 2px;
     padding: 5px 10px;
-    margin: 0 10px;
+    margin: 15px 10px;
 }
 
 pre.deps {
     display: inline-block;
+    margin: 0 10px;
 }
 
 .markdown pre code {
