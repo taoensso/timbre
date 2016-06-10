@@ -66,6 +66,8 @@
       :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil
       :output-fn       ; Optional override for inherited (fn [data]) -> string
       :fn              ; (fn [data]) -> side effects, with keys described below
+      :ns-whitelist    ; Optional, stacks with active config's whitelist
+      :ns-blacklist    ; Optional, stacks with active config's blacklist
 
     An appender's fn takes a single data map with keys:
       :config          ; Entire config map (this map, etc.)
@@ -212,7 +214,9 @@
       {:pre [(have? string? ns)]}
       ((compile-ns-filters whitelist blacklist) ns))))
 
-(comment (qb 10000 (ns-filter ["foo.*"] ["foo.baz"] "foo.bar")))
+(comment
+  (qb 10000 (ns-filter ["foo.*"] ["foo.baz"] "foo.bar"))
+  (ns-filter nil nil ""))
 
 #+clj
 (def ^:private compile-time-ns-filter
@@ -417,47 +421,52 @@
             (when (and (:enabled? appender)
                        (level>= level (or (:min-level appender) :trace)))
 
-              (let [rate-limit-specs (:rate-limit appender)
-                    data-hash-fn (inherit-over :data-hash-fn appender config
-                                   default-data-hash-fn)
-                    rate-limit-okay?
-                    (or (empty? rate-limit-specs)
-                        (let [rl-fn     (get-rate-limiter id rate-limit-specs)
-                              data-hash (data-hash-fn data)]
-                          (not (rl-fn data-hash))))]
+              ;; Appender ns filter stacks with main config's ns filter:
+              (when (ns-filter (:ns-whitelist appender)
+                               (:ns-blacklist appender)
+                               (or ?ns-str ""))
 
-                (when rate-limit-okay?
-                  (let [{:keys [async?] apfn :fn} appender
-                        msg_      (delay (or (msg-fn (:vargs_ data)) #_""))
-                        output-fn (inherit-over :output-fn appender config
-                                    default-output-fn)
+                (let [rate-limit-specs (:rate-limit appender)
+                      data-hash-fn (inherit-over :data-hash-fn appender config
+                                                 default-data-hash-fn)
+                      rate-limit-okay?
+                      (or (empty? rate-limit-specs)
+                          (let [rl-fn     (get-rate-limiter id rate-limit-specs)
+                                data-hash (data-hash-fn data)]
+                            (not (rl-fn data-hash))))]
 
-                        #+clj timestamp_
-                        #+clj
-                        (delay
-                          (let [timestamp-opts (inherit-into :timestamp-opts
-                                                 appender config
-                                                 default-timestamp-opts)
-                                {:keys [pattern locale timezone]} timestamp-opts]
-                            (.format (enc/simple-date-format pattern
-                                       {:locale locale :timezone timezone})
-                              (:instant data))))
+                  (when rate-limit-okay?
+                    (let [{:keys [async?] apfn :fn} appender
+                          msg_      (delay (or (msg-fn (:vargs_ data)) #_""))
+                          output-fn (inherit-over :output-fn appender config
+                                      default-output-fn)
 
-                        data ; Final data prep before going to appender
-                        (merge data
-                          {:appender-id  id
-                           :appender     appender
-                           ;; :appender-opts (:opts appender) ; For convenience
-                           :msg_         msg_
-                           :msg-fn       msg-fn
-                           :output-fn    output-fn
-                           :data-hash-fn data-hash-fn
-                           #+clj :timestamp_ #+clj timestamp_})]
+                          #+clj timestamp_
+                          #+clj
+                          (delay
+                           (let [timestamp-opts (inherit-into :timestamp-opts
+                                                  appender config
+                                                  default-timestamp-opts)
+                                 {:keys [pattern locale timezone]} timestamp-opts]
+                             (.format (enc/simple-date-format pattern
+                                        {:locale locale :timezone timezone})
+                                      (:instant data))))
 
-                    (if-not async?
-                      (apfn data) ; Allow errors to throw
-                      #+cljs (apfn data)
-                      #+clj  (send-off (get-agent id) (fn [_] (apfn data)))))))))
+                          data ; Final data prep before going to appender
+                          (merge data
+                            {:appender-id  id
+                             :appender     appender
+                             ;; :appender-opts (:opts appender) ; For convenience
+                             :msg_         msg_
+                             :msg-fn       msg-fn
+                             :output-fn    output-fn
+                             :data-hash-fn data-hash-fn
+                             #+clj :timestamp_ #+clj timestamp_})]
+
+                      (if-not async?
+                        (apfn data) ; Allow errors to throw
+                        #+cljs (apfn data)
+                        #+clj  (send-off (get-agent id) (fn [_] (apfn data))))))))))
           nil
           (:appenders config)))))
   nil)
