@@ -24,6 +24,12 @@
 ;;;; Config
 
 #+clj
+(defn- sys-val [id]
+  (when-let [s (or (System/getProperty id)
+                   (System/getenv      id))]
+    (enc/read-edn s)))
+
+#+clj
 (def default-timestamp-opts
   "Controls (:timestamp_ data)"
   {:pattern     "yy-MM-dd HH:mm:ss" #_:iso8601
@@ -112,9 +118,7 @@
    #+clj :timestamp-opts
    #+clj default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
 
-   ; (fn [data]) -> string
-   :output-fn #(let [env (System/getenv "TIMBRE_NO_STACKTRACE_FONTS")]
-                (default-output-fn (if env {:stacktrace-fonts {}}) %))
+   :output-fn default-output-fn ; (fn [data]) -> string
 
    :appenders
    #+clj
@@ -166,16 +170,14 @@
 (comment (qb 10000 (level>= :info :debug)))
 
 #+clj
-(defn- sys-val [id]
-  (when-let [s (or (System/getProperty id)
-                   (System/getenv      id))]
-    (enc/read-edn s)))
-
-#+clj
 (def ^:private compile-time-level
+  ;; Will stack with runtime level
   (have [:or nil? valid-level]
-    (keyword (or (sys-val "TIMBRE_LEVEL")
-                 (sys-val "TIMBRE_LOG_LEVEL")))))
+    (when-let [level (keyword ; For back compatibility
+                      (or (sys-val "TIMBRE_LEVEL")
+                          (sys-val "TIMBRE_LOG_LEVEL")))]
+      (println (str "Compile-time (elision) Timbre level: " level))
+      level)))
 
 ;;;; ns filter
 
@@ -222,16 +224,11 @@
 
 #+clj
 (def ^:private compile-time-ns-filter
+  ;; Will stack with runtime ns filters
   (let [whitelist (have [:or nil? vector?] (sys-val "TIMBRE_NS_WHITELIST"))
         blacklist (have [:or nil? vector?] (sys-val "TIMBRE_NS_BLACKLIST"))]
-
-    (when compile-time-level
-      (println (str "Compile-time (elision) Timbre level: " compile-time-level)))
-    (when whitelist
-      (println (str "Compile-time (elision) Timbre ns whitelist: " whitelist)))
-    (when blacklist
-      (println (str "Compile-time (elision) Timbre ns blacklist: " blacklist)))
-
+    (when whitelist (println (str "Compile-time (elision) Timbre ns whitelist: " whitelist)))
+    (when blacklist (println (str "Compile-time (elision) Timbre ns blacklist: " blacklist)))
     (fn [ns] (ns-filter whitelist blacklist ns))))
 
 ;;;; Utils
@@ -670,17 +667,30 @@
 
 (comment (get-hostname))
 
-(defn stacktrace [err & [{:keys [stacktrace-fonts] :as opts}]]
-  #+cljs (str err) ; TODO Alternatives?
-  #+clj
-  (let [stacktrace-fonts (if (and (nil? stacktrace-fonts)
-                                  (contains? opts :stacktrace-fonts))
-                           {} stacktrace-fonts)]
-    (if-let [fonts stacktrace-fonts]
-      (binding [aviso-ex/*fonts* fonts] (aviso-ex/format-exception err))
-      (aviso-ex/format-exception err))))
+#+clj
+(def ^:private default-stacktrace-fonts
+  (or (sys-val "TIMBRE_DEFAULT_STACKTRACE_FONTS")
+      nil))
 
-(comment (stacktrace (Exception. "Boo") {:stacktrace-fonts nil}))
+(defn stacktrace
+  ([err     ] (stacktrace err nil))
+  ([err opts]
+   #+cljs (str err) ; TODO Alternatives?
+   #+clj
+   (let [stacktrace-fonts ; {:stacktrace-fonts nil->{}}
+         (if-let [e (find opts :stacktrace-fonts)]
+           (let [st-fonts (val e)]
+             (if (nil? st-fonts)
+               {}
+               st-fonts))
+           default-stacktrace-fonts)]
+
+     (if-let [fonts stacktrace-fonts]
+       (binding [aviso-ex/*fonts* fonts]
+         (do (aviso-ex/format-exception err)))
+       (do   (aviso-ex/format-exception err))))))
+
+(comment (stacktrace (Exception. "Boo") {:stacktrace-fonts {}}))
 
 (defmacro sometimes "Handy for sampled logging, etc."
   [probability & body]
