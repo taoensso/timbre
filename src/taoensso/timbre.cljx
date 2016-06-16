@@ -112,7 +112,9 @@
    #+clj :timestamp-opts
    #+clj default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
 
-   :output-fn default-output-fn ; (fn [data]) -> string
+   ; (fn [data]) -> string
+   :output-fn #(let [env (System/getenv "TIMBRE_NO_STACKTRACE_FONTS")]
+                (default-output-fn (if env {:stacktrace-fonts {}}) %))
 
    :appenders
    #+clj
