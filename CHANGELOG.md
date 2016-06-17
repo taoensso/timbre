@@ -1,5 +1,20 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.5.0 / 2016 Jun 26
+
+```clojure
+[com.taoensso/timbre "4.5.0"]
+```
+
+> This is a **major, non-breaking release** focused on refactoring and performance (esp. profiling performance)
+
+* **BREAKING** (rarely): ids given to `timbre.profiling/pspy` and `timbre.profiling/profile` must now always be compile-time consts (e.g. keywords).
+* **DEPRECATED**: Appender args - `:?err_`, `:vargs_` (delays).
+* **New**: Appender args - `:?err`, `:vargs`, `:output_`.
+* **New**: Allow disabling ANSI colours with env var [#172 @ccfontes].
+* **Impl**: Minor logging perf improvements.
+* **Impl**: *Major* profiling perf improvements.
+
 ## v4.4.0 / 2016 Jun 10
 
 ```clojure
