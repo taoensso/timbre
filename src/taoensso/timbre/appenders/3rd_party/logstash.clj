@@ -1,6 +1,5 @@
 (ns taoensso.timbre.appenders.3rd-party.logstash
   "Timbre appender that send output to logstash.
-
    Requires cheshire (https://github.com/dakrone/cheshire)."
   {:author "Mike Sperber (@mikesperber), David Frese (@dfrese)"}
   (:require [taoensso.timbre :as timbre]
@@ -37,7 +36,7 @@
              :namespace (:?ns-str data)
              :file (:?file data)
              :line (:?line data)
-             :stacktrace (some-> (force (:?err_ data)) (stacktrace-str))
+             :stacktrace (some-> (:?err data) (stacktrace-str))
              :hostname (force (:hostname_ data))
              :message (force (:msg_ data))
              "@timestamp" (:instant data)})

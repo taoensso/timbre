@@ -1,5 +1,5 @@
 (ns taoensso.timbre.appenders.3rd-party.rotor
-  {:author "Karsten Schmidt"}
+  {:author "Karsten Schmidt (@postspectacular)"}
   (:require [clojure.java.io :as io]
             [taoensso.timbre :as timbre])
   (:import  [java.io File FilenameFilter]))
@@ -57,8 +57,8 @@
    :fn
    (let [lock (Object.)]
      (fn [data]
-       (let [{:keys [output-fn]} data
-             output-str (output-fn data)]
+       (let [{:keys [output_]} data
+             output-str (str (force output_) "\n")]
            (let [log (io/file path)]
              (try
                ;; all the filesystem manipulations are unsafe in the face of concurrency
@@ -67,7 +67,7 @@
                    (io/make-parents log))
                  (when (> (.length log) max-size)
                    (rotate-logs path backlog)))
-               (spit path (str (output-fn data) "\n") :append true)
+               (spit path output-str :append true)
                (catch java.io.IOException _))))))})
 
 ;;;; Deprecated

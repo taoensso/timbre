@@ -1,6 +1,6 @@
 (ns taoensso.timbre.appenders.3rd-party.android-logcat
   "Android LogCat appender. Requires Android runtime."
-  {:author "Adam Clements"}
+  {:author "Adam Clements (@AdamClements)"}
   (:require [clojure.string  :as str]
             [taoensso.timbre :as timbre]))
 
@@ -20,34 +20,34 @@
    (fn [data]
      (let [{:keys [level timestamp_ msg_]} data]
        (str
-         @timestamp_ " "
+         (force timestamp_) " "
          (str/upper-case (name level))  " "
-         @msg_)))
+         (force msg_))))
 
    :fn
    (fn [data]
-     (let [{:keys [level ?ns-str ?err_ output-fn]} data
-           ns         (str ?ns-str "")
-           output-str (output-fn data)]
+     (let [{:keys [level ?ns-str ?err output_]} data
+           ns-str     (str ?ns-str "")
+           output-str (force output_)]
 
-       (if-let [throwable @?err_]
+       (if-let [err ?err]
          (case level
-           :trace  (android.util.Log/d ns output-str throwable)
-           :debug  (android.util.Log/d ns output-str throwable)
-           :info   (android.util.Log/i ns output-str throwable)
-           :warn   (android.util.Log/w ns output-str throwable)
-           :error  (android.util.Log/e ns output-str throwable)
-           :fatal  (android.util.Log/e ns output-str throwable)
-           :report (android.util.Log/i ns output-str throwable))
+           :trace  (android.util.Log/d ns-str output-str err)
+           :debug  (android.util.Log/d ns-str output-str err)
+           :info   (android.util.Log/i ns-str output-str err)
+           :warn   (android.util.Log/w ns-str output-str err)
+           :error  (android.util.Log/e ns-str output-str err)
+           :fatal  (android.util.Log/e ns-str output-str err)
+           :report (android.util.Log/i ns-str output-str err))
 
          (case level
-           :trace  (android.util.Log/d ns output-str)
-           :debug  (android.util.Log/d ns output-str)
-           :info   (android.util.Log/i ns output-str)
-           :warn   (android.util.Log/w ns output-str)
-           :error  (android.util.Log/e ns output-str)
-           :fatal  (android.util.Log/e ns output-str)
-           :report (android.util.Log/i ns output-str)))))})
+           :trace  (android.util.Log/d ns-str output-str)
+           :debug  (android.util.Log/d ns-str output-str)
+           :info   (android.util.Log/i ns-str output-str)
+           :warn   (android.util.Log/w ns-str output-str)
+           :error  (android.util.Log/e ns-str output-str)
+           :fatal  (android.util.Log/e ns-str output-str)
+           :report (android.util.Log/i ns-str output-str)))))})
 
 ;;;; Deprecated
 

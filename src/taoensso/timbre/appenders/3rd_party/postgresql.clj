@@ -31,11 +31,11 @@
 (defn log-message [config data]
   (let [entry
         {:instant   (java.sql.Timestamp. (.getTime ^java.util.Date (:instant data)))
-         :level     (str  (:level     data))
-         :namespace (str  (:?ns-str   data))
-         :hostname  (str @(:hostname_ data))
-         :content   (str @(:vargs_    data))
-         :error     (str @(:?err_     data))}]
+         :level     (str        (:level     data))
+         :namespace (str        (:?ns-str   data))
+         :content   (str (force (:msg_      data)))
+         :error     (str        (:?err      data))
+         :hostname  (str (force (:hostname_ data)))}]
 
     (ensure-conn config)
     (jdbc/insert! @conn :logs entry)))

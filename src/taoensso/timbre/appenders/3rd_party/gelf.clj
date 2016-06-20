@@ -52,6 +52,6 @@
         (let [{:keys [appender msg_ level hostname_]} data
               gelf-transport (:gelf-transport appender)
               log-level      (timbre-to-gelf-level level)
-              gelf-message   (-> (GelfMessageBuilder. @msg_ @hostname_)
+              gelf-message   (-> (GelfMessageBuilder. (force msg_) (force hostname_))
                                  (.level log-level) .build)]
           (.send gelf-transport gelf-message)))})))

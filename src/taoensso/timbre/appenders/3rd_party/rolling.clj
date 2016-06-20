@@ -56,8 +56,8 @@
    :output-fn  :inherit
    :fn
    (fn [data]
-     (let [{:keys [instant output-fn]} data
-           output-str (output-fn data)
+     (let [{:keys [instant output_]} data
+           output-str (force output_)
            prev-cal   (prev-period-end-cal instant pattern)]
        (when-let [log (io/file path)]
          (try

@@ -1,6 +1,6 @@
 (ns taoensso.timbre.appenders.3rd-party.zmq
   "ØMQ appender. Requires https://github.com/zeromq/cljzmq"
-  {:author "Angus Fletcher"}
+  {:author "Angus Fletcher (@angusiguess)"}
   (:require [zeromq.zmq      :as zmq]
             [taoensso.timbre :as timbre]))
 
@@ -27,8 +27,8 @@
      :output-fn  :inherit
      :fn
      (fn [data]
-       (let [{:keys [output-fn]} data
-             output-str (output-fn data)]
+       (let [{:keys [output_]} data
+             output-str (force output_)]
          (loop []
            (zmq/poll poller 500)
            (cond

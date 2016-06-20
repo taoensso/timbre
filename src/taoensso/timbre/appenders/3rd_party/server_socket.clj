@@ -1,6 +1,6 @@
 (ns taoensso.timbre.appenders.3rd-party.server-socket
   "TCP socket appender. Requires https://github.com/technomancy/server-socket."
-  {:author "Emlyn Corrin"}
+  {:author "Emlyn Corrin (@emlyn)"}
   (:require [server.socket :refer [create-server]]
             [taoensso.timbre :refer [stacktrace]])
   (:import  [java.net Socket InetAddress]
@@ -45,12 +45,12 @@
      :output-fn  :inherit
      :fn
      (fn [data]
-       (let [{:keys [output-fn]} data]
+       (let [{:keys [output_]} data]
          (let [c (ensure-conn socket-config)]
            (doseq [sock @(:connections c)]
              (let [out (PrintWriter. (.getOutputStream ^Socket sock))]
                (binding [*out* out]
-                 (println (output-fn data))))))))}))
+                 (println (force output_))))))))}))
 
 ;;;; Deprecated
 

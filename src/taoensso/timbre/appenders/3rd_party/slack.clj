@@ -25,6 +25,6 @@
      :output-fn :inherit
      :fn
      (fn [data]
-       (let [{:keys [output-fn]} data]
-         (slack.chat/post-message conn channel (output-fn data)
+       (let [{:keys [output_]} data]
+         (slack.chat/post-message conn channel (force output_)
            (dissoc opts :token :channel))))}))
