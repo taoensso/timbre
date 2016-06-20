@@ -121,33 +121,33 @@ This is the biggest win over Java logging IMO. **All** of Timbre's behaviour is 
     An appender is a map with keys:
       :min-level       ; Level keyword, or nil (=> no minimum level)
       :enabled?        ;
-      :async?          ; Dispatch using agent? Useful for slow appenders
+      :async?          ; Dispatch using agent? Useful for slow appenders (clj only)
       :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil
       :output-fn       ; Optional override for inherited (fn [data]) -> string
-      :fn              ; (fn [data]) -> side effects, with keys described below
+      :timestamp-opts  ; Optional override for inherited {:pattern _ :locale _ :timezone _}
       :ns-whitelist    ; Optional, stacks with active config's whitelist
       :ns-blacklist    ; Optional, stacks with active config's blacklist
+      :fn              ; (fn [data]) -> side effects, with keys described below
 
     An appender's fn takes a single data map with keys:
       :config          ; Entire config map (this map, etc.)
       :appender-id     ; Id of appender currently dispatching
       :appender        ; Entire map of appender currently dispatching
-
       :instant         ; Platform date (java.util.Date or js/Date)
       :level           ; Keyword
       :error-level?    ; Is level e/o #{:error :fatal}?
       :?ns-str         ; String,  or nil
       :?file           ; String,  or nil
       :?line           ; Integer, or nil ; Waiting on CLJ-865
-
-      :?err_           ; Delay - first-arg platform error, or nil
-      :vargs_          ; Delay - raw args vector
-      :hostname_       ; Delay - string (clj only)
-      :msg_            ; Delay - args string
-      :timestamp_      ; Delay - string
+      :?err            ; First-arg platform error, or nil
+      :vargs           ; Vector of raw args
+      :output_         ; Forceable - final formatted output string created
+                       ; by calling (output-fn <this-data-map>)
+      :msg_            ; Forceable - args as a string
+      :timestamp_      ; Forceable - string
+      :hostname_       ; Forceable - string (clj only)
       :output-fn       ; (fn [data]) -> formatted output string
                        ; (see `default-output-fn` for details)
-
       :context         ; *context* value at log time (see `with-context`)
       :profile-stats   ; From `profile` macro
 
