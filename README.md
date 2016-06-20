@@ -151,10 +151,13 @@ This is the biggest win over Java logging IMO. **All** of Timbre's behaviour is 
       :context         ; *context* value at log time (see `with-context`)
       :profile-stats   ; From `profile` macro
 
+      **NB** - any keys not specifically documented here should be
+      considered private / subject to change without notice.
+
   MIDDLEWARE
     Middleware are simple (fn [data]) -> ?data fns (applied left->right) that
-    transform the data map dispatched to appender fns. If any middleware returns
-    nil, NO dispatching will occur (i.e. the event will be filtered).
+    transform the data map dispatched to appender fns. If any middleware
+    returns nil, NO dispatch will occur (i.e. the event will be filtered).
 
   The `example-config` source code contains further settings and details.
   See also `set-config!`, `merge-config!`, `set-level!`."
@@ -238,12 +241,14 @@ lein uberjar        # Compile jar ''
 ```
 
 This gives us a high-performance Redis appender:
- * **All raw logging args are preserved** in serialized form (**even errors!**)
- * Only the most recent instance of each **unique entry** is kept (hash fn used to determine uniqueness is configurable)
- * Configurable number of entries to keep per log level
- * **Log is just a value**: a vector of Clojure maps: **query+manipulate with standard seq fns**: group-by hostname, sort/filter by ns & severity, explore exception stacktraces, filter by raw arguments, stick into or query with **Datomic**, etc.
+ * **All raw logging args are preserved** in serialized form (even errors).
+ * Configurable number of entries to keep per log level.
+ * Only the most recent instance of each **unique entry** is kept.
+ * Resulting **log is just a Clojure value**: a vector of log entries (maps).
 
-A simple query utility is provided: `car-appender/query-entries`.
+Clojure has a rich selection of built-in and 3rd party tools for querying values like this.
+
+See also `car-appender/query-entries`.
 
 #### Email ([Postal]) appender
 

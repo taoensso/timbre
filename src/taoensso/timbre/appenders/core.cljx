@@ -1,7 +1,7 @@
 (ns taoensso.timbre.appenders.core
   "Core Timbre appenders without any special dependency requirements.
   These can be aliased into the main Timbre ns for convenience."
-  {:author "Peter Taoussanis"}
+  {:author "Peter Taoussanis (@ptaoussanis)"}
   #+clj
   (:require
    [clojure.string  :as str]
@@ -43,15 +43,17 @@
      :output-fn  :inherit
      :fn
      (fn [data]
-       (let [{:keys [output-fn]} data]
-         #+cljs (println (output-fn data))
+       (let [{:keys [output_]} data]
+         #+cljs (println (force output_))
          #+clj
-         (let [stream (case stream
-                        :auto  (if (:error? data) *err* *out*)
-                        :*out* *out*
-                        :*err* *err*
-                        stream)]
-           (binding [*out* stream] (println (output-fn data))))))}))
+         (let [stream
+               (case stream
+                 :auto  (if (:error? data) *err* *out*)
+                 :*out* *out*
+                 :*err* *err*
+                 stream)]
+
+           (binding [*out* stream] (println (force output_))))))}))
 
 (comment (println-appender))
 
@@ -77,10 +79,10 @@
    :output-fn  :inherit
    :fn
    (fn [data]
-     (let [{:keys [output-fn]} data]
+     (let [{:keys [output_]} data]
        (try ; To allow TTL-memoization of dir creator
          (ensure-spit-dir-exists! fname)
-         (spit fname (str (output-fn data) "\n") :append true)
+         (spit fname (str (force output_) "\n") :append true)
          (catch java.io.IOException _))))})
 
 (comment (spit-appender))
@@ -102,8 +104,7 @@
   ;; (Ref. https://goo.gl/IZzkQB) to get accurate line numbers in all
   ;; browsers w/o the need for Blackboxing?
 
-  [& [{:keys [raw-output?]} ; Undocumented (experimental)
-      ]]
+  [& [opts]]
   {:enabled?   true
    :async?     false
    :min-level  nil
@@ -126,20 +127,20 @@
                js/console.log))]
 
        (fn [data]
-         (let [{:keys [level output-fn vargs_]} data
-               vargs      @vargs_
-               [v1 vnext] (enc/vsplit-first vargs)
-               logger     (level->logger level)]
+         (let [logger (level->logger (:level data))]
 
-           (if (or raw-output? (enc/kw-identical? v1 :timbre/raw)) ; Undocumented
-             (let [output (output-fn (assoc data
-                                       :msg_  (delay "")
-                                       :?err_ (delay nil)))
-                   ;; [<output> <raw-error> <raw-arg1> <raw-arg2> ...]:
-                   args (->> vnext (cons @(:?err_ data)) (cons output))]
+           (if (or (:raw-console? data)
+                   (get-in data [:?meta :raw-console?])) ; Undocumented
+             (let [output
+                   ((:output-fn data)
+                    (assoc data
+                      :msg_  ""
+                      :?err nil))
+                   ;; (<output> <raw-error> <raw-arg1> <raw-arg2> ...):
+                   args (->> (:vargs data) (cons (:?err data)) (cons output))]
 
                (.apply logger js/console (into-array args)))
-             (.call    logger js/console (output-fn data))))))
+             (.call    logger js/console (force (:output_ data)))))))
 
      (fn [data] nil))})
 

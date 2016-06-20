@@ -1,6 +1,6 @@
 (ns taoensso.timbre.appenders.postal
   "Email (Postal) appender. Requires https://github.com/drewr/postal."
-  {:author "Peter Taoussanis"}
+  {:author "Peter Taoussanis (@ptaoussanis)"}
   (:require [clojure.string  :as str]
             [io.aviso.exception :as aviso-ex]
             [postal.core     :as postal]
@@ -23,11 +23,13 @@
    :min-level  :warn ; Elevated
    :rate-limit [[5  (enc/ms :mins  2)]
                 [50 (enc/ms :hours 24)]]
-   :output-fn  :inherit
+   :output-fn  (partial timbre/default-output-fn
+                 {:stacktrace-fonts {}})
    :fn
    (fn [data]
-     (let [{:keys [output-fn]} data
-           output-str (binding [aviso-ex/*fonts* {}] (output-fn data))]
+     (let [{:keys [output_]} data
+           output-str (force output_)]
+
        (postal/send-message
          (assoc postal-config
            :subject (-> output-str

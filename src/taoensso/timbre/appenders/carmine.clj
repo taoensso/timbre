@@ -1,49 +1,69 @@
 (ns taoensso.timbre.appenders.carmine
-  "Carmine (Redis) appender. Requires https://github.com/ptaoussanis/carmine."
-  {:author "Peter Taoussanis"}
+  "Carmine (Redis) appender.
+  Requires https://github.com/ptaoussanis/carmine."
+  {:author "Peter Taoussanis (@ptaoussanis)"}
   (:require [taoensso.carmine :as car]
             [taoensso.nippy   :as nippy]
             [taoensso.timbre  :as timbre]
             [taoensso.encore  :as enc :refer (have have?)]))
 
 (defn- sha48
-  "Truncated 160bit SHA hash (48bit Long). Redis can store small collections of
-  these quite efficiently."
+  "Truncated 160bit SHA hash (48bit Long). Redis can store small
+  collections of these quite efficiently."
   [x] (-> (str x)
           (org.apache.commons.codec.digest.DigestUtils/shaHex)
           (.substring 0 11)
           (Long/parseLong 16)))
 
-(comment (sha48 {:key "I'm gonna get hashed!"}))
+(comment (enc/qb 10000 (sha48 "I'm gonna get hashed!")))
 
-(defn default-keyfn [level] {:pre [(have? string? level)]}
-  (str "carmine:timbre:default:" level))
+(defn default-keyfn [level] (str "timbre:carmine:" (name level)))
+(def  default-nentries-by-level
+  {:trace   50
+   :debug   50
+   :info    50
+   :warn   100
+   :error  100
+   :fatal  100
+   :report 100})
+
+(defn default-entry-fn "(fn [data])-><db-entry>"
+  [data]
+  (let [{:keys [instant level vargs hostname_ timestamp_
+                context ?err ?ns-str ?file ?line ?msg-fmt profile-stats]}
+        data]
+    (enc/assoc-some
+     {:instant   instant
+      :level     level
+      :vargs     vargs
+      :hostname  (force hostname_)
+      ;; :timestamp (force timestamp_)
+      }
+     :context  context
+     :?err     ?err
+     :?ns-str  ?ns-str
+     :?file    ?file
+     :?line    ?line
+     :?msg-fmt ?msg-fmt
+     :profile-stats profile-stats)))
 
 (defn carmine-appender
-  "Returns a Carmine Redis appender (experimental, subject to change):
-    * All raw logging args are preserved in serialized form (even Throwables!).
-    * Only the most recent instance of each unique entry is kept (uniqueness
-      determined by data-hash-fn).
+  "Alpha, subject to change.
+
+  Returns a Carmine Redis appender:
+    * All raw logging args are preserved in serialized form (even errors).
     * Configurable number of entries to keep per logging level.
-    * Log is just a value: a vector of Clojure maps: query+manipulate with
-      standard seq fns: group-by hostname, sort/filter by ns & severity, explore
-      exception stacktraces, filter by raw arguments, etc. Datomic and `core.logic`
-      also offer interesting opportunities here.
+    * Only the most recent instance of each unique entry is kept.
+    * Resulting log is just a Clojure value: a vector of log entries (maps).
 
-  See accompanying `query-entries` fn to return deserialized log entries."
-  [& [{:keys [conn-opts keyfn nentries-by-level]
-       :or   {keyfn        default-keyfn
-              nentries-by-level {:trace    50
-                                 :debug    50
-                                 :info     50
-                                 :warn    100
-                                 :error   100
-                                 :fatal   100
-                                 :report  100}}}]]
+  See also `query-entries`."
+  [& [{:keys [conn-opts keyfn entry-fn nentries-by-level]
+       :or   {keyfn             default-keyfn
+              entry-fn          default-entry-fn
+              nentries-by-level default-nentries-by-level}}]]
 
-  {:pre [(have? string? (keyfn "test"))
-         (have? [:ks>= timbre/ordered-levels] nentries-by-level)
-         (have? [:and integer? #(<= 0 % 100000)] :in (vals nentries-by-level))]}
+  (have? string?  (keyfn             :info))
+  (have? integer? (nentries-by-level :info))
 
   {:enabled?   true
    :async?     false
@@ -52,30 +72,23 @@
    :output-fn  :inherit
    :fn
    (fn [data]
-     (let [{:keys [level instant data-hash-fn]} data
-           entry-hash (sha48 (data-hash-fn data))
-           entry      (merge
-                        {:instant instant
-                         :level   level
-                         :?ns-str   (:?ns-str       data)
-                         :hostname @(:hostname_     data)
-                         :vargs    @(:vargs_        data)
-                         :?err     @(:?err_         data)}
-                        (when-let [pstats (:profile-stats data)]
-                          {:profile-stats pstats}))
+     (let [{:keys [level instant hash_]} data
+           entry-hash (sha48 (force hash_))
+           entry      (entry-fn data)
 
-           k-zset (keyfn (name level))
+           k-zset (keyfn level)
            k-hash (str k-zset ":entries")
            udt (.getTime ^java.util.Date instant) ; Use as zscore
-           nmax-entries (nentries-by-level level)]
+           nmax-entries (long (nentries-by-level level))]
 
        (when (> nmax-entries 0)
          (car/wcar conn-opts
-           (binding [nippy/*final-freeze-fallback* nippy/freeze-fallback-as-str]
+           (binding [nippy/*final-freeze-fallback*
+                     nippy/freeze-fallback-as-str]
              (car/hset k-hash entry-hash entry))
            (car/zadd k-zset udt entry-hash)
 
-           (when (< (rand) 0.01) ; Occasionally GC
+           (when (< ^double (rand) 0.01) ; Occasionally GC
              ;; This is necessary since we're doing zset->entry-hash->entry
              ;; rather than zset->entry. We want the former for the control
              ;; it gives us over what should constitute a 'unique' entry.
@@ -97,41 +110,39 @@
 ;;;; Query utils
 
 (defn query-entries
-  "Alpha - subject to change!
-  Returns latest `n` log entries by level as an ordered vector of deserialized
-  maps. Normal sequence fns can be used to query/transform entries. Datomic and
-  core.logic are also useful!"
+  "Alpha, subject to change.
+  Returns latest `n` log entries by level as an ordered vector of
+  deserialized maps."
   [conn-opts level & [n asc? keyfn]]
-  {:pre [(have? [:or nil? [:and integer? #(<= 1 % 100000)]] n)]}
+  (have? [:or nil? integer?] n)
   (let [keyfn  (or keyfn default-keyfn)
-        k-zset (keyfn (name level))
+        k-zset (keyfn level)
         k-hash (str k-zset ":entries")
 
-        entries-zset ; [{:hash _ :level _ :instant _} ...]
-        (->>
-         (car/wcar conn-opts
-           (if asc? (car/zrange    k-zset 0 (if n (dec n) -1) :withscores)
-                    (car/zrevrange k-zset 0 (if n (dec n) -1) :withscores)))
-         (partition 2) ; Reconstitute :level, :instant keys:
-         (reduce (fn [v [entry-hash score]]
-           (conj v {:level   level
-                    :instant (java.util.Date. (-> score car/as-long long))
-                    :hash    entry-hash}))
-                 []))
+        zset-maps ; [{:level _ :instant _ :entry <hash>} ...]
+        (let [-kvs
+              (car/wcar conn-opts
+                (if asc?
+                  (car/zrange    k-zset 0 (if n (dec n) -1) :withscores)
+                  (car/zrevrange k-zset 0 (if n (dec n) -1) :withscores)))]
 
-        entries-hash ; [{_}-or-ex {_}-or-ex ...]
-        (when-let [hashes (seq (mapv :hash entries-zset))]
-          (if-not (next hashes) ; Careful!
-            (car/wcar conn-opts :as-pipeline (apply car/hget  k-hash hashes))
-            (car/wcar conn-opts              (apply car/hmget k-hash hashes))))]
+          (persistent!
+           (enc/reduce-kvs
+            (fn [acc entry-hash udt-score]
+              (conj! acc
+                {:level   level
+                 :instant (java.util.Date. (enc/as-int udt-score))
+                 :entry   entry-hash}))
+            (transient [])
+            -kvs)))
 
-    (mapv (fn [m1 m2-or-ex]
-            (if (instance? Exception m2-or-ex)
-              ;; Should be rare but can happen (e.g. due to faulty Nippy
-              ;; extensions or inconsistently-unserializable args):
-              (-> (assoc m1 :entry-ex m2-or-ex) (dissoc :hash))
-              (-> (merge m1 m2-or-ex)           (dissoc :hash))))
-          entries-zset entries-hash)))
+        entries-by-hash ; [<{}-or-ex> <{}-or-ex> ...]
+        (when-let [hashes (seq (map :entry zset-maps))]
+          (if (next hashes) ; Careful!
+            (car/wcar conn-opts              (apply car/hmget k-hash hashes))
+            (car/wcar conn-opts :as-pipeline (apply car/hget  k-hash hashes))))]
+
+    (mapv (fn [zset-m entry] (assoc zset-m :entry entry)) zset-maps entries-by-hash)))
 
 ;;;; Deprecated
 
@@ -144,15 +155,15 @@
 
 (comment
   (timbre/with-merged-config {:appenders {:carmine (carmine-appender)}}
-    (timbre/info "Hello1" "Hello2"))
+    (timbre/info "foo" "bar"))
 
-  (car/wcar {} (car/keys (default-keyfn "*")))
-  (count (car/wcar {} (car/hgetall (default-keyfn "info:entries"))))
-
-  (car/wcar {} (car/del  (default-keyfn "info")
-                         (default-keyfn "info:entries")))
-
+  (car/wcar {} (car/keys    (default-keyfn "*")))
   (car/wcar {} (car/hgetall (default-keyfn "info:entries")))
 
-  (count (query-entries {} :info 2))
-  (count (query-entries {} :info 2 :asc)))
+  (count (query-entries {} :info 5))
+  (count (query-entries {} :info 5 :asc))
+
+  (car/wcar {}
+    (car/del
+     (default-keyfn "info")
+     (default-keyfn "info:entries"))))
