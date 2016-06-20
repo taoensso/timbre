@@ -18,16 +18,10 @@
   (:require-macros [taoensso.timbre :as timbre-macros :refer ()]))
 
 (if (vector? taoensso.encore/encore-version)
-  (enc/assert-min-encore-version [2 50 0]) ; For nested-merge fixes
-  (enc/assert-min-encore-version  2.50))
+  (enc/assert-min-encore-version [2 58 0])
+  (enc/assert-min-encore-version  2.58))
 
 ;;;; Config
-
-#+clj
-(defn- sys-val [id]
-  (when-let [s (or (System/getProperty id)
-                   (System/getenv      id))]
-    (enc/read-edn s)))
 
 #+clj
 (def default-timestamp-opts
@@ -178,8 +172,8 @@
   ;; Will stack with runtime level
   (have [:or nil? valid-level]
     (when-let [level (keyword ; For back compatibility
-                      (or (sys-val "TIMBRE_LEVEL")
-                          (sys-val "TIMBRE_LOG_LEVEL")))]
+                      (or (enc/read-sys-val "TIMBRE_LEVEL")
+                          (enc/read-sys-val "TIMBRE_LOG_LEVEL")))]
       (println (str "Compile-time (elision) Timbre level: " level))
       level)))
 
@@ -230,8 +224,8 @@
 #+clj
 (def ^:private compile-time-ns-filter
   ;; Will stack with runtime ns filters
-  (let [whitelist (have [:or nil? vector?] (sys-val "TIMBRE_NS_WHITELIST"))
-        blacklist (have [:or nil? vector?] (sys-val "TIMBRE_NS_BLACKLIST"))]
+  (let [whitelist (have [:or nil? vector?] (enc/read-sys-val "TIMBRE_NS_WHITELIST"))
+        blacklist (have [:or nil? vector?] (enc/read-sys-val "TIMBRE_NS_BLACKLIST"))]
     (when whitelist (println (str "Compile-time (elision) Timbre ns whitelist: " whitelist)))
     (when blacklist (println (str "Compile-time (elision) Timbre ns blacklist: " blacklist)))
     (fn [ns] (ns-filter whitelist blacklist ns))))
@@ -283,11 +277,11 @@
   ([level               ] (log? level nil     nil))
   ([level ?ns-str       ] (log? level ?ns-str nil))
   ([level ?ns-str config]
-   (let [config       (or config *config*)
-         active-level (or (:level config) :report)]
+   (let [config       (or  config *config*)
+         active-level (get config :level :report)]
      (and
        (level>= level active-level)
-       (ns-filter (:ns-whitelist config) (:ns-blacklist config) ?ns-str)
+       (ns-filter (get config :ns-whitelist) (get config :ns-blacklist) ?ns-str)
        true))))
 
 (comment
@@ -655,14 +649,14 @@
                      logf tracef debugf infof warnf errorf fatalf reportf
                      spy get-env log-env)])
   (require '[taoensso.timbre.profiling :as profiling
-             :refer (pspy pspy* profile defnp p p*)])"
+             :refer (pspy p defnp profile)])"
   []
   (require '[taoensso.timbre :as timbre
              :refer (log  trace  debug  info  warn  error  fatal  report
                      logf tracef debugf infof warnf errorf fatalf reportf
                      spy get-env log-env)])
   (require '[taoensso.timbre.profiling :as profiling
-             :refer (pspy pspy* profile defnp p p*)]))
+             :refer (pspy p defnp profile)]))
 
 ;;;; Misc public utils
 
@@ -701,7 +695,7 @@
 
 #+clj
 (def ^:private default-stacktrace-fonts
-  (or (sys-val "TIMBRE_DEFAULT_STACKTRACE_FONTS")
+  (or (enc/read-sys-val "TIMBRE_DEFAULT_STACKTRACE_FONTS")
       nil))
 
 (defn stacktrace

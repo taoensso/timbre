@@ -58,7 +58,7 @@ And setup your namespace imports:
               logf tracef debugf infof warnf errorf fatalf reportf
               spy get-env log-env)]
     [taoensso.timbre.profiling :as profiling
-      :refer (pspy pspy* profile defnp p p*)]))
+      :refer (pspy p defnp profile)]))
 
 (ns my-cljs-ns ; ; ClojureScript namespace
   (:require
