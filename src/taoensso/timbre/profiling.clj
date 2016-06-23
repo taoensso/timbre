@@ -201,14 +201,35 @@
       `(let [pdata# (-pdata-proxy)]
          (if pdata#
            (let [t0# (System/nanoTime)
-                 result# (do ~@body)]
-             (-capture-time! pdata# ~id (- (System/nanoTime) t0#))
+                 result# (do ~@body)
+                 t1# (System/nanoTime)]
+             (-capture-time! pdata# ~id (- t1# t0#))
              result#)
            (do ~@body))))))
 
 (defmacro p [id & body] `(pspy ~id ~@body)) ; Alias
 
 (comment (macroexpand '(p :foo (+ 4 2))))
+
+(defmacro profiled
+  "Experimental, subject to change!
+  Low-level profiling util. Executes expr with thread-local profiling
+  enabled, then executes body with `[<stats> <expr-result>]` binding, e.g:
+    (profiled \"foo\" [stats result] (do (println stats) result))"
+  [expr-to-profile params & body]
+  (assert (vector?    params))
+  (assert (= 2 (count params)))
+  (let [[stats result] params]
+   `(try
+      (-pdata-proxy (-new-pdata))
+      (let [t0# (System/nanoTime)
+            ~result ~expr-to-profile
+            t1# (System/nanoTime)
+            ~stats (-compile-final-stats! (- t1# t0#))]
+        (do ~@body))
+      (finally (-pdata-proxy nil)))))
+
+(comment (profiled (p :foo "foo") [stats result] [stats result]))
 
 (defmacro profile
   "When logging is enabled, executes named body with thread-local profiling
@@ -218,20 +239,17 @@
     (if elide-profiling?
       `(do ~@body)
       `(if (timbre/log? ~level ~(str *ns*)) ; Runtime check
-         (try
-           (-pdata-proxy (-new-pdata))
-           (let [t0# (System/nanoTime)
-                 result# (do ~@body)
-                 stats# (-compile-final-stats! (- (System/nanoTime) t0#))
-                 stats-str# (-format-stats stats#)]
+         (profiled (do ~@body) [stats# result#]
+           (let [stats-str# (-format-stats stats#)]
              (timbre/log! ~level :p
                ["Profiling: " ~id "\n" stats-str#]
                {:?base-data
                 {:profile-stats     stats#
                  :profile-stats-str stats-str#}})
-             result#)
-           (finally (-pdata-proxy nil)))
+             result#))
          (do ~@body)))))
+
+(comment (profile :info :foo "foo"))
 
 (defmacro sampling-profile
   "Like `profile`, but only enables profiling with given probability."
@@ -329,6 +347,7 @@
          (p :div  (reduce / nums)))))
 
   (profile :info :Arithmetic (dotimes [n 100] (my-fn)))
-  (profile :info :high-n     (dotimes [n 1e5] (p :nil nil))) ; ~19ms
+  (profile :info :high-n     (dotimes [n 1e5] (p :nil nil))) ; ~20ms
   (profile :info :high-n     (dotimes [n 1e6] (p :nil nil))) ; ~116ms
+  (profiled (dotimes [n 1e6] (p :nil nil)) [stats result] [stats result])
   (sampling-profile :info 0.5 :sampling-test (p :string "Hello!")))
