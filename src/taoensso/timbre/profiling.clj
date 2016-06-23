@@ -3,7 +3,8 @@
   sampled profiling in production."
   {:author "Peter Taoussanis (@ptaoussanis)"}
   (:require [taoensso.encore :as enc :refer (qb)]
-            [taoensso.timbre :as timbre]))
+            [taoensso.timbre :as timbre])
+  (:import  [java.util HashMap LinkedList]))
 
 ;;;; TODO
 ;; * Support for explicit `config` args?
@@ -24,16 +25,9 @@
 
 ;;;;
 
-;; We accumulate times in one of these.
-;; Counted cons perf > list > (transient []).
-(deftype Times [cons count])
-
 ;; We establish one of these (thread local) to enable profiling.
-(deftype PData [m-times m-stats]) ; [{<id> <Times>} ?{<id> <?interim-stats>}]
-
-(defmacro     -new-pdata  [] `(PData. (transient {}) nil))
-;; (defmacro  -new-pdata_ [] `(enc/-vol! (-new-pdata)))
-;; (def ^:dynamic *pdata_* nil)
+(deftype PData [m-times m-stats]) ; [?{<id> <LinkedList>} ?{<id> <interim-stats>}]
+(defmacro -new-pdata [] `(PData. nil nil))
 
 ;; This is substantially faster than a ^:dynamic volatile:
 (def -pdata-proxy
@@ -49,60 +43,50 @@
    (-capture-time! (-pdata-proxy) id t-elapsed))
 
   ([^PData pdata id t-elapsed] ; Common case
-   (let [;;        pdata_ *pdata_*
-         ;; ^PData pdata  @pdata_
-         ;; ^PData pdata (-pdata-proxy)
-         m-times (.m-times pdata)
+   (let [m-times (.m-times pdata)
          m-stats (.m-stats pdata)]
 
-     (if-let [^Times times (get m-times id)]
-       (let [^long ntimes (.count times)]
-         (if (== ntimes 2000000 #_20) ; Rare in real-world use
-           ;; Compact: merge interim stats to help prevent OOMs
-           ;; (print (str "\nCompacting: " (times->stats times (get m-stats id)) "\n"))
-           ;; (enc/-vol-reset! pdata_)
+     (if-let [^LinkedList times (get m-times id)]
+       (if (== (.size times) #_20 2000000) ; Rare in real-world use
+         ;; Compact: merge interim stats to help prevent OOMs
+         (let [stats (times->stats times (get m-stats id))
+               times (LinkedList.)]
+           (.add times t-elapsed)
            (-pdata-proxy
-            (PData.
-             (assoc! m-times id (Times. (cons t-elapsed nil) 1))
-             (assoc  m-stats id (times->stats times (get m-stats id)))))
+            (PData. (assoc m-times id times)
+                    (assoc m-stats id stats))))
 
-           ;; Common case
-           ;; (enc/-vol-reset! pdata_)
-           (-pdata-proxy
-            (PData.
-             (assoc! m-times id (Times. (cons t-elapsed (.cons times))
-                                        (inc ntimes)))
-             m-stats))))
+         ;; Common case
+         (.add times t-elapsed))
 
        ;; Init case
-       ;; (enc/-vol-reset! pdata_)
-       (-pdata-proxy
-        (PData.
-         (assoc! m-times id (Times. (cons t-elapsed nil) 1))
-         m-stats)))
+       (let [times (LinkedList.)]
+         (.add times t-elapsed)
+         (-pdata-proxy (PData. (assoc m-times id times)
+                                      m-stats))))
 
      nil)))
 
-;; (defmacro -with-pdata [& body] `(binding [*pdata_* (new-pdata_)] (do ~@body)))
-(defmacro    -with-pdata [& body] ; Just for dev/debugging
+;; Just for dev/debugging
+(defmacro -with-pdata [& body]
   `(try
      (-pdata-proxy (-new-pdata))
      (do ~@body)
      (finally (-pdata-proxy nil))))
 
 (comment
-  (-with-pdata (qb 1e6 (-capture-time! :foo 1000))) ; 182.88
+  (-with-pdata (qb 1e6 (-capture-time! :foo 1000))) ; 70.84
   (-with-pdata
-    (dotimes [_ 20] (-capture-time! :foo 100000))
-    (.cons ^Times (:foo (persistent! (.m-times ^PData (-pdata-proxy)))))))
+   (dotimes [_ 20] (-capture-time! :foo 100000))
+   (.m-times ^PData (-pdata-proxy))))
 
-(defn- times->stats [^Times times ?base-stats]
-  (let [^long ntimes (.count times)
-        times        (.cons  times)
+(defn- times->stats [^LinkedList times ?base-stats]
+  (let [ntimes       (.size   times)
+        times        (into [] times) ; Faster to reduce
         ts-count     (if (zero? ntimes) 1 ntimes)
         ts-time      (reduce (fn [^long acc ^long in] (+ acc in)) times)
         ts-mean      (/ (double ts-time) (double ts-count))
-        ts-mad-sum   (reduce (fn [^long acc ^long in] (+ acc (Math/abs (- in ts-mean)))) 0 times)
+        ts-mad-sum   (reduce (fn [^long acc ^long in] (+ acc (Math/abs (- in ts-mean)))) 0   times)
         ts-min       (reduce (fn [^long acc ^long in] (if (< in acc) in acc)) Long/MAX_VALUE times)
         ts-max       (reduce (fn [^long acc ^long in] (if (> in acc) in acc)) 0              times)]
 
@@ -136,23 +120,24 @@
        :max     ts-max})))
 
 (defn -compile-final-stats! "Returns {<id> <stats>}"
-  [^PData pdata clock-time]
-  (let [;; PData should be discarded; cannot be reused after `persistent!`:
-        m-times (persistent! (.m-times pdata))
-        m-stats              (.m-stats pdata)]
-
+  [clock-time]
+  (let [^PData pdata (-pdata-proxy)
+        m-times (.m-times pdata)
+        m-stats (.m-stats pdata)]
     (reduce-kv
      (fn [m id times]
        (assoc m id (times->stats times (get m-stats id))))
      {:clock-time clock-time} m-times)))
 
 (comment
-  (-with-pdata
-    (-capture-time! :foo 10)
-    (-capture-time! :foo 20)
-    (-capture-time! :foo 30)
-    (-capture-time! :foo 10)
-    (-compile-final-stats! (-pdata-proxy) 0)))
+  (qb 1e5
+    (-with-pdata
+     (-capture-time! :foo 10)
+     (-capture-time! :foo 20)
+     (-capture-time! :foo 30)
+     (-capture-time! :foo 10)
+     (-compile-final-stats! 0))) ; 121.83
+  )
 
 ;;;;
 
@@ -227,19 +212,17 @@
 
 (defmacro profile
   "When logging is enabled, executes named body with thread-local profiling
-  enabled. Body forms wrapped by `pspy` will be timed and time stats logged.
-  Always returns body's result."
+  enabled and logs profiling stats. Always returns body's result."
   [level id & body]
   (let [id (qualified-kw *ns* id)]
     (if elide-profiling?
       `(do ~@body)
       `(if (timbre/log? ~level ~(str *ns*)) ; Runtime check
          (try
-           (let [pdata#     (-pdata-proxy (-new-pdata))
-                 t0#        (System/nanoTime)
-                 result#    (do ~@body)
-                 stats#     (-compile-final-stats! pdata#
-                             (- (System/nanoTime) t0#))
+           (-pdata-proxy (-new-pdata))
+           (let [t0# (System/nanoTime)
+                 result# (do ~@body)
+                 stats# (-compile-final-stats! (- (System/nanoTime) t0#))
                  stats-str# (-format-stats stats#)]
              (timbre/log! ~level :p
                ["Profiling: " ~id "\n" stats-str#]
@@ -346,6 +329,6 @@
          (p :div  (reduce / nums)))))
 
   (profile :info :Arithmetic (dotimes [n 100] (my-fn)))
-  (profile :info :high-n     (dotimes [n 1e5] (p :nil nil))) ; 31ms
-  (profile :info :high-n     (dotimes [n 1e6] (p :nil nil))) ; ~232ms
+  (profile :info :high-n     (dotimes [n 1e5] (p :nil nil))) ; ~19ms
+  (profile :info :high-n     (dotimes [n 1e6] (p :nil nil))) ; ~116ms
   (sampling-profile :info 0.5 :sampling-test (p :string "Hello!")))
