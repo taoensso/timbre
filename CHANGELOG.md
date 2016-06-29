@@ -1,5 +1,16 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.5.1 / 2016 Jun 29
+
+```clojure
+[com.taoensso/timbre "4.5.1"]
+```
+
+> This is a **minor hotfix release**
+
+* **Hotfix**: address an issue for AOT/slf4j-timbre users.
+* **Hotfix**: missing type hint during timestamp generation.
+
 ## v4.5.0 / 2016 Jun 26
 
 ```clojure
