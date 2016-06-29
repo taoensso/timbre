@@ -358,8 +358,16 @@
   (infof ^:meta {:err (Exception. "ex")} "Hi %s" "steve"))
 
 (defn -log! "Core low-level log fn. Implementation detail!"
-  [config level ?ns-str ?file ?line msg-type ?err vargs_
-   ?base-data callsite-id]
+
+  ;; TODO Temp workaround for
+  ;; https://github.com/fzakaria/slf4j-timbre/issues/20 and similar AOT tools
+  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data]
+   ;; (throw (ex-info "Invalid internal Timbre call. Please try run `lein clean` to clear out-of-date build artifacts." {}))
+   (-log! config level ?ns-str ?file ?line msg-type ?err vargs_
+     ?base-data nil))
+
+  ([config level ?ns-str ?file ?line msg-type ?err vargs_
+    ?base-data callsite-id]
 
   (when (log? level ?ns-str config) ; Runtime check
     (let [instant (enc/now-dt)
@@ -490,7 +498,7 @@
                          (apfn data))))))))
            nil
            (:appenders config))))))
-  nil)
+  nil))
 
 (comment
   (-log! *config* :info nil nil nil :p :auto
