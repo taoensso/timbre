@@ -424,7 +424,9 @@
                (fn [opts]
                  (delay
                   (let [{:keys [pattern locale timezone]} opts]
-                    (.format (enc/simple-date-format* pattern locale timezone)
+                    (.format
+                      ^java.text.SimpleDateFormat
+                      (enc/simple-date-format* pattern locale timezone)
                      (:instant data))))))]
 
           (reduce-kv
