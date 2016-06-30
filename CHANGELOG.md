@@ -20,6 +20,7 @@
 > This is a **major, non-breaking release** focused on refactoring and performance (esp. profiling performance)
 
 * **BREAKING** (rarely): ids given to `timbre.profiling/pspy` and `timbre.profiling/profile` must now always be compile-time consts (e.g. keywords).
+* **CHANGE**: Profiling now stops at thread boundaries (faster, less confusing).
 * **DEPRECATED**: Appender args - `:?err_`, `:vargs_` (delays).
 * **New**: Appender args - `:?err`, `:vargs`, `:output_`.
 * **New**: Allow disabling ANSI colours with env var [#172 @ccfontes].
