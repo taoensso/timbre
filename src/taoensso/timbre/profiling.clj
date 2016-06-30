@@ -4,11 +4,11 @@
   {:author "Peter Taoussanis (@ptaoussanis)"}
   (:require [taoensso.encore :as enc :refer (qb)]
             [taoensso.timbre :as timbre])
-  (:import  [java.util HashMap LinkedList]))
+  (:import  [java.util #_HashMap LinkedList]))
 
 ;;;; TODO
 ;; * Support for explicit `config` args?
-;; * Consider a .cljx port? Any demand for this kind of cljs profiling?
+;; * Consider a .cljx port? Any demand?
 ;; * Support for real level+ns based elision (zero *pdata* check cost, etc.)?
 ;;   - E.g. perhaps `p` forms could take a logging level?
 
@@ -25,16 +25,36 @@
 
 ;;;;
 
-;; We establish one of these (thread local) to enable profiling.
+;; The use of a thread-local proxy here is substantially faster than a
+;; ^:dynamic var. The guaranteed thread isolation also allows us to use a
+;; mutable accumulator, and to just block the thread for merging/compaction
+;; (no contention).
+;;
+;; Note that read perf of clojure.lang.PersistentHashMap is actually better
+;; than java.util.HashMap, so we stick with that despite the fact that we
+;; *could* use a mutable map too.
+
+;; We establish one of these (thread local) to enable profiling:
 (deftype PData [m-times m-stats]) ; [?{<id> <LinkedList>} ?{<id> <interim-stats>}]
 (defmacro -new-pdata [] `(PData. nil nil))
 
-;; This is substantially faster than a ^:dynamic volatile:
 (def -pdata-proxy
+  ;; Would benefit from ^:static / direct linking / Java class ; TODO?
+  ;; Cljs: could expose a simple mutable js var through the same interface
   (let [^ThreadLocal proxy (proxy [ThreadLocal] [])]
     (fn
       ([]        (.get proxy)) ; nnil iff profiling enabled
       ([new-val] (.set proxy new-val) new-val))))
+
+(comment
+  (def ^:dynamic *foo* nil)
+  (let [^ThreadLocal proxy (proxy [ThreadLocal] [])]
+    (qb 1e5
+      (if (-pdata-proxy)   true false)
+      (if (identity false) true false)
+      (if (.get proxy)     true false) ; w/o var indirection cost
+      (if false            true false)
+      (if *foo*            true false))))
 
 (declare ^:private times->stats)
 (defn -capture-time!
@@ -51,7 +71,7 @@
          ;; Compact: merge interim stats to help prevent OOMs
          (let [stats (times->stats times (get m-stats id))
                times (LinkedList.)]
-           (.add times t-elapsed)
+           (.add times t-elapsed) ; Never leave empty
            (-pdata-proxy
             (PData. (assoc m-times id times)
                     (assoc m-stats id stats))))
@@ -81,10 +101,10 @@
    (.m-times ^PData (-pdata-proxy))))
 
 (defn- times->stats [^LinkedList times ?base-stats]
-  (let [ntimes       (.size   times)
+  (let [ts-count     (.size   times)
+        _            (assert (not (zero? ts-count)))
         times        (into [] times) ; Faster to reduce
-        ts-count     (if (zero? ntimes) 1 ntimes)
-        ts-time      (reduce (fn [^long acc ^long in] (+ acc in)) times)
+        ts-time      (reduce (fn [^long acc ^long in] (+ acc in)) 0 times)
         ts-mean      (/ (double ts-time) (double ts-count))
         ts-mad-sum   (reduce (fn [^long acc ^long in] (+ acc (Math/abs (- in ts-mean)))) 0   times)
         ts-min       (reduce (fn [^long acc ^long in] (if (< in acc) in acc)) Long/MAX_VALUE times)
@@ -119,6 +139,8 @@
        :min     ts-min
        :max     ts-max})))
 
+(comment (times->stats (LinkedList.) nil))
+
 (defn -compile-final-stats! "Returns {<id> <stats>}"
   [clock-time]
   (let [^PData pdata (-pdata-proxy)
@@ -136,7 +158,7 @@
      (-capture-time! :foo 20)
      (-capture-time! :foo 30)
      (-capture-time! :foo 10)
-     (-compile-final-stats! 0))) ; 121.83
+     (-compile-final-stats! 0))) ; 101.69
   )
 
 ;;;;
@@ -159,6 +181,12 @@
          stats           (dissoc stats :clock-time)
          ^long accounted (reduce-kv (fn [^long acc k v] (+ acc ^long (:time v))) 0 stats)
 
+         sorted-stat-ids
+         (sort-by
+           (fn [id] (get-in stats [id sort-field]))
+           enc/rcompare
+           (keys stats))
+
          ^long max-id-width
          (reduce-kv
           (fn [^long acc k v]
@@ -169,25 +197,20 @@
 
          pattern   (str "%" max-id-width "s %,11d %9s %10s %9s %9s %7d %1s%n")
          s-pattern (str "%" max-id-width  "s %11s %9s %10s %9s %9s %7s %1s%n")
+         sb
+         (reduce
+           (fn [acc id]
+             (let [{:keys [count min max mean mad time]} (get stats id)]
+               (enc/sb-append acc
+                 (format pattern id count (ft min) (ft max) (ft mad)
+                   (ft mean) (perc time clock-time) (ft time)))))
 
-         sorted-stat-ids
-         (sort-by
-          (fn [id] (get-in stats [id sort-field]))
-          enc/rcompare
-          (keys stats))]
+           (enc/str-builder (format s-pattern "Id" "nCalls" "Min" "Max" "MAD" "Mean" "Time%" "Time"))
+           sorted-stat-ids)]
 
-     (with-out-str
-       (printf s-pattern "Id" "nCalls" "Min" "Max" "MAD" "Mean" "Time%" "Time")
-       (enc/run!
-        (fn [id]
-          (let [{:keys [count min max mean mad time]} (get stats id)]
-            (printf pattern id count (ft min) (ft max) (ft mad)
-                    (ft mean) (perc time clock-time) (ft time))))
-        sorted-stat-ids)
-
-       (printf s-pattern "Clock Time"     "" "" "" "" "" 100 (ft clock-time))
-       (printf s-pattern "Accounted Time" "" "" "" "" ""
-               (perc accounted clock-time) (ft accounted))))))
+     (enc/sb-append sb (format s-pattern "Clock Time"     "" "" "" "" "" 100 (ft clock-time)))
+     (enc/sb-append sb (format s-pattern "Accounted Time" "" "" "" "" "" (perc accounted clock-time) (ft accounted)))
+     (str sb))))
 
 ;;;;
 
@@ -233,7 +256,17 @@
 
 (defmacro profile
   "When logging is enabled, executes named body with thread-local profiling
-  enabled and logs profiling stats. Always returns body's result."
+  enabled and logs profiling stats. Always returns body's result.
+
+  No binding conveyance; profiling does not cross thread boundaries,
+  compare:
+
+    (profile :info :foo
+      @(future (p :bar (Thread/sleep 2000)))) ; 0% accounted time
+
+    (profile :info :foo
+      (p :bar @(future (Thread/sleep 2000)))) ; 100% accounted time"
+
   [level id & body]
   (let [id (qualified-kw *ns* id)]
     (if elide-profiling?
@@ -327,11 +360,12 @@
   (profile :info :sleepy-threads
     (dotimes [n 5]
       (Thread/sleep 100) ; Unaccounted
-      (p :1ms  (Thread/sleep 1))
-      (p :2s   (Thread/sleep 2000))
-      (p :50ms (Thread/sleep 50))
-      (p :rand (Thread/sleep (if (> 0.5 (rand)) 10 500)))
-      (p :10ms (Thread/sleep 10))
+      (p :1ms    (Thread/sleep 1))
+      (p :2s     (Thread/sleep 2000))
+      (p :50ms   (Thread/sleep 50))
+      (p :rand   (Thread/sleep (if (> 0.5 (rand)) 10 500)))
+      (p :10ms   (Thread/sleep 10))
+      (p :future @(future (Thread/sleep 500)))
       "Result"))
 
   (p :hello "Hello, this is a result") ; Falls through (no thread context)
