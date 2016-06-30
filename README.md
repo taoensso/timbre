@@ -318,7 +318,7 @@ Wrap forms that you'd like to profile with the `p` macro and give them a name:
 (my-fn) => 42
 ```
 
-The `profile` macro can now be used to log times for any wrapped forms:
+The `profile` macro can now be used to log times for any thread-local wrapped forms:
 
 ```clojure
 (profile :info :Arithmetic (dotimes [n 100] (my-fn))) => "Done!"
