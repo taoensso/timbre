@@ -60,15 +60,6 @@
 ;;;; Spit appender (clj only)
 
 #+clj
-(def ^:private ensure-spit-dir-exists!
-  (enc/memoize* (enc/ms :mins 1)
-    (fn [fname]
-      (when-not (str/blank? fname)
-        (let [file (java.io.File. ^String fname)
-              dir  (.getParentFile (.getCanonicalFile file))]
-          (when-not (.exists dir) (.mkdirs dir)))))))
-
-#+clj
 (defn spit-appender
   "Returns a simple `spit` file appender for Clojure."
   [& [{:keys [fname] :or {fname "./timbre-spit.log"}}]]
@@ -78,14 +69,24 @@
    :rate-limit nil
    :output-fn  :inherit
    :fn
-   (fn [data]
+   (fn self [data]
      (let [{:keys [output_]} data]
-       (try ; To allow TTL-memoization of dir creator
-         (ensure-spit-dir-exists! fname)
+       (try
          (spit fname (str (force output_) "\n") :append true)
-         (catch java.io.IOException _))))})
+         (catch java.io.IOException e
+           (if (:__spit-appender/retry? data)
+             (throw e) ; Unexpected error
+             (let [_    (have? enc/nblank-str? fname)
+                   file (java.io.File. ^String fname)
+                   dir  (.getParentFile (.getCanonicalFile file))]
 
-(comment (spit-appender))
+               (when-not (.exists dir) (.mkdirs dir))
+               (self (assoc data :__spit-appender/retry? true))))))))})
+
+(comment
+  (spit-appender)
+  (let [f (:fn (spit-appender))]
+    (enc/qb 1000 (f {:output_ "boo"}))))
 
 ;;;; js/console appender (cljs only)
 
