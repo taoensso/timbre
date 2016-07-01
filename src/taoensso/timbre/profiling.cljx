@@ -2,15 +2,16 @@
   "Simple logging profiler for Timbre. Highly optimized; supports
   sampled profiling in production."
   {:author "Peter Taoussanis (@ptaoussanis)"}
-  (:require [taoensso.encore :as enc :refer (qb)]
-            [taoensso.timbre :as timbre])
-  (:import  [java.util #_HashMap LinkedList]))
+  (:require [taoensso.encore :as enc]
+            [taoensso.timbre :as timbre]))
+
+(comment (require '[taoensso.encore :as enc :refer (qb)]))
 
 ;;;; TODO
 ;; * Support for explicit `config` args?
-;; * Consider a .cljx port? Any demand?
 ;; * Support for real level+ns based elision (zero *pdata* check cost, etc.)?
 ;;   - E.g. perhaps `p` forms could take a logging level?
+;; * Perf: cljs could use `pdata-proxy`-like mutable accumulation, etc.
 
 ;;;; Utils
 
@@ -18,6 +19,7 @@
 (defn- qualified-kw [ns id] (if (enc/qualified-keyword? id) id (keyword (str ns) (name id))))
 (comment (qualified-kw *ns* "foo"))
 
+#+clj
 (def ^:private elide-profiling?
   "Completely elide all profiling? In particular, eliminates proxy checks.
   TODO Temp, until we have a better elision strategy."
@@ -64,14 +66,16 @@
     (dotimes [_ 20] (-capture-time! :foo 100000))
     @*pdata_*))
 
+(def ^:private ^:const max-long #+clj Long/MAX_VALUE #+cljs 9223372036854775807)
+
 (defn- times->stats [times ?base-stats]
   (let [ts-count     (count times)
         _            (assert (not (zero? ts-count)))
         ts-time      (reduce (fn [^long acc ^long in] (+ acc in)) 0 times)
         ts-mean      (/ (double ts-time) (double ts-count))
-        ts-mad-sum   (reduce (fn [^long acc ^long in] (+ acc (Math/abs (- in ts-mean)))) 0   times)
-        ts-min       (reduce (fn [^long acc ^long in] (if (< in acc) in acc)) Long/MAX_VALUE times)
-        ts-max       (reduce (fn [^long acc ^long in] (if (> in acc) in acc)) 0              times)]
+        ts-mad-sum   (reduce (fn [^long acc ^long in] (+ acc (Math/abs (- in ts-mean)))) 0 times)
+        ts-min       (reduce (fn [^long acc ^long in] (if (< in acc) in acc)) max-long     times)
+        ts-max       (reduce (fn [^long acc ^long in] (if (> in acc) in acc)) 0            times)]
 
     (if-let [stats ?base-stats] ; Merge over previous stats
       (let [s-count   (+ ^long (get stats :count) ts-count)
@@ -157,24 +161,49 @@
             (let [c (count (str k))]
               (if (> c acc) c acc)))
           #=(count "Accounted Time")
-          stats)
+          stats)]
 
-         pattern   (str "%" max-id-width "s %,11d %9s %10s %9s %9s %7d %1s%n")
-         s-pattern (str "%" max-id-width  "s %11s %9s %10s %9s %9s %7s %1s%n")
-         sb
-         (reduce
-           (fn [acc id]
-             (let [{:keys [count min max mean mad time]} (get stats id)]
-               (enc/sb-append acc
-                 (format pattern id count (ft min) (ft max) (ft mad)
-                   (ft mean) (perc time clock-time) (ft time)))))
+     #+cljs
+     (let [sb
+           (reduce
+             (fn [acc id]
+               (let [{:keys [count min max mean mad time]} (get stats id)]
+                 (enc/sb-append acc
+                   (str
+                     {:id      id
+                      :n-calls count
+                      :min     (ft min)
+                      :max     (ft max)
+                      :mad     (ft mad)
+                      :mean    (ft mean)
+                      :time%   (perc time clock-time)
+                      :time    (ft time)}
+                     "\n"))))
+             (enc/str-builder)
+             sorted-stat-ids)]
 
-           (enc/str-builder (format s-pattern "Id" "nCalls" "Min" "Max" "MAD" "Mean" "Time%" "Time"))
-           sorted-stat-ids)]
+       (enc/sb-append sb "\n")
+       (enc/sb-append sb (str "Clock Time: (100%) " (ft clock-time) "\n"))
+       (enc/sb-append sb (str "Accounted Time: (" (perc accounted clock-time) "%) " (ft accounted) "\n"))
+       (str           sb))
 
-     (enc/sb-append sb (format s-pattern "Clock Time"     "" "" "" "" "" 100 (ft clock-time)))
-     (enc/sb-append sb (format s-pattern "Accounted Time" "" "" "" "" "" (perc accounted clock-time) (ft accounted)))
-     (str sb))))
+     #+clj
+     (let [pattern   (str "%" max-id-width "s %,11d %9s %10s %9s %9s %7d %1s%n")
+           s-pattern (str "%" max-id-width  "s %11s %9s %10s %9s %9s %7s %1s%n")
+           sb
+           (reduce
+             (fn [acc id]
+               (let [{:keys [count min max mean mad time]} (get stats id)]
+                 (enc/sb-append acc
+                   (format pattern id count (ft min) (ft max) (ft mad)
+                     (ft mean) (perc time clock-time) (ft time)))))
+
+             (enc/str-builder (format s-pattern "Id" "nCalls" "Min" "Max" "MAD" "Mean" "Time%" "Time"))
+             sorted-stat-ids)]
+
+       (enc/sb-append sb (format s-pattern "Clock Time"     "" "" "" "" "" 100 (ft clock-time)))
+       (enc/sb-append sb (format s-pattern "Accounted Time" "" "" "" "" "" (perc accounted clock-time) (ft accounted)))
+       (str sb)))))
 
 ;;;;
 
@@ -302,8 +331,8 @@
 
 ;;;; Deprecated
 
-(def pspy* "Deprecated" (fn [_id f] (pspy :pspy*/no-id (f))))
-(def p*    "Deprecated" pspy*)
+#+clj (defn pspy* "Deprecated" [_id f]   (pspy :pspy*/no-id (f)))
+(defmacro p*      "Deprecated" [& body] `(pspy ~@body))
 
 (comment (profile :info :pspy* (pspy* :foo (fn [] (Thread/sleep 100)))))
 
