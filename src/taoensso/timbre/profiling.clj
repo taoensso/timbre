@@ -25,62 +25,48 @@
 
 ;;;;
 
-;; This is substantially faster than a ^:dynamic atom.
-;; Cljs: could expose a simple mutable js var through the same interface.
-(def -pdata-proxy ; Would benefit from ^:static / direct linking / Java class
-  "{<id> <LinkedList> :__stats <m-stats>} iff profiling active on thread"
-  (let [^ThreadLocal proxy (proxy [ThreadLocal] [])]
-    (fn
-      ([]        (.get proxy)) ; nnil iff profiling enabled
-      ([new-val] (.set proxy new-val) new-val))))
+(def ^:dynamic *pdata_* "(atom {<id> <times>}), nnil iff profiling" nil)
+(defmacro -with-pdata_ [& body] `(binding [*pdata_* (atom {})] ~@body)) ; Dev
 
-(comment
-  (def ^:dynamic *foo* nil)
-  (let [^ThreadLocal proxy (proxy [ThreadLocal] [])]
-    (qb 1e5
-      (if (-pdata-proxy)   true false)
-      (if (identity false) true false)
-      (if (.get proxy)     true false) ; w/o var indirection cost
-      (if false            true false)
-      (if *foo*            true false))))
+(comment (qb 1e6 (if *pdata_* true false) (if false true false)))
 
 (declare ^:private times->stats)
 (defn -capture-time!
-  ([      id t-elapsed] (-capture-time! (-pdata-proxy) id t-elapsed)) ; Dev
-  ([pdata id t-elapsed] ; Common case
-   (if-let [^LinkedList times (get pdata id)]
-     (if (>= (.size times) #_20 2000000) ; Rare in real-world use
+  ([       id t-elapsed] (-capture-time! *pdata_* id t-elapsed)) ; Dev
+  ([pdata_ id t-elapsed] ; Common case
+   (let [?pulled-times
+         (loop []
+           (let [pdata @pdata_]
+             (let [times (get pdata id ())]
+               (if (>= (count times) 2000000) ; Rare in real-world use
+                 (if (compare-and-set! pdata_ pdata ; Never leave empty times:
+                       (assoc pdata id (conj () t-elapsed)))
+                   times ; Pull accumulated times
+                   (recur))
+
+                 (if (compare-and-set! pdata_ pdata
+                       (assoc pdata id (conj times t-elapsed)))
+                   nil
+                   (recur))))))]
+
+     (when-let [times ?pulled-times]
        ;; Compact: merge interim stats to help prevent OOMs
-       (let [m-stats (get pdata :__stats)
-             m-stats (assoc m-stats id (times->stats times (get m-stats id)))]
+       (let [base-stats (get-in @pdata_ [:__stats id])
+             stats (times->stats times base-stats)]
+         ;; Can safely assume that base-stats should be stable
+         (swap! pdata_ assoc-in [:__stats id] stats)))
 
-         (.clear times)
-         (.add   times t-elapsed) ; Nb: never leave our accumulator empty
-         (-pdata-proxy (assoc pdata :__stats m-stats)))
-
-       ;; Common case
-       (.add times t-elapsed))
-
-     ;; Init case
-     (let [times (LinkedList.)]
-       (.add times t-elapsed)
-       (-pdata-proxy (assoc pdata id times))))
-
-   nil))
+     nil)))
 
 (comment
-  (defmacro -with-pdata [& body]
-    `(try (-pdata-proxy {}) (do ~@body) (finally (-pdata-proxy nil))))
+  (-with-pdata_ (qb 1e6 (-capture-time! :foo 1000))) ; 304.88 (vs 70 proxy)
+  (-with-pdata_
+    (dotimes [_ 20] (-capture-time! :foo 100000))
+    @*pdata_*))
 
-  (-with-pdata (qb 1e6 (-capture-time! :foo 1000))) ; 70.84
-  (-with-pdata
-   (dotimes [_ 20] (-capture-time! :foo 100000))
-   (-pdata-proxy)))
-
-(defn- times->stats [^LinkedList times ?base-stats]
-  (let [ts-count     (.size   times)
+(defn- times->stats [times ?base-stats]
+  (let [ts-count     (count times)
         _            (assert (not (zero? ts-count)))
-        times        (into [] times) ; Faster to reduce
         ts-time      (reduce (fn [^long acc ^long in] (+ acc in)) 0 times)
         ts-mean      (/ (double ts-time) (double ts-count))
         ts-mad-sum   (reduce (fn [^long acc ^long in] (+ acc (Math/abs (- in ts-mean)))) 0   times)
@@ -116,26 +102,27 @@
        :min     ts-min
        :max     ts-max})))
 
-(comment (times->stats (LinkedList.) nil))
+(comment (times->stats [] nil))
 
 (defn -compile-final-stats! "Returns {<id> <stats>}"
-  [clock-time]
-  (let [pdata   (-pdata-proxy) ; Nb must be fresh
-        m-stats (get    pdata :__stats)
-        m-times (dissoc pdata :__stats)]
-    (reduce-kv
-      (fn [m id times]
-        (assoc m id (times->stats times (get m-stats id))))
-      {:clock-time clock-time} m-times)))
+  ([       clock-time] (-compile-final-stats! *pdata_* clock-time)) ; Dev
+  ([pdata_ clock-time] ; Common
+   (let [pdata @pdata_
+         m-stats (get    pdata :__stats)
+         m-times (dissoc pdata :__stats)]
+     (reduce-kv
+       (fn [m id times]
+         (assoc m id (times->stats times (get m-stats id))))
+       {:clock-time clock-time} m-times))))
 
 (comment
   (qb 1e5
-    (-with-pdata
+    (-with-pdata_
      (-capture-time! :foo 10)
      (-capture-time! :foo 20)
      (-capture-time! :foo 30)
      (-capture-time! :foo 10)
-     (-compile-final-stats! 0))) ; 114
+     (-compile-final-stats! 0))) ; 235 (vs 114 proxy)
   )
 
 ;;;;
@@ -192,13 +179,13 @@
 ;;;;
 
 (defmacro pspy
-  "Profile spy. When thread-local profiling is enabled, records
+  "Profile spy. When ^:dynamic profiling is enabled, records
   execution time of named body. Always returns the body's result."
   [id & body]
   (let [id (qualified-kw *ns* id)]
     (if elide-profiling?
       `(do ~@body)
-      `(let [pdata# (-pdata-proxy)]
+      `(let [pdata# *pdata_*]
          (if pdata#
            (let [t0# (System/nanoTime)
                  result# (do ~@body)
@@ -213,37 +200,26 @@
 
 (defmacro profiled
   "Experimental, subject to change!
-  Low-level profiling util. Executes expr with thread-local profiling
+  Low-level profiling util. Executes expr with ^:dynamic profiling
   enabled, then executes body with `[<stats> <expr-result>]` binding, e.g:
     (profiled \"foo\" [stats result] (do (println stats) result))"
   [expr-to-profile params & body]
   (assert (vector?    params))
   (assert (= 2 (count params)))
   (let [[stats result] params]
-   `(try
-      (-pdata-proxy {})
-      (let [t0# (System/nanoTime)
-            ~result ~expr-to-profile
-            t1# (System/nanoTime)
-            ~stats (-compile-final-stats! (- t1# t0#))]
-        (do ~@body))
-      (finally (-pdata-proxy nil)))))
+    `(let [pdata# (atom {})]
+       (binding [*pdata_* pdata#]
+         (let [t0# (System/nanoTime)
+               ~result ~expr-to-profile
+               t1# (System/nanoTime)
+               ~stats (-compile-final-stats! pdata# (- t1# t0#))]
+           (do ~@body))))))
 
 (comment (profiled (p :foo "foo") [stats result] [stats result]))
 
 (defmacro profile
-  "When logging is enabled, executes named body with thread-local profiling
-  enabled and logs profiling stats. Always returns body's result.
-
-  No binding conveyance; profiling does not cross thread boundaries,
-  compare:
-
-    (profile :info :foo
-      @(future (p :bar (Thread/sleep 2000)))) ; 0% accounted time
-
-    (profile :info :foo
-      (p :bar @(future (Thread/sleep 2000)))) ; 100% accounted time"
-
+  "When logging is enabled, executes named body with ^:dynamic profiling
+  enabled and logs profiling stats. Always returns body's result."
   [level id & body]
   (let [id (qualified-kw *ns* id)]
     (if elide-profiling?
@@ -359,7 +335,7 @@
          (p :div  (reduce / nums)))))
 
   (profile :info :Arithmetic (dotimes [n 100] (my-fn)))
-  (profile :info :high-n     (dotimes [n 1e5] (p :nil nil))) ; ~20ms
-  (profile :info :high-n     (dotimes [n 1e6] (p :nil nil))) ; ~116ms
+  (profile :info :high-n     (dotimes [n 1e5] (p :nil nil))) ; ~46ms  vs ~20ms
+  (profile :info :high-n     (dotimes [n 1e6] (p :nil nil))) ; ~370ms vs ~116ms
   (profiled (dotimes [n 1e6] (p :nil nil)) [stats result] [stats result])
   (sampling-profile :info 0.5 :sampling-test (p :string "Hello!")))
