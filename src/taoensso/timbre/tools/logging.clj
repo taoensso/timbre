@@ -1,38 +1,48 @@
 (ns taoensso.timbre.tools.logging
-  "clojure.tools.logging.impl/Logger implementation.
+  "`clojure.tools.logging.impl/Logger` implementation.
 
   Please note that the tools.logging API has some significant limits
   that native Timbre does not. Would strongly recommend against using
   Timbre through tools.logging unless you absolutely must (e.g. you're
   working with a legacy codebase)."
 
-  (:require clojure.tools.logging
+  (:require [clojure.tools.logging]
+            [taoensso.encore :as enc]
             [taoensso.timbre :as timbre]))
 
-(deftype Logger [logger-ns config]
+(deftype Logger [logger-ns-str timbre-config]
   clojure.tools.logging.impl/Logger
 
   (enabled? [_ level]
-    (timbre/log? level (str logger-ns) config))
+    ;; No support for per-call config
+    (timbre/log? level logger-ns-str timbre-config))
 
   (write! [_ level throwable message]
     (timbre/log! level :p
       [message] ; No support for pre-msg raw args
-      {:config  config
-       :?ns-str (str logger-ns)
-       :?file   nil ; ''
+      {:config  ; No support for per-call config
+       (if (var? timbre-config)
+         @timbre-config ; Support dynamic vars, etc.
+         timbre-config)
+       :?ns-str logger-ns-str
+       :?file   nil ; No support
        :?line   nil ; ''
        :?err    throwable})))
 
-(deftype LoggerFactory [cache]
+(deftype LoggerFactory [get-logger-fn]
   clojure.tools.logging.impl/LoggerFactory
   (name [_] "Timbre")
-  (get-logger [_ logger-ns]
-    (or (get @cache logger-ns)
-        (let [logger (Logger. logger-ns timbre/*config*)]
-          (swap! cache assoc logger-ns logger)
-          logger))))
+  (get-logger [_ logger-ns] (get-logger-fn logger-ns)))
 
-(defn use-timbre []
-  (alter-var-root (var clojure.tools.logging/*logger-factory*)
-    (constantly (LoggerFactory. (atom {})))))
+(defn use-timbre
+  "Sets the root binding of `clojure.tools.logging/*logger-factory*`
+  to use Timbre."
+  ([             ] (use-timbre #'timbre/*config*))
+  ([timbre-config]
+   (use-timbre timbre-config
+     (enc/memoize_
+       (fn [logger-ns] (Logger. (str logger-ns) timbre-config)))))
+
+  ([timbre-config get-logger-fn]
+   (alter-var-root #'clojure.tools.logging/*logger-factory*
+     (constantly (LoggerFactory. get-logger-fn)))))
