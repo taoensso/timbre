@@ -4,7 +4,7 @@
   {:author "Peter Taoussanis (@ptaoussanis)"}
   (:require [taoensso.encore :as enc]
             [taoensso.timbre :as timbre])
-  (:import  [java.util #_HashMap LinkedList]))
+  #+clj (:import [java.util #_HashMap LinkedList]))
 
 (comment (require '[taoensso.encore :as enc :refer (qb)]))
 
@@ -13,7 +13,6 @@
 ;; * Support for real level+ns based elision (zero *pdata* check cost, etc.)?
 ;;   - E.g. perhaps `p` forms could take a logging level?
 ;;   - Less important if we've got static calls to `-pdata-proxy`.
-;; * Perf: cljs could use `pdata-proxy`-like mutable accumulation, etc.
 
 ;;;; Utils
 
@@ -30,13 +29,20 @@
 ;;;;
 
 ;; This is substantially faster than a ^:dynamic atom.
-;; Cljs: could expose a simple mutable js var through the same interface.
 (def -pdata-proxy ; Would benefit from ^:static / direct linking / Java class
-  "{<id> <LinkedList> :__stats <m-stats>} iff profiling active on thread"
+  "{<id> <times> :__stats <m-stats>} iff profiling active on thread"
+
+  #+clj
   (let [^ThreadLocal proxy (proxy [ThreadLocal] [])]
     (fn
       ([]        (.get proxy)) ; nnil iff profiling enabled
-      ([new-val] (.set proxy new-val) new-val))))
+      ([new-val] (.set proxy new-val) new-val)))
+
+  #+cljs
+  (let [state_ (volatile! false)] ; Automatically thread-local in js
+    (fn
+      ([]                @state_)
+      ([new-val] (vreset! state_ new-val)))))
 
 (comment
   (def ^:dynamic *foo* nil)
@@ -48,26 +54,32 @@
       (if false            true false)
       (if *foo*            true false))))
 
+(do
+  (defn- add-time    [#+clj ^LinkedList x #+cljs ^ArrayList x t] (.add   x t))
+  (defn- count-times [#+clj ^LinkedList x #+cljs ^ArrayList x]   (.size  x))
+  (defn- clear-times [#+clj ^LinkedList x #+cljs ^ArrayList x]   (.clear x))
+  (defn- new-times [] #+clj (LinkedList.) #+cljs (array-list)))
+
 (declare ^:private times->stats)
 (defn -capture-time!
   ([      id t-elapsed] (-capture-time! (-pdata-proxy) id t-elapsed)) ; Dev
   ([pdata id t-elapsed] ; Common case
-   (if-let [^LinkedList times (get pdata id)]
-     (if (>= (.size times) #_20 2000000) ; Rare in real-world use
+   (if-let [times (get pdata id)]
+     (if (>= (long (count-times times)) #_20 2000000) ; Rare in real-world use
        ;; Compact: merge interim stats to help prevent OOMs
        (let [m-stats (get pdata :__stats)
-             m-stats (assoc m-stats id (times->stats times (get m-stats id)))
-             times   (LinkedList.)]
+             m-stats (assoc m-stats id (times->stats times (get m-stats id)))]
 
-         (.add times t-elapsed) ; Nb: never leave our accumulator empty
+         (clear-times times)
+         (add-time    times t-elapsed) ; Nb: never leave our accumulator empty
          (-pdata-proxy (assoc pdata id times :__stats m-stats)))
 
        ;; Common case
-       (.add times t-elapsed))
+       (add-time times t-elapsed))
 
      ;; Init case
-     (let [times (LinkedList.)]
-       (.add times t-elapsed)
+     (let [times (new-times)]
+       (add-time times t-elapsed)
        (-pdata-proxy (assoc pdata id times))))
 
    nil))
@@ -76,15 +88,15 @@
   (defmacro -with-pdata [& body]
     `(try (-pdata-proxy {}) (do ~@body) (finally (-pdata-proxy nil))))
 
-  (-with-pdata (qb 1e6 (-capture-time! :foo 1000))) ; 70.84
+  (-with-pdata (qb 1e6 (-capture-time! :foo 1000))) ; 65.84
   (-with-pdata
    (dotimes [_ 20] (-capture-time! :foo 100000))
    (-pdata-proxy)))
 
 (def ^:private ^:const max-long #+clj Long/MAX_VALUE #+cljs 9223372036854775807)
 
-(defn- times->stats [^LinkedList times ?base-stats]
-  (let [ts-count     (.size   times)
+(defn- times->stats [times ?base-stats]
+  (let [ts-count     (long (count-times times))
         _            (assert (not (zero? ts-count)))
         times        (into [] times) ; Faster to reduce
         ts-time      (reduce (fn [^long acc ^long in] (+ acc in)) 0 times)
@@ -122,7 +134,7 @@
        :min     ts-min
        :max     ts-max})))
 
-(comment (times->stats (LinkedList.) nil))
+(comment (times->stats (new-times) nil))
 
 (defn -compile-final-stats! "Returns {<id> <stats>}"
   [clock-time]
