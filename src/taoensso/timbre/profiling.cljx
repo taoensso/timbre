@@ -72,7 +72,7 @@
 
          (clear-times times)
          (add-time    times t-elapsed) ; Nb: never leave our accumulator empty
-         (-pdata-proxy (assoc pdata id times :__stats m-stats)))
+         (-pdata-proxy (assoc pdata :__stats m-stats)))
 
        ;; Common case
        (add-time times t-elapsed))
@@ -96,20 +96,20 @@
 (def ^:private ^:const max-long #+clj Long/MAX_VALUE #+cljs 9223372036854775807)
 
 (defn- times->stats [times ?base-stats]
-  (let [ts-count     (long (count-times times))
-        _            (assert (not (zero? ts-count)))
-        times        (into [] times) ; Faster to reduce
-        ts-time      (reduce (fn [^long acc ^long in] (+ acc in)) 0 times)
-        ts-mean      (/ (double ts-time) (double ts-count))
-        ts-mad-sum   (reduce (fn [^long acc ^long in] (+ acc (Math/abs (- in ts-mean)))) 0 times)
-        ts-min       (reduce (fn [^long acc ^long in] (if (< in acc) in acc)) max-long     times)
-        ts-max       (reduce (fn [^long acc ^long in] (if (> in acc) in acc)) 0            times)]
+  (let [ts-count   (long (count-times times))
+        _          (assert (not (zero? ts-count)))
+        times      (vec times) ; Faster to reduce
+        ts-time    (reduce (fn [^long acc ^long in] (+ acc in)) 0 times)
+        ts-mean    (/ (double ts-time) (double ts-count))
+        ts-mad-sum (reduce (fn [^long acc ^long in] (+ acc (Math/abs (- in ts-mean)))) 0 times)
+        ts-min     (reduce (fn [^long acc ^long in] (if (< in acc) in acc)) max-long     times)
+        ts-max     (reduce (fn [^long acc ^long in] (if (> in acc) in acc)) 0            times)]
 
     (if-let [stats ?base-stats] ; Merge over previous stats
       (let [s-count   (+ ^long (get stats :count) ts-count)
-            s-time    (+ ^long (get stats :time)  ts-time)
+            s-time    (+ ^long (get stats :time)  ^long ts-time)
             s-mean    (/ (double s-time) (double s-count))
-            s-mad-sum (+ ^long (get stats :mad-sum) ts-mad-sum)
+            s-mad-sum (+ ^long (get stats :mad-sum) ^long ts-mad-sum)
             s-mad     (/ (double s-mad-sum) (double s-count))
             s0-min    (get stats :min)
             s0-max    (get stats :max)]
@@ -137,14 +137,15 @@
 (comment (times->stats (new-times) nil))
 
 (defn -compile-final-stats! "Returns {<id> <stats>}"
-  [clock-time]
+  [t0 t1]
   (let [pdata   (-pdata-proxy) ; Nb must be fresh
         m-stats (get    pdata :__stats)
         m-times (dissoc pdata :__stats)]
     (reduce-kv
       (fn [m id times]
         (assoc m id (times->stats times (get m-stats id))))
-      {:clock-time clock-time} m-times)))
+      {:__clock {:t0 t0 :t1 t1 :total (- ^long t1 ^long t0)}}
+      m-times)))
 
 (comment
   (qb 1e5
@@ -153,8 +154,84 @@
      (-capture-time! :foo 20)
      (-capture-time! :foo 30)
      (-capture-time! :foo 10)
-     (-compile-final-stats! 0))) ; 114
+     (-compile-final-stats! 0 100))) ; 105
   )
+
+(defn merge-stats "Merge stats from multiple runs, threads, etc."
+  [s1 s2]
+  (if s1
+    (if s2
+      (let [clock1      (get    s1 :__clock)
+            clock2      (get    s2 :__clock)
+            s1          (dissoc s1 :__clock)
+            s2          (dissoc s2 :__clock)
+            ^long s1-t0 (get clock1 :t0)
+            ^long s1-t1 (get clock1 :t1)
+            ^long s2-t0 (get clock2 :t0)
+            ^long s2-t1 (get clock2 :t1)
+
+            all-ids (into (set (keys s1)) (keys s2))
+
+            concurrent?
+            (or
+              (and (<= s2-t0 s1-t1)
+                   (>= s2-t1 s1-t0))
+              (and (<= s1-t0 s2-t1)
+                   (>= s1-t1 s2-t0)))
+
+            s3-t0 (when concurrent? (if (< s1-t0 s2-t0) s1-t0 s2-t0))
+            s3-t1 (when concurrent? (if (< s1-t1 s2-t1) s1-t1 s2-t1))
+            s3-ct (if   concurrent?
+                    (- ^long s3-t1 ^long s3-t0)
+                    (+ (- s1-t1 s1-t0)
+                       (- s2-t1 s2-t0)))]
+
+        (reduce
+          (fn [m id]
+            (let [sid1 (get s1 id)
+                  sid2 (get s2 id)]
+              (if sid1
+                (if sid2
+                  (let [^long s1-count   (get sid1 :count)
+                        ^long s1-time    (get sid1 :time)
+                        ^long s1-mad-sum (get sid1 :mad-sum)
+                        ^long s1-min     (get sid1 :min)
+                        ^long s1-max     (get sid1 :max)
+
+                        ^long s2-count   (get sid2 :count)
+                        ^long s2-time    (get sid2 :time)
+                        ^long s2-mad-sum (get sid2 :mad-sum)
+                        ^long s2-min     (get sid2 :min)
+                        ^long s2-max     (get sid2 :max)
+
+                        s3-count   (+ s1-count   s2-count)
+                        s3-time    (+ s1-time    s2-time)
+                        s3-mad-sum (+ s1-mad-sum s2-mad-sum)]
+
+                    (assoc m id
+                      {:count   s3-count
+                       :time    s3-time
+                       :mean    (/ (double s3-time) (double s3-count))
+                       :mad-sum s3-mad-sum
+                       :mad     (/ (double s3-mad-sum) (double s3-count))
+                       :min     (if (< s1-min s2-min) s1-min s2-min)
+                       :max     (if (> s1-max s2-max) s1-max s2-max)}))
+                  m #_(assoc m id sid1))
+                (assoc m id sid2))))
+          (assoc s1 :__clock
+            {:t0 s3-t0 :t1 s3-t1 :total s3-ct :concurrent? concurrent?})
+          all-ids))
+      s1)
+    s2))
+
+(comment
+  (merge-stats nil nil)
+  (let [f (future (profiled (do (dotimes [n 1e6] (p :s1 nil))) [stats result] stats))]
+    (merge-stats
+      (profiled (do (dotimes [n 1e3] (p :s2 nil))
+                    (dotimes [n 1e2] (p :s1 nil)))
+        [stats result] stats)
+      @f)))
 
 ;;;;
 
@@ -172,8 +249,8 @@
 (defn -format-stats
   ([stats           ] (-format-stats stats :time))
   ([stats sort-field]
-   (let [clock-time      (get    stats :clock-time)
-         stats           (dissoc stats :clock-time)
+   (let [clock-time      (get-in stats [:__clock :total])
+         stats           (dissoc stats  :__clock)
          ^long accounted (reduce-kv (fn [^long acc k v] (+ acc ^long (:time v))) 0 stats)
 
          sorted-stat-ids
@@ -255,8 +332,7 @@
 (comment (macroexpand '(p :foo (+ 4 2))))
 
 (defmacro profiled
-  "Experimental, subject to change!
-  Low-level profiling util. Executes expr with thread-local profiling
+  "Low-level profiling util. Executes expr with thread-local profiling
   enabled, then executes body with `[<stats> <expr-result>]` binding, e.g:
     (profiled \"foo\" [stats result] (do (println stats) result))"
   [expr-to-profile params & body]
@@ -268,7 +344,7 @@
       (let [t0# (System/nanoTime)
             ~result ~expr-to-profile
             t1# (System/nanoTime)
-            ~stats (-compile-final-stats! (- t1# t0#))]
+            ~stats (-compile-final-stats! t0# t1#)]
         (do ~@body))
       (finally (-pdata-proxy nil)))))
 
