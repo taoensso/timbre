@@ -238,7 +238,7 @@
   (let [id (qualified-kw *ns* id)]
     (if elide-profiling?
       `(do ~@body)
-      `(if (timbre/log? ~level ~(str *ns*)) ; Runtime check
+      `(if (timbre/may-log? ~level ~(str *ns*)) ; Runtime check
          (profiled (do ~@body) [stats# result#]
            (let [stats-str# (-format-stats stats#)]
              (timbre/log! ~level :p

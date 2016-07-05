@@ -15,7 +15,7 @@
 
   (enabled? [_ level]
     ;; No support for per-call config
-    (timbre/log? level logger-ns-str timbre-config))
+    (timbre/may-log? level logger-ns-str timbre-config))
 
   (write! [_ level throwable message]
     (timbre/log! level :p
