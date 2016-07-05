@@ -28,18 +28,22 @@
    :1.7  {:dependencies [[org.clojure/clojure "1.7.0"]]}
    :1.8  {:dependencies [[org.clojure/clojure "1.8.0"]]}
    :1.9  {:dependencies [[org.clojure/clojure "1.9.0-alpha5"]]}
-   :test {:dependencies [[org.clojure/tools.logging "0.3.1"]
+   :test
+   {:dependencies
+    [[org.clojure/tools.logging "0.3.1"]
 
-                         ;; Appender deps
-                         [com.taoensso/nippy   "2.11.1"]
-                         [com.taoensso/carmine "2.13.1"]
-                         [com.draines/postal   "2.0.0"]
-                         [irclj                "0.5.0-alpha4"]
-                         [org.graylog2/gelfclient "1.4.0"]
-                         [org.julienxx/clj-slack  "0.5.4"]
-                         [org.clojure/java.jdbc   "0.6.1"]
-                         [com.mchange/c3p0        "0.9.5.2"]
-                         [cheshire                "5.6.2"]]}
+     ;;; Appender deps
+     [com.taoensso/nippy      "2.11.1"]
+     [com.taoensso/carmine    "2.13.1"]
+     [com.draines/postal      "2.0.0"]
+     [irclj                   "0.5.0-alpha4"]
+     [org.graylog2/gelfclient "1.4.0"]
+     [org.julienxx/clj-slack  "0.5.4"]
+     [org.clojure/java.jdbc   "0.6.1"]
+     [com.mchange/c3p0        "0.9.5.2"]
+     [cheshire                "5.6.2"]
+     [com.newrelic.agent.java/newrelic-agent "3.20.0"]]}
+
    :dev
    [:1.9 :test :server-jvm
     {:dependencies [[org.clojure/clojurescript "1.9.36"]]
