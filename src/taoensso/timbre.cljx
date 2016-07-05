@@ -165,70 +165,118 @@
 (defn level>= [x y] (>= ^long (scored-levels (valid-level x))
                         ^long (scored-levels (valid-level y))))
 
-(comment (qb 10000 (level>= :info :debug)))
+(comment (qb 1e5 (level>= :info :debug)))
 
-#+clj
-(def ^:private compile-time-level
-  ;; Will stack with runtime level
-  (have [:or nil? valid-level]
-    (when-let [level (keyword ; For back compatibility
-                      (or (enc/read-sys-val "TIMBRE_LEVEL")
-                          (enc/read-sys-val "TIMBRE_LOG_LEVEL")))]
-      (println (str "Compile-time (elision) Timbre level: " level))
-      level)))
+;;;; Namespace filtering
 
-;;;; ns filter
-
-(def ^:private compile-ns-filters
-  "(fn [whitelist blacklist]) -> (fn [ns]) -> ?unfiltered-ns"
-  (let [->re-pattern
+(def ^:private compile-ns-pattern
+  (let [compile1
         (fn [x]
-          (enc/cond!
-            (enc/re-pattern? x) x
+          (cond
+            (enc/re-pattern? x) (fn [ns-str] (re-find x ns-str))
             (string? x)
-            (let [s (-> (str "^" x "$")
-                        (str/replace "." "\\.")
-                        (str/replace "*" "(.*)"))]
-              (re-pattern s))))]
+            (if (enc/str-contains? x "*")
+              (let [re
+                    (re-pattern
+                      (-> (str "^" x "$")
+                          (str/replace "." "\\.")
+                          (str/replace "*" "(.*)")))]
+                (fn [ns-str] (re-find re ns-str)))
+              (fn [ns-str] (= ns-str x)))
+
+            :else (throw (ex-info "Unexpected ns-pattern type"
+                           {:given x :type (type x)}))))]
 
     (enc/memoize_
-      (fn [whitelist blacklist]
-        (let [whitelist* (mapv ->re-pattern whitelist)
-              blacklist* (mapv ->re-pattern blacklist)
+      (fn self
+        ([x] ; Useful for user-level matching
+         (cond
+           (map? x) (self (:whitelist x) (:blacklist x))
+           (or (vector? x) (set? x)) (self x nil)
+           :else
+           (let [match? (compile1 x)]
+             (fn [ns-str] (if (match? ns-str) true false)))))
 
-              white-filter
-              (cond
-                ;; (nil? whitelist)  (fn [ns] false) ; Might be surprising
-                (empty?  whitelist*) (fn [ns] true)
-                :else (fn [ns] (some #(re-find % ns) whitelist*)))
+        ([whitelist blacklist]
+         (let [white
+               (when (seq whitelist)
+                 (let [match-fns (mapv compile1 whitelist)
+                       [m1 & mn] match-fns]
+                   (if mn
+                     (fn [ns-str] (enc/rsome #(% ns-str) match-fns))
+                     (fn [ns-str] (m1 ns-str)))))
 
-              black-filter
-              (cond
-                (empty? blacklist*) (fn [ns] true)
-                :else (fn [ns] (not (some #(re-find % ns) blacklist*))))]
+               black
+               (when (seq blacklist)
+                 (let [match-fns (mapv compile1 blacklist)
+                       [m1 & mn] match-fns]
+                   (if mn
+                     (fn [ns-str] (not (enc/rsome #(% ns-str) match-fns)))
+                     (fn [ns-str] (not (m1 ns-str))))))]
+           (cond
+             (and white black) (fn [ns-str] (if (white ns-str) (if (black ns-str) true)))
+             white             (fn [ns-str] (if (white ns-str) true))
+             black             (fn [ns-str] (if (black ns-str) true))
+             :else             (fn [ns-str] true) ; Common case
+             )))))))
 
-          (fn [ns] (when (and (white-filter ns) (black-filter ns)) ns)))))))
-
-(def ^:private ns-filter
-  "(fn [whitelist blacklist ns]) -> ?unfiltered-ns"
+(def ^:private ns-pass?
+  "Returns true iff given ns passes white/black lists."
   (enc/memoize_
     (fn [whitelist blacklist ?ns]
-      {:pre [(have? [:or nil? string?] ?ns)]}
-      ((compile-ns-filters whitelist blacklist) (or ?ns "")))))
+      ((compile-ns-pattern whitelist blacklist) (str ?ns)))))
 
 (comment
-  (qb 10000 (ns-filter ["foo.*"] ["foo.baz"] "foo.bar"))
-  (ns-filter nil nil "")
-  (ns-filter nil nil nil))
+  (qb 1e6 (ns-pass? ["foo.*"] ["foo.baz"] "foo.bar"))
+  (ns-pass? nil nil "")
+  (ns-pass? nil nil nil))
+
+;;;; Elision support
 
 #+clj
-(def ^:private compile-time-ns-filter
-  ;; Will stack with runtime ns filters
+(def ^:private compile-time-level ; Will stack with runtime checks
+  (when-let [level (or (enc/read-sys-val "TIMBRE_LEVEL")
+                       (enc/read-sys-val "TIMBRE_LOG_LEVEL"))]
+    (println (str "Compile-time (elision) Timbre level: " level))
+    (let [level (if (string? level) (keyword level) level)] ; Back compatibility
+      (valid-level level))))
+
+#+clj
+(def ^:private compile-time-ns-pass? ; Will stack with runtime checks
   (let [whitelist (have [:or nil? vector?] (enc/read-sys-val "TIMBRE_NS_WHITELIST"))
         blacklist (have [:or nil? vector?] (enc/read-sys-val "TIMBRE_NS_BLACKLIST"))]
     (when whitelist (println (str "Compile-time (elision) Timbre ns whitelist: " whitelist)))
     (when blacklist (println (str "Compile-time (elision) Timbre ns blacklist: " blacklist)))
-    (fn [ns] (ns-filter whitelist blacklist ns))))
+    (fn [ns] (ns-pass? whitelist blacklist ns))))
+
+#+clj ; Call only at compile-time
+(defn -elide? [level-form ns-str-form]
+  (not
+    (and
+      (or ; Level okay
+        (nil? compile-time-level)
+        (not (valid-levels level-form)) ; Not a compile-time level const
+        (level>= level-form compile-time-level))
+
+      (or ; Namespace okay
+        (not (string? ns-str-form)) ; Not a compile-time ns-str const
+        (compile-time-ns-pass? ns-str-form)))))
+
+(defn log?
+  "Runtime check: would Timbre currently log at the given logging level?
+    * `?ns-str` arg required to support ns filtering
+    * `config`  arg required to support non-global config"
+  ([level               ] (log? level nil     nil))
+  ([level ?ns-str       ] (log? level ?ns-str nil))
+  ([level ?ns-str config]
+   (let [config       (or  config *config*)
+         active-level (get config :level :report)]
+     (and
+       (level>= level active-level)
+       (ns-pass? (get config :ns-whitelist) (get config :ns-blacklist) ?ns-str)
+       true))))
+
+(comment (qb 1e5 (log? :info)))
 
 ;;;; Utils
 
@@ -266,45 +314,11 @@
 
 (def ^:dynamic *context*
   "General-purpose dynamic logging context. Context will be included in
-  appender data map at logging time." nil)
+  appender data map at logging time."
+  nil)
 
-(defmacro with-context [context & body] `(binding [*context* ~context] ~@body))
-
-(defn log?
-  "Runtime check: would Timbre currently log at the given logging level?
-    * `?ns-str` arg required to support ns filtering
-    * `config`  arg required to support non-global config"
-  ([level               ] (log? level nil     nil))
-  ([level ?ns-str       ] (log? level ?ns-str nil))
-  ([level ?ns-str config]
-   (let [config       (or  config *config*)
-         active-level (get config :level :report)]
-     (and
-       (level>= level active-level)
-       (ns-filter (get config :ns-whitelist) (get config :ns-blacklist) ?ns-str)
-       true))))
-
-(comment
-  (set-level! :debug)
-  (log? :trace)
-  (with-level :trace (log? :trace))
-  (qb 10000
-    (log? :trace)
-    (log? :trace "foo")
-    (tracef "foo")
-    (when false "foo"))
-  ;; [1.38 1.42 2.08 0.26]
-
-  ;;; Full benchmarks
-  (defmacro with-sole-appender [appender & body]
-    `(with-config (assoc *config* :appenders {:appender ~appender}) ~@body))
-
-  (with-sole-appender {:enabled? true :fn (fn [data] nil)}
-    (qb 10000 (info "foo"))) ; ~88ms ; Time to delays ready
-
-  (with-sole-appender {:enabled? true :fn (fn [data] ((:output-fn data) data))}
-    (qb 10000 (info "foo"))) ; ~218ms ; Time to output ready
-  )
+(defmacro with-context [context & body]
+  `(binding [*context* ~context] ~@body))
 
 (defn-   next-vargs [v] (if (> (count v) 1) (subvec v 1) []))
 (defn- vargs->margs
@@ -443,9 +457,9 @@
                         (level>= level (or (:min-level appender) :trace)))
 
                ;; Appender ns filter stacks with main config's ns filter:
-               (when (ns-filter (:ns-whitelist appender)
-                                (:ns-blacklist appender)
-                                ?ns-str)
+               (when (ns-pass? (:ns-whitelist appender)
+                               (:ns-blacklist appender)
+                               ?ns-str)
 
                  (let [rate-limit-specs (:rate-limit appender)
                        rate-limit-okay?
@@ -504,21 +518,7 @@
   (-log! *config* :info nil nil nil :p :auto
     (delay [(do (println "hi") :x) :y]) nil "callsite-id"))
 
-(defmacro -with-elision
-  "Implementation detail.
-  Executes body iff given level and ns pass compile-time elision."
-  [level-form ns-str-form & body]
-  (when (or (nil? compile-time-level)
-            (not (valid-levels level-form)) ; Not a compile-time level const
-            (level>= level-form compile-time-level))
-
-    (when (or (not (string? ns-str-form)) ; Not a compile-time ns-str const
-              (compile-time-ns-filter ns-str-form))
-      `(do ~@body))))
-
-(comment (-with-elision :info "ns" (println "foo")))
-
-(defn- fline [and-form] (:line (meta and-form)))
+#+clj (defn- fline [and-form] (:line (meta and-form)))
 
 (defmacro log! ; Public wrapper around `-log!`
   "Core low-level log macro. Useful for tooling, etc.
@@ -532,9 +532,8 @@
   [level msg-type args & [opts]]
   (have sequential? args) ; To allow -> (delay [~@args])
   (let [{:keys [?ns-str] :or {?ns-str (str *ns*)}} opts]
-    (-with-elision
-      level   ; level-form  (may/not be a compile-time kw const)
-      ?ns-str ; ns-str-form (may/not be a compile-time str const)
+    ;; level, ns may/not be compile-time consts:
+    (when-not (-elide? level ?ns-str)
       (let [{:keys [config ?err ?file ?line ?base-data]
              :or   {config 'taoensso.timbre/*config*
                     ?err   :auto ; => Extract as err-type v0
@@ -558,6 +557,29 @@
   (log! :info :p ["foo"])
   (macroexpand '(log! :info :p ["foo"]))
   (macroexpand '(log! :info :p ["foo"] {:?line 42})))
+
+;;;; Benchmarking
+
+(comment
+  (set-level! :debug)
+  (log? :trace)
+  (with-level :trace (log? :trace))
+  (qb 10000
+    (log? :trace)
+    (log? :trace "foo")
+    (tracef "foo")
+    (when false "foo"))
+  ;; [1.38 1.42 2.08 0.26]
+
+  (defmacro with-sole-appender [appender & body]
+    `(with-config (assoc *config* :appenders {:appender ~appender}) ~@body))
+
+  (with-sole-appender {:enabled? true :fn (fn [data] nil)}
+    (qb 10000 (info "foo"))) ; ~74.58 ; Time to delays ready
+
+  (with-sole-appender {:enabled? true :fn (fn [data] (force (:output_ data)))}
+    (qb 10000 (info "foo"))) ; ~136.68 ; Time to output ready
+  )
 
 ;;;; Main public API-level stuff
 ;; TODO Have a bunch of cruft here trying to work around CLJ-865 to some extent
