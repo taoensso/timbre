@@ -1,5 +1,6 @@
 (ns taoensso.timbre.appenders.3rd-party.server-socket
-  "TCP socket appender. Requires https://github.com/technomancy/server-socket."
+  "TCP socket appender.
+  Requires https://github.com/technomancy/server-socket."
   {:author "Emlyn Corrin (@emlyn)"}
   (:require [server.socket :refer [create-server]]
             [taoensso.timbre :refer [stacktrace]])

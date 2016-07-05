@@ -1,4 +1,5 @@
 (ns taoensso.timbre.appenders.3rd-party.rotor
+  "Rotating file appender."
   {:author "Karsten Schmidt (@postspectacular)"}
   (:require [clojure.java.io :as io]
             [taoensso.timbre :as timbre])

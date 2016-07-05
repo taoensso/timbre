@@ -1,6 +1,6 @@
 (ns taoensso.timbre.appenders.3rd-party.gelf
-  "Appender to handle sending messages in the gelf format to a centralized
-  logging server (e.g. Graylog)"
+  "Appender that sends GELF messages to a centralized logging server
+  (e.g. Graylog). Requires https://github.com/Graylog2/gelfclient."
   {:author "Dave Owens (@davewo)"}
   (:import
    [org.graylog2.gelfclient

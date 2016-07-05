@@ -1,6 +1,6 @@
 (ns taoensso.timbre.appenders.3rd-party.logstash
-  "Timbre appender that send output to logstash.
-   Requires cheshire (https://github.com/dakrone/cheshire)."
+  "Appender that sends output to Logstash.
+   Requires Cheshire (https://github.com/dakrone/cheshire)."
   {:author "Mike Sperber (@mikesperber), David Frese (@dfrese)"}
   (:require [taoensso.timbre :as timbre]
             [cheshire.core :as cheshire])
