@@ -144,6 +144,13 @@
 (defn   set-config! [m] (swap-config! (fn [_old] m)))
 (defn merge-config! [m] (swap-config! (fn [old] (enc/nested-merge old m))))
 
+(defn stop!
+  "Stops logging. It frees up resources held by appenders by calling their :close-fn function"
+  []
+  (doseq [[k v] (-> *config* :appenders)]
+    (when-let [f (:close-fn v)]
+      (f))))
+
 (defn     set-level! [level] (swap-config! (fn [m] (assoc m :level level))))
 (defmacro with-level [level & body]
   `(binding [*config* (assoc *config* :level ~level)] ~@body))
