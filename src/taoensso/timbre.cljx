@@ -685,21 +685,22 @@
   `(binding [*out* default-out, *err* default-err] ~@body))
 
 #+clj
-(def get-hostname
-  (enc/memoize* (enc/ms :mins 1)
-    (fn []
-      ;; Android doesn't like this on the main thread. Would use a `future` but
-      ;; that starts the Clojure agent threadpool which can slow application
-      ;; shutdown w/o a `(shutdown-agents)` call
-      (let [executor (java.util.concurrent.Executors/newSingleThreadExecutor)
-            ^java.util.concurrent.Callable f
-            (fn []
-              (try
-                (.. java.net.InetAddress getLocalHost getHostName)
-                (catch java.net.UnknownHostException _ "UnknownHost")
-                (finally (.shutdown executor))))]
+(do ; Hostname stuff
+  (defn get-?hostname "Returns live local hostname, or nil." []
+    (try (.getHostName (java.net.InetAddress/getLocalHost))
+         (catch java.net.UnknownHostException _ nil)))
 
-        (deref (.submit executor f) 5000 "UnknownHost")))))
+  (defn get-?hostname_ "Returns a new `(get-?hostname)` promise." []
+    ;; Android doesn't like hostname calls on the main thread. Using `future`
+    ;; would start the Clojure agent threadpool though, which can slow down
+    ;; application shutdown w/o a `(shutdown-agents)` call.
+    (let [p (promise)]
+      (.start (Thread. (fn [] (deliver p (get-?hostname)))))
+      p))
+
+  (def get-hostname "Returns cached hostname string."
+    (enc/memoize* (enc/ms :mins 1)
+      (fn [] (or (deref (get-?hostname_) 5000 nil) "UnknownHost")))))
 
 (comment (get-hostname))
 
