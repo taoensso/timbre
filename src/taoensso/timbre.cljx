@@ -91,7 +91,6 @@
       :output-fn       ; (fn [data]) -> formatted output string
                        ; (see `default-output-fn` for details)
       :context         ; *context* value at log time (see `with-context`)
-      :profile-stats   ; From `profile` macro
 
       **NB** - any keys not specifically documented here should be
       considered private / subject to change without notice.
@@ -702,14 +701,14 @@
   (require '[taoensso.timbre :as timbre
              :refer (log  trace  debug  info  warn  error  fatal  report
                      logf tracef debugf infof warnf errorf fatalf reportf
-                     spy get-env log-env)])
-  (require '[taoensso.timbre.profiling :as profiling
-             :refer (pspy p defnp profile)])"
+                     spy get-env log-env)])"
   []
   (require '[taoensso.timbre :as timbre
              :refer (log  trace  debug  info  warn  error  fatal  report
                      logf tracef debugf infof warnf errorf fatalf reportf
                      spy get-env log-env)])
+
+  ;; Undocumented, for back compatibility:
   (require '[taoensso.timbre.profiling :as profiling
              :refer (pspy p defnp profile)]))
 

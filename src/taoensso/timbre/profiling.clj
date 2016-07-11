@@ -1,14 +1,9 @@
 (ns taoensso.timbre.profiling
-  "Logging profiler for Timbre, adapted from clojure.contrib.profile."
-  {:author "Peter Taoussanis"}
+  "DEPRECATED, further development work will be focused on
+  Tufte at https://github.com/ptaoussanis/tufte."
+  {:author "Peter Taoussanis (@ptaoussanis)"}
   (:require [taoensso.encore :as enc]
             [taoensso.timbre :as timbre]))
-
-;;;; TODO ns could use some housekeeping
-;; * Boxed math optimizations
-;; * Possible porting to .cljx (any point?)
-;; * Support for explicit `config` args?
-;; * General housekeeping, perf work
 
 ;;;; Utils
 
@@ -18,8 +13,6 @@
 
 (comment (map #(fq-keyword %) ["foo" :foo :foo/bar]))
 
-;; TODO May be preferable if our `p` forms could actually take a logging level?
-;; Need to think about this. Might just be time to refactor this entire ns + design
 (def ^:private elide-profiling? "Experimental"
   (when-let [s (System/getenv "TIMBRE_ELIDE_PROFILING")] (enc/read-edn s)))
 

@@ -33,7 +33,6 @@ Happy hacking!
  * **Great performance** at any scale.
  * Filter logging by levels, **namespace whitelist/blacklist patterns**, and more.
  * **Zero overhead** with **complete Clj+Cljs elision** for compile-time level/ns filters.
- * Includes a simple, high-performance **[logging profiler][]**.
  * Useful built-in appenders for **out-the-box** Clj+Cljs logging.
  * Powerful, easy-to-configure **rate limits** and **async logging**.
  * [Logs as Clojure values][] (v3+).
@@ -63,9 +62,7 @@ And setup your namespace imports:
     [taoensso.timbre :as timbre
       :refer (log  trace  debug  info  warn  error  fatal  report
               logf tracef debugf infof warnf errorf fatalf reportf
-              spy get-env log-env)]
-    [taoensso.timbre.profiling :as profiling
-      :refer (pspy p defnp profile)]))
+              spy get-env log-env)]))
 
 (ns my-cljs-ns ; ; ClojureScript namespace
   (:require
@@ -158,7 +155,6 @@ This is the biggest win over Java logging IMO. **All** of Timbre's behaviour is 
       :output-fn       ; (fn [data]) -> formatted output string
                        ; (see `default-output-fn` for details)
       :context         ; *context* value at log time (see `with-context`)
-      :profile-stats   ; From `profile` macro
 
       **NB** - any keys not specifically documented here should be
       considered private / subject to change without notice.
@@ -296,49 +292,13 @@ Just give me a shout if you've got an appender you'd like to have added.
 
 ## Profiling
 
-> Currently Clj only
+As of v4.6.0, Timbre's profiling features have been enhanced and exported to a dedicated profiling library called [Tufte].
 
-The usual recommendation for Clojure profiling is: use a good **JVM profiler** like [YourKit], [JProfiler], or [VisualVM].
+Timbre's old profiling features **will be kept for backwards compatibility** throughout v4.x, but future development will be focused exclusively on Tufte.
 
-And these can certainly do the job. But as with many Java tools, they can be a little hairy and often heavy-handed. Timbre includes a simple, lightweight alternative.
+Tufte has out-the-box support for integration with Timbre, and [migration](https://github.com/ptaoussanis/tufte#how-does-tufte-compare-to-the-profiling-in-timbre) is usually simple.
 
-Wrap forms that you'd like to profile with the `p` macro and give them a name:
-
-```clojure
-(defn my-fn
-  []
-  (let [nums (vec (range 1000))]
-    (+ (p :fast-sleep (Thread/sleep 1) 10)
-       (p :slow-sleep (Thread/sleep 2) 32)
-       (p :add  (reduce + nums))
-       (p :sub  (reduce - nums))
-       (p :mult (reduce * nums))
-       (p :div  (reduce / nums)))))
-
-(my-fn) => 42
-```
-
-The `profile` macro can now be used to log times for any wrapped forms:
-
-```clojure
-(profile :info :Arithmetic (dotimes [n 100] (my-fn))) => "Done!"
-%> 2012-Jul-03 20:46:17 +0700 localhost INFO [my-app] - Profiling my-app/Arithmetic
-              Name  Calls       Min        Max       MAD      Mean  Total% Total
- my-app/slow-sleep    100       2ms        2ms      31μs       2ms      57 231ms
- my-app/fast-sleep    100       1ms        1ms      27μs       1ms      29 118ms
-        my-app/add    100      44μs        2ms      46μs     100μs       2 10ms
-        my-app/sub    100      42μs      564μs      26μs      72μs       2 7ms
-        my-app/div    100      54μs      191μs      17μs      71μs       2 7ms
-       my-app/mult    100      31μs      165μs      11μs      44μs       1 4ms
-       Unaccounted                                                       6 26ms
-             Total                                                     100 405ms
-```
-
-Timbre profiling is **log level & ns filter aware**: if the level is insufficient or ns filtered, you **won't pay for profiling**.
-
-And since `p` and `profile` **always return their body's result**, it becomes feasible to use profiling more often as part of your normal workflow: just *leave profiling code in production as you do logging code*.
-
-See also `defnp`, `sampling-profile`.
+Sorry for the inconvenience!
 
 ## This project supports the ![ClojureWerkz-logo] goals
 
@@ -380,9 +340,7 @@ Copyright &copy; 2015-2016 [Peter Taoussanis].
 [@fzakaria/slf4j-timbre]: https://github.com/fzakaria/slf4j-timbre
 [io.aviso.exception]: https://github.com/AvisoNovate/pretty
 [Carmine]: https://github.com/ptaoussanis/carmine
+[Tufte]: https://github.com/ptaoussanis/tufte
 [Postal]: https://github.com/drewr/postal
-[YourKit]: http://www.yourkit.com/)
-[JProfiler]: http://www.ej-technologies.com/products/jprofiler/overview.html
-[VisualVM]: http://docs.oracle.com/javase/6/docs/technotes/guides/visualvm/index.html
 [ClojureWerkz-logo]: https://raw.github.com/clojurewerkz/clojurewerkz.org/master/assets/images/logos/clojurewerkz_long_h_50.png
 [ClojureWerkz]: http://clojurewerkz.org/
