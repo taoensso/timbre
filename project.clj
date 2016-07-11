@@ -12,8 +12,8 @@
 
   :dependencies
   [[org.clojure/clojure "1.5.1"]
-   [com.taoensso/encore "2.58.0"]
-   [io.aviso/pretty     "0.1.26"]]
+   [com.taoensso/encore "2.64.1"]
+   [io.aviso/pretty     "0.1.27"]]
 
   :plugins
   [[lein-pprint  "1.1.2"]
@@ -27,7 +27,7 @@
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
    :1.7  {:dependencies [[org.clojure/clojure "1.7.0"]]}
    :1.8  {:dependencies [[org.clojure/clojure "1.8.0"]]}
-   :1.9  {:dependencies [[org.clojure/clojure "1.9.0-alpha5"]]}
+   :1.9  {:dependencies [[org.clojure/clojure "1.9.0-alpha9"]]}
    :test
    {:dependencies
     [[org.clojure/tools.logging "0.3.1"]
@@ -41,12 +41,12 @@
      [org.julienxx/clj-slack  "0.5.4"]
      [org.clojure/java.jdbc   "0.6.1"]
      [com.mchange/c3p0        "0.9.5.2"]
-     [cheshire                "5.6.2"]
-     [com.newrelic.agent.java/newrelic-agent "3.20.0"]]}
+     [cheshire                "5.6.3"]
+     [com.newrelic.agent.java/newrelic-agent "3.30.0"]]}
 
    :dev
    [:1.9 :test :server-jvm
-    {:dependencies [[org.clojure/clojurescript "1.9.36"]]
+    {:dependencies [[org.clojure/clojurescript "1.9.93"]]
      :plugins
      [;; These must be in :dev, Ref. https://github.com/lynaghk/cljx/issues/47:
       [com.keminglabs/cljx "0.6.0"]
