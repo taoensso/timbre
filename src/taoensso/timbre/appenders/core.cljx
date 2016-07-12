@@ -150,3 +150,97 @@
 ;;;; Deprecated
 
 #+cljs (def console-?appender "DEPRECATED" console-appender)
+
+;;;; TODO Temp, to demonstrate an auto-closing writer impl.
+
+#+clj
+(defprotocol IPersistentWriter
+  (get-writer ^java.io.Writer [_])
+  (close-writer [_])
+  (write [_ s]))
+
+#+clj
+(defrecord PersistentWriter [fname writer-opts flush? writer__ on-write-fn]
+  IPersistentWriter
+  (get-writer [_]
+    @(or
+       @writer__
+       (let [new-writer_
+             (delay
+               ;; (have? enc/nblank-str? fname)
+               (try
+                 (println (str "Opening: " fname))
+                 (clojure.java.io/make-writer fname writer-opts)
+                 (catch java.io.IOException _
+                   (println (str "Creating dirs for: " fname))
+                   (let [file (java.io.File. ^String fname)
+                         dir  (.getParentFile (.getCanonicalFile file))]
+                     (when-not (.exists dir) (.mkdirs dir))
+                     (clojure.java.io/make-writer fname writer-opts)))))]
+
+         (swap! writer__ (fn [?w_] (or ?w_ new-writer_))))))
+
+  (close-writer [_]
+    (when-let [writer_
+               (loop []
+                 (let [writer_ @writer__]
+                   (if (compare-and-set! writer__ writer_ nil)
+                     writer_
+                     (recur))))]
+      (println (str "Closing: " fname))
+      (.close ^java.io.Closeable @writer_)
+      true))
+
+  (write [self s]
+    (let [^String s s
+          writer (get-writer self)]
+      (try
+        (.write writer s)
+        (when flush? (.flush writer))
+        (when on-write-fn (on-write-fn))
+        (catch java.io.IOException _
+          (reset! writer__ nil)
+          (let [writer (get-writer self)]
+            (.write writer s)
+            (when flush? (.flush writer))
+            (when on-write-fn (on-write-fn))))))))
+
+#+clj
+(defn persistent-writer
+  [fname
+   {:keys [writer-opts flush? timeout-ms]
+    :or   {writer-opts {:append true}
+           flush? true
+           timeout-ms 5000}}]
+
+  (have? enc/nblank-str? fname)
+  (let [open?_   (atom false)
+        used?_   (atom false) ; Used w/in last timeout window?
+        writer__ (atom nil)
+        on-write-fn
+        (fn []
+          (reset! used?_ true)
+          (reset! open?_ true))
+
+        pw (PersistentWriter. fname writer-opts flush?
+             writer__ on-write-fn)]
+
+    (when-let [^long timeout-ms timeout-ms]
+      (let [timer-name (str "Timbre persistent writer" fname)
+            timer (java.util.Timer. timer-name true)
+            timer-fn
+            (proxy [java.util.TimerTask] []
+              (run []
+                (enc/catch-errors*
+                  (let [used? @used?_]
+                    (reset! used?_ false)
+                    (when-not used?
+                      (when (compare-and-set! open?_ true false)
+                        (close-writer pw)))))))]
+        (.schedule timer timer-fn 0 timeout-ms)))
+    pw))
+
+(comment
+  (def pw (persistent-writer "foo" {}))
+  (qb 100 (write pw ".")) ; 0.18
+  )
