@@ -1,5 +1,19 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.6.0 / 2016 Jul 12
+
+```clojure
+[com.taoensso/timbre "4.6.0"]
+```
+
+> Non-breaking, **minor feature release**
+
+* **New**:  [#176] Add New Relic appender (@polymeris)
+* **Impl**: [#177] Improvements to clojure.tools.logging integration (@MerelyAPseudonym)
+* **Impl**: [#179] Break hostname util into smaller components
+* **Impl**: [#174] Smarter (faster) spit appender path creation
+* **Impl**: Revert recent profiling changes, restore ^:dynamic (multi-threaded) behaviour
+
 ## v4.5.1 / 2016 Jun 29
 
 ```clojure
