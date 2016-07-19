@@ -1,5 +1,13 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.7.0 / 2016 Jul 19
+
+```clojure
+[com.taoensso/timbre "4.7.0"]
+```
+
+* **New**: [#183] Add support for appender-level middleware
+
 ## v4.6.0 / 2016 Jul 12
 
 ```clojure

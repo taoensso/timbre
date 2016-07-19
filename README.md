@@ -5,7 +5,7 @@
 **[CHANGELOG]** | [API] | current [Break Version]:
 
 ```clojure
-[com.taoensso/timbre "4.6.0"] ; Stable
+[com.taoensso/timbre "4.7.0"] ; Stable
 ```
 
 > Please consider helping to [support my continued open-source Clojure/Script work]? 
@@ -51,7 +51,7 @@ Your link here?          | **PR's welcome!**
 Add the necessary dependency to your project:
 
 ```clojure
-[com.taoensso/timbre "4.6.0"]
+[com.taoensso/timbre "4.7.0"]
 ```
 
 And setup your namespace imports:
@@ -113,9 +113,19 @@ ANSI colors are enabled by default for stacktraces. To turn these off (e.g. for 
 
 And/or you can set the `TIMBRE_DEFAULT_STACKTRACE_FONTS` environment variable (supports edn).
 
+### Data flow
+
+Timbre's inherently a very simple design, no magic. It's just Clojure data and functions:
+
+ 1. Unfiltered logging calls generate a **data map**: `{:level _ :?ns-str _ ...}`
+ 2. The resulting data map passes through any **middleware fns**, `(fn [data]) -> ?data`
+ 3. The resulting data map is sent to all **appender fns**, `(fn [data]) -> ?effects`
+
 ### Configuration
 
-This is the biggest win over Java logging IMO. **All** of Timbre's behaviour is controlled through a single, simple Clojure map.
+This is the biggest win over Java logging IMO. 
+
+**All** of Timbre's behaviour is controlled through a single, simple Clojure map.
 
 > See `timbre/example-config` for Timbre's default config map
 
