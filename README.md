@@ -133,6 +133,7 @@ This is the biggest win over Java logging IMO. **All** of Timbre's behaviour is 
       :timestamp-opts  ; Optional override for inherited {:pattern _ :locale _ :timezone _}
       :ns-whitelist    ; Optional, stacks with active config's whitelist
       :ns-blacklist    ; Optional, stacks with active config's blacklist
+      :middleware-fn   ; Optional, stacks with active config's middleware
       :fn              ; (fn [data]) -> side effects, with keys described below
 
     An appender's fn takes a single data map with keys:

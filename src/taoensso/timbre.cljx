@@ -69,6 +69,7 @@
       :timestamp-opts  ; Optional override for inherited {:pattern _ :locale _ :timezone _}
       :ns-whitelist    ; Optional, stacks with active config's whitelist
       :ns-blacklist    ; Optional, stacks with active config's blacklist
+      :middleware-fn   ; Optional, stacks with active config's middleware
       :fn              ; (fn [data]) -> side effects, with keys described below
 
     An appender's fn takes a single data map with keys:
@@ -512,26 +513,33 @@
                              #+clj  (assoc data :timestamp_ timestamp_)
                              #+cljs data))
 
-                           data ; Final data prep before going to appender
+                           data
                            (conj data
                              {:appender-id id
                               :appender    appender
                               :output-fn   output-fn
                               :output_     output_
-                              #+clj :timestamp_ #+clj timestamp_})]
+                              #+clj :timestamp_ #+clj timestamp_})
 
-                       ;; NB Unless `async?`, we currently allow appenders to
-                       ;; throw since it's not particularly obvious how/where
-                       ;; we should report problems. Throwing early seems
-                       ;; preferable to just silently dropping errors. In
-                       ;; effect, we currently require appenders to take
-                       ;; responsibility over appropriate trapping.
+                           ?data ; Final data prep before going to appender
+                           (if-let [mfn (:middleware-fn appender)]
+                             (mfn data)
+                             data)]
 
-                       #+cljs (apfn data)
-                       #+clj
-                       (if async?
-                         (send-off (get-agent id) (fn [_] (apfn data)))
-                         (apfn data))))))))
+                       (when-let [data ?data] ; Not filtered by middleware
+
+                         ;; NB Unless `async?`, we currently allow appenders
+                         ;; to throw since it's not particularly obvious
+                         ;; how/where we should report problems. Throwing
+                         ;; early seems preferable to just silently dropping
+                         ;; errors. In effect, we currently require appenders
+                         ;;  to take responsibility over appropriate trapping.
+
+                         #+cljs (apfn data)
+                         #+clj
+                         (if async?
+                           (send-off (get-agent id) (fn [_] (apfn data)))
+                           (apfn data)))))))))
            nil
            (:appenders config))))))
   nil))
