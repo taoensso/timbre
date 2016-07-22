@@ -37,7 +37,7 @@
      [com.taoensso/carmine    "2.13.1"]
      [com.draines/postal      "2.0.0"]
      [irclj                   "0.5.0-alpha4"]
-     [org.graylog2/gelfclient "1.4.0"]
+     [org.graylog2/gelfclient "1.4.0" :exclusions [com.fasterxml.jackson.core/jackson-core]]
      [org.julienxx/clj-slack  "0.5.4"]
      [org.clojure/java.jdbc   "0.6.1"]
      [com.mchange/c3p0        "0.9.5.2"]
