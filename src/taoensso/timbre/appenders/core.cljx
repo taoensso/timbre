@@ -112,7 +112,7 @@
    :rate-limit nil
    :output-fn  :inherit
    :fn
-   (if (and (exists? js/console) js/console.log)
+   (if (exists? js/console)
      (let [;; Don't cache this; some libs dynamically replace js/console
            level->logger
            (fn [level]
@@ -128,7 +128,7 @@
                js/console.log))]
 
        (fn [data]
-         (let [logger (level->logger (:level data))]
+         (when-let [logger (level->logger (:level data))]
 
            (if (or (:raw-console? data)
                    (get-in data [:?meta :raw-console?])) ; Undocumented
