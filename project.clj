@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "4.7.0"
+(defproject com.taoensso/timbre "4.7.2"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Pure Clojure/Script logging library"
   :url "https://github.com/ptaoussanis/timbre"
@@ -12,7 +12,7 @@
 
   :dependencies
   [[org.clojure/clojure "1.5.1"]
-   [com.taoensso/encore "2.66.2"]
+   [com.taoensso/encore "2.67.0"]
    [io.aviso/pretty     "0.1.29"]]
 
   :plugins
@@ -35,7 +35,7 @@
      ;;; Appender deps
      [com.taoensso/nippy      "2.11.1"]
      [com.taoensso/carmine    "2.13.1"]
-     [com.draines/postal      "2.0.0"]
+     [com.draines/postal      "2.0.1"]
      [irclj                   "0.5.0-alpha4"]
      [org.graylog2/gelfclient "1.4.0" :exclusions [com.fasterxml.jackson.core/jackson-core]]
      [org.julienxx/clj-slack  "0.5.4"]

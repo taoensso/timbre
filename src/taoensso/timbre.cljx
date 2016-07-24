@@ -19,8 +19,8 @@
    [taoensso.timbre :as timbre-macros :refer ()]))
 
 (if (vector? taoensso.encore/encore-version)
-  (enc/assert-min-encore-version [2 66 2])
-  (enc/assert-min-encore-version  2.66))
+  (enc/assert-min-encore-version [2 67 0])
+  (enc/assert-min-encore-version  2.67))
 
 ;;;; Config
 
