@@ -35,7 +35,7 @@
            :subject (-> output-str
                         (str/trim)
                         (str/replace #"\s+" " ")
-                        (enc/substr 0 subject-len))
+                        (enc/get-substring 0 subject-len))
            :body (body-fn output-str)))))})
 
 ;;;; Deprecated

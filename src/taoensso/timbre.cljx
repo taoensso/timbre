@@ -5,21 +5,22 @@
   (:require
    [clojure.string     :as str]
    [io.aviso.exception :as aviso-ex]
-   [taoensso.encore    :as enc :refer (compile-if have have? qb)]
+   [taoensso.encore    :as enc :refer (have have? qb)]
    [taoensso.timbre.appenders.core :as core-appenders])
 
   #+cljs
   (:require
    [clojure.string  :as str]
-   [taoensso.encore :as enc :refer () :refer-macros (compile-if have have?)]
+   [taoensso.encore :as enc :refer () :refer-macros (have have?)]
    [taoensso.timbre.appenders.core :as core-appenders])
 
   #+cljs
-  (:require-macros [taoensso.timbre :as timbre-macros :refer ()]))
+  (:require-macros
+   [taoensso.timbre :as timbre-macros :refer ()]))
 
 (if (vector? taoensso.encore/encore-version)
-  (enc/assert-min-encore-version [2 58 0])
-  (enc/assert-min-encore-version  2.58))
+  (enc/assert-min-encore-version [2 67 2])
+  (enc/assert-min-encore-version  2.67))
 
 ;;;; Config
 
@@ -133,7 +134,7 @@
   (set-config! example-config)
   (infof "Hello %s" "world :-)"))
 
-(enc/defonce* ^:dynamic *config* "See `example-config` for info." example-config)
+(enc/defonce ^:dynamic *config* "See `example-config` for info." example-config)
 (defmacro with-config        [config & body] `(binding [*config* ~config] ~@body))
 (defmacro with-merged-config [config & body]
   `(binding [*config* (enc/nested-merge *config* ~config)] ~@body))
@@ -172,68 +173,8 @@
 
 ;;;; Namespace filtering
 
-;; Code shared with Tufte
-(def compile-ns-filter "Returns (fn [?ns]) -> truthy."
-  (let [compile1
-        (fn [x] ; ns-pattern
-          (cond
-            (enc/re-pattern? x) (fn [ns-str] (re-find x ns-str))
-            (string? x)
-            (if (enc/str-contains? x "*")
-              (let [re
-                    (re-pattern
-                      (-> (str "^" x "$")
-                          (str/replace "." "\\.")
-                          (str/replace "*" "(.*)")))]
-                (fn [ns-str] (re-find re ns-str)))
-              (fn [ns-str] (= ns-str x)))
-
-            :else (throw (ex-info "Unexpected ns-pattern type"
-                           {:given x :type (type x)}))))]
-
-    (fn self
-      ([ns-pattern] ; Useful for user-level matching
-       (let [x ns-pattern]
-         (cond
-           (map? x) (self (:whitelist x) (:blacklist x))
-           (or (vector? x) (set? x)) (self x nil)
-           (= x "*") (fn [?ns] true)
-           :else
-           (let [match? (compile1 x)]
-             (fn [?ns] (if (match? (str ?ns)) true))))))
-
-      ([whitelist blacklist]
-       (let [white
-             (when (seq whitelist)
-               (let [match-fns (mapv compile1 whitelist)
-                     [m1 & mn] match-fns]
-                 (if mn
-                   (fn [ns-str] (enc/rsome #(% ns-str) match-fns))
-                   (fn [ns-str] (m1 ns-str)))))
-
-             black
-             (when (seq blacklist)
-               (let [match-fns (mapv compile1 blacklist)
-                     [m1 & mn] match-fns]
-                 (if mn
-                   (fn [ns-str] (not (enc/rsome #(% ns-str) match-fns)))
-                   (fn [ns-str] (not (m1 ns-str))))))]
-         (cond
-           (and white black)
-           (fn [?ns]
-             (let [ns-str (str ?ns)]
-               (if (white ns-str)
-                 (if (black ns-str)
-                   true))))
-
-           white (fn [?ns] (if (white (str ?ns)) true))
-           black (fn [?ns] (if (black (str ?ns)) true))
-           :else (fn [?ns] true) ; Common case
-           ))))))
-
-(def ^:private -compile-ns-filter (enc/memoize_ compile-ns-filter))
-
-(def ^:private ns-filter
+(def ^:private -compile-ns-filter (enc/memoize_ enc/compile-ns-filter))
+(def ^:private          ns-filter
   "Returns true iff given ns passes white/black lists."
   (enc/memoize_
     (fn [whitelist blacklist ?ns]
@@ -282,7 +223,7 @@
         (not (string? ns-str-form)) ; Not a compile-time ns-str const
         (compile-time-ns-filter ns-str-form)))))
 
-(defn may-log?
+(defn #+clj may-log? #+cljs ^boolean may-log?
   "Runtime check: would Timbre currently log at the given logging level?
     * `?ns-str` arg required to support ns filtering
     * `config`  arg required to support non-global config"
@@ -316,20 +257,20 @@
               ;; (enc/lazy-seq? x) (pr-str x) ; Dubious?
               :else x))))
       xs))
-  (defn- str-join [xs] (enc/spaced-str-with-nils xs)))
+  (defn- str-join [xs] (str/join " " #+clj xs #+cljs (filter identity xs))))
 
 (comment
   (defrecord MyRec [x])
   (str-join ["foo" (MyRec. "foo")]))
 
 #+clj
-(enc/defonce* ^:private get-agent
+(enc/defonce ^:private get-agent
   (enc/memoize_ (fn [appender-id] (agent nil :error-mode :continue))))
 
 (comment (get-agent :my-appender))
 
-(enc/defonce* ^:private get-rate-limiter
-  (enc/memoize_ (fn [appender-id specs] (enc/rate-limiter* specs))))
+(defonce ^:private get-rate-limiter
+  (enc/memoize_ (fn [appender-id specs] (enc/limiter specs))))
 
 (comment (def rf (get-rate-limiter :my-appender [[10 5000]])))
 
@@ -642,19 +583,17 @@
   (infof (Exception.)))
 
 (defmacro -log-errors [?line & body]
-  `(let [[?result# ?error#] (enc/catch-errors ~@body)]
-     (when-let [e# ?error#]
-       ;; (error e#) ; CLJ-865
-       (log! :error :p [e#] ~{:?line ?line}))
-     ?result#))
+  `(enc/catching (do ~@body) e#
+     (do
+       #_(error e#) ; CLJ-865
+       (log! :error :p [e#] ~{:?line ?line}))))
 
 (defmacro -log-and-rethrow-errors [?line & body]
-  `(let [[?result# ?error#] (enc/catch-errors ~@body)]
-     (when-let [e# ?error#]
-       ;; (error e#) ; CLJ-865
+  `(enc/catching (do ~@body) e#
+     (do
+       #_(error e#) ; CLJ-865
        (log! :error :p [e#] ~{:?line ?line})
-       (throw e#))
-     ?result#))
+       (throw e#))))
 
 (defmacro -logged-future [?line & body] `(future (-log-errors ~?line ~@body)))
 
@@ -788,16 +727,17 @@
 
 ;;;; Deprecated
 
-#+cljs (def console-?appender core-appenders/console-appender)
-(def ordered-levels -levels-vec)
-(def log? may-log?)
-(defn logging-enabled? [level compile-time-ns] (may-log? level (str compile-time-ns)))
-(defn str-println      [& xs] (str-join xs))
-(defmacro with-log-level      [level  & body] `(with-level  ~level  ~@body))
-(defmacro with-logging-config [config & body] `(with-config ~config ~@body))
-(defmacro logp [& sigs] `(log ~@sigs))
-(defmacro log-env
-  ([                 ] `(log-env :debug))
-  ([       level     ] `(log-env ~level "&env"))
-  ([       level name] `(log-env *config* ~level ~name))
-  ([config level name] `(log* ~config ~level ~name "=>" (get-env))))
+(enc/deprecated
+  #+cljs (def console-?appender core-appenders/console-appender)
+  (def ordered-levels -levels-vec)
+  (def log? may-log?)
+  (defn logging-enabled? [level compile-time-ns] (may-log? level (str compile-time-ns)))
+  (defn str-println      [& xs] (str-join xs))
+  (defmacro with-log-level      [level  & body] `(with-level  ~level  ~@body))
+  (defmacro with-logging-config [config & body] `(with-config ~config ~@body))
+  (defmacro logp [& args] `(log ~@args))
+  (defmacro log-env
+    ([                 ] `(log-env :debug))
+    ([       level     ] `(log-env ~level "&env"))
+    ([       level name] `(log-env *config* ~level ~name))
+    ([config level name] `(log* ~config ~level ~name "=>" (get-env)))))

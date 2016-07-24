@@ -194,7 +194,7 @@
              (let [nanosecs (long nanosecs) ; Truncate any fractional nanosecs
                    pow     #(Math/pow 10 %)
                    ok-pow? #(>= nanosecs (pow %))
-                   to-pow  #(enc/round (/ nanosecs (pow %1)) :round %2)]
+                   to-pow  #(enc/round* :round %2 (/ nanosecs (pow %1)))]
                (cond (ok-pow? 9) (str (to-pow 9 1) "s")
                      (ok-pow? 6) (str (to-pow 6 0) "ms")
                      (ok-pow? 3) (str (to-pow 3 0) "μs")
