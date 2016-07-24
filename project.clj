@@ -12,8 +12,8 @@
 
   :dependencies
   [[org.clojure/clojure "1.5.1"]
-   [com.taoensso/encore "2.64.1"]
-   [io.aviso/pretty     "0.1.28"]]
+   [com.taoensso/encore "2.66.2"]
+   [io.aviso/pretty     "0.1.29"]]
 
   :plugins
   [[lein-pprint  "1.1.2"]
@@ -42,7 +42,7 @@
      [org.clojure/java.jdbc   "0.6.1"]
      [com.mchange/c3p0        "0.9.5.2"]
      [cheshire                "5.6.3"]
-     [com.newrelic.agent.java/newrelic-agent "3.30.0"]]}
+     [com.newrelic.agent.java/newrelic-agent "3.30.1"]]}
 
    :dev
    [:1.9 :test :server-jvm
