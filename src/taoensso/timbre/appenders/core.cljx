@@ -20,6 +20,12 @@
                           taoensso.timbre/default-err)
 #+clj (alias 'timbre 'taoensso.timbre)
 
+#+clj
+(def ^:private ^:const system-newline
+  (System/getProperty "line.separator"))
+
+#+clj (defn- atomic-println [x] (print (str x system-newline)) (flush))
+
 (defn println-appender
   "Returns a simple `println` appender for Clojure/Script.
   Use with ClojureScript requires that `cljs.core/*print-fn*` be set.
@@ -53,7 +59,9 @@
                  :*err* *err*
                  stream)]
 
-           (binding [*out* stream] (println (force output_))))))}))
+           (binding [*out* stream]
+             #+clj  (atomic-println (force output_))
+             #+cljs (println        (force output_))))))}))
 
 (comment (println-appender))
 
