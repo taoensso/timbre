@@ -1,5 +1,16 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.7.4 / 2016 Aug 23
+
+```clojure
+[com.taoensso/timbre "4.7.4"]
+```
+
+> This is a **minor hotfix release**
+
+* **Hotfix**: [#188] Regression re: interleaving println appender
+* **Hotfix**: [#185] 3rd-party logstash appender deps issue (@robingl)
+
 ## v4.7.0 / 2016 Jul 19
 
 ```clojure

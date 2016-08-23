@@ -5,7 +5,7 @@
 **[CHANGELOG]** | [API] | current [Break Version]:
 
 ```clojure
-[com.taoensso/timbre "4.7.0"] ; Stable
+[com.taoensso/timbre "4.7.4"] ; Stable
 ```
 
 > Please consider helping to [support my continued open-source Clojure/Script work]? 
@@ -51,7 +51,7 @@ Your link here?          | **PR's welcome!**
 Add the necessary dependency to your project:
 
 ```clojure
-[com.taoensso/timbre "4.7.0"]
+[com.taoensso/timbre "4.7.4"]
 ```
 
 And setup your namespace imports:
