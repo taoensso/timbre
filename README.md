@@ -140,7 +140,7 @@ This is the biggest win over Java logging IMO.
       :async?          ; Dispatch using agent? Useful for slow appenders (clj only)
       :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil
       :output-fn       ; Optional override for inherited (fn [data]) -> string
-      :timestamp-opts  ; Optional override for inherited {:pattern _ :locale _ :timezone _}
+      :timestamp-opts  ; Optional override for inherited {:pattern _ :locale _ :timezone _} (clj only)
       :ns-whitelist    ; Optional, stacks with active config's whitelist
       :ns-blacklist    ; Optional, stacks with active config's blacklist
       :middleware-fn   ; Optional, stacks with active config's middleware
@@ -161,7 +161,7 @@ This is the biggest win over Java logging IMO.
       :output_         ; Forceable - final formatted output string created
                        ; by calling (output-fn <this-data-map>)
       :msg_            ; Forceable - args as a string
-      :timestamp_      ; Forceable - string
+      :timestamp_      ; Forceable - string (clj only)
       :hostname_       ; Forceable - string (clj only)
       :output-fn       ; (fn [data]) -> formatted output string
                        ; (see `default-output-fn` for details)
