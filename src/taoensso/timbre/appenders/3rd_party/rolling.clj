@@ -61,6 +61,8 @@
            prev-cal   (prev-period-end-cal instant pattern)]
        (when-let [log (io/file path)]
          (try
+           (when-not (.exists log)
+             (io/make-parents log))
            (if (.exists log)
              (if (<= (.lastModified log) (.getTimeInMillis prev-cal))
                (shift-log-period log path prev-cal))
