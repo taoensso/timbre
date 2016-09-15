@@ -50,10 +50,12 @@
   format to the logstash server at `host:port`. Additionally `opts`
   may be a map with `:pr-stracktrace` mapped to a function taking an
   exception, which should write the stacktrace of that exception to
-  `*out`."
+  `*out`. Set `:flush?` to true to flush the writer after every
+  event."
   [host port & [opts]]
-  (let [conn (atom nil)
-        nl "\n"]
+  (let [conn   (atom nil)
+        flush? (or (:flush? opts) false)
+        nl     "\n"]
     {:enabled?   true
      :async?     false
      :min-level  nil
@@ -63,12 +65,13 @@
      (fn [data]
        (try
          (let [[sock out] (swap! conn
-                                 (fn [conn]
-                                   (or (and conn (connection-ok? conn) conn)
-                                       (connect host port))))]
+                            (fn [conn]
+                              (or (and conn (connection-ok? conn) conn)
+                                (connect host port))))]
            (locking sock
              (data->json-stream data out (select-keys opts [:pr-stacktrace]))
              ;; logstash tcp input plugin: "each event is assumed to be one line of text".
-             (.write ^java.io.Writer out nl)))
+             (.write ^java.io.Writer out nl)
+             (when flush? (.flush ^java.io.Writer out))))
          (catch java.io.IOException _
            nil)))}))
