@@ -1,58 +1,57 @@
-(try
-  (require 'franzy.clients.producer.client)
-  (catch Excpetion e
-    (println "please add dependency `[ymilky/franzy "0.0.1"]'")
-    (throw e)))
-
 (ns taoensso.timbre.appenders.3rd-party.franzy
-  "franzy (kafka) appender.
-  Requires [franzy](https://github.com/ymilky/franzy)"
+  "Franzy (Kafka) appender.
+  Requires Franzy (https://github.com/ymilky/franzy."
+  {:author "Isaac Zeng (@gfZeng)"}
   (:require
-   [franzy.serialization.serializers :as serializers]
-   [franzy.clients.producer.client :as producer]
-   [franzy.clients.producer.defaults :as pd]
-   [franzy.clients.producer.protocols :refer :all]))
+   [franzy.serialization.serializers  :as serializers]
+   [franzy.clients.producer.client    :as producer]
+   [franzy.clients.producer.defaults  :as pd]
+   [franzy.clients.producer.protocols :as protocols]))
 
-(def ^:private -partition       0)
-(def ^:private -default-options (pd/make-default-producer-options))
-(def ^:private -producer        (atom nil))
+(def ^:private partition       0)
+(def ^:private default-options (pd/make-default-producer-options))
+(def ^:private producer_       (atom nil))
 
-(defn naive-key-strategy [_]
-  "")
+(defn naive-key-strategy [_] "")
 
-(defn build-producer
-  "normally need `:bootstrap.servers` in `kafka-config`"
+(defn make-producer
+  "Normally need `:bootstrap.servers` in `kafka-config`."
   [{:keys [kafka-config key-serializer value-serializer]
-    :or {key-serializer serializers/string-serializer
+    :or {key-serializer   serializers/string-serializer
          value-serializer serializers/edn-serializer}}]
-  (let [pc (merge {:bootstrap.servers ["127.0.0.1:9092"]
-                   :acks              "all"
-                   :retries           0
-                   :batch.size        16384
-                   :linger.ms         10
-                   :buffer.memory     33554432}
-                  kafka-config)]
+
+  (let [pc
+        (merge
+          {:bootstrap.servers ["127.0.0.1:9092"]
+           :acks              "all"
+           :retries           0
+           :batch.size        16384
+           :linger.ms         10
+           :buffer.memory     33554432}
+          kafka-config)]
+
     (producer/make-producer pc
-                            (key-serializer)
-                            (value-serializer)
-                            -default-options)))
+      (key-serializer)
+      (value-serializer)
+      default-options)))
 
-(defn- -log-message [{:keys [topic] :as config}
-                     entry-fn
-                     data]
-  (swap! -producer #(or % (build-producer config)))
-  (send-async! @-producer
-               topic
-               -partition
-               (naive-key-strategy data)
-               (entry-fn data)
-               -default-options))
+(defn- send-entry!
+  [{:keys [topic] :as config} entry-fn data]
+  (swap! producer_ #(or % (make-producer config)))
+  (protocol/send-async!
+    @producer_
+    topic
+    partition
+    (naive-key-strategy data)
+    (entry-fn data)
+    default-options))
 
-(defn- -default-entry-fn
+(defn- default-entry-fn
   [{:keys [instant level hostname_
            context ?err ?ns-str ?file ?line msg_]
     :as data}]
-  {:instant  instant    ;; java.util.Date
+
+  {:instant  instant ; java.util.Date
    :level    level
    :hostname (force hostname_)
    :context  context
@@ -62,19 +61,19 @@
    :?line    ?line
    :msg      (force msg_)})
 
-(defn kafka-appender
-  "Returns a kafka appender.
+(defn franzy-appender
+  "Returns a Franzy (Kafka) appender:
   (franzy-appender
     {:topic \"test-topic\"
-     :kafka-config {:bootstrap.servers [\"127.0.0.1:9093\"]}
-  })"
+     :kafka-config {:bootstrap.servers [\"127.0.0.1:9093\"]}})"
+
   [{:keys [topic entry-fn]
-    :or   {entry-fn -default-entry-fn}
-    :as config}]
+    :or   {entry-fn default-entry-fn}
+    :as   config}]
+
   {:enabled?   true
    :async?     true
    :min-level  nil
    :rate-limit nil
    :output-fn  :inherit
-   :fn (fn [data]
-         (-log-message config entry-fn data))})
+   :fn (fn [data] (send-entry! config entry-fn data))})
