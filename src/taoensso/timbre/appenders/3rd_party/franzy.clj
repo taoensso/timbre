@@ -4,7 +4,7 @@
     (println "please add dependency `[ymilky/franzy "0.0.1"]'")
     (throw e)))
 
-(ns taoensso.timbre.appenders.3rd-party.kafka-appender
+(ns taoensso.timbre.appenders.3rd-party.franzy
   "franzy (kafka) appender.
   Requires [franzy](https://github.com/ymilky/franzy)"
   (:require
