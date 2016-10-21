@@ -42,6 +42,7 @@
      [org.clojure/java.jdbc   "0.6.1"]
      [com.mchange/c3p0        "0.9.5.2"]
      [cheshire                "5.6.3"]
+     [ymilky/franzy           "0.0.1"]
      [com.newrelic.agent.java/newrelic-agent "3.31.1"]]}
 
    :dev
