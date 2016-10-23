@@ -191,7 +191,7 @@
 (def ^:private compile-time-level
   (when-let [level (or (enc/read-sys-val "TIMBRE_LEVEL")
                        (enc/read-sys-val "TIMBRE_LOG_LEVEL"))]
-    (println (str "Compile-time (elision) Timbre level: " level))
+    (println (str "// Compile-time (elision) Timbre level: " level))
     (let [;; Back compatibility
           level (if (string? level) (keyword level) level)]
       (valid-level level))))
@@ -200,14 +200,14 @@
 (def ^:private compile-time-ns-filter
   (if-let [ns-pattern (enc/read-sys-val "TIMBRE_NS_PATTERN")]
     (do
-      (println (str "Compile-time (elision) Timbre ns-pattern: " ns-pattern))
+      (println (str "// Compile-time (elision) Timbre ns-pattern: " ns-pattern))
       (-compile-ns-filter ns-pattern))
 
     ;; Back compatibility
     (let [whitelist (have [:or nil? vector?] (enc/read-sys-val "TIMBRE_NS_WHITELIST"))
           blacklist (have [:or nil? vector?] (enc/read-sys-val "TIMBRE_NS_BLACKLIST"))]
-      (when whitelist (println (str "Compile-time (elision) Timbre ns whitelist: " whitelist)))
-      (when blacklist (println (str "Compile-time (elision) Timbre ns blacklist: " blacklist)))
+      (when whitelist (println (str "// Compile-time (elision) Timbre ns whitelist: " whitelist)))
+      (when blacklist (println (str "// Compile-time (elision) Timbre ns blacklist: " blacklist)))
       (-compile-ns-filter whitelist blacklist))))
 
 #+clj ; Called only at macro-expansiom time
