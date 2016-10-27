@@ -253,10 +253,19 @@
         (fn [x]
           (let [x (enc/nil->str x)] ; Undefined, nil -> "nil"
             (cond
-              (record?          x) (pr-str x)
-              ;; (enc/lazy-seq? x) (pr-str x) ; Dubious?
-              :else x))))
-      xs))
+              (record? x)
+              (pr-str x)
+
+              (enc/lazy-seq? x)
+              (let [first-two (seq (take 2 x))
+                    more? (seq (drop 2 x))]
+                    (if more?
+                      (into '(…) (reverse first-two))
+                      first-two))
+
+              :else
+              x))))
+    xs))
   (defn- str-join [xs] (str/join " " #+clj xs #+cljs (filter identity xs))))
 
 (comment
