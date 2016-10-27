@@ -60,16 +60,16 @@ And setup your namespace imports:
 (ns my-clj-ns ; Clojure namespace
   (:require
     [taoensso.timbre :as timbre
-      :refer (log  trace  debug  info  warn  error  fatal  report
+      :refer [log  trace  debug  info  warn  error  fatal  report
               logf tracef debugf infof warnf errorf fatalf reportf
-              spy get-env log-env)]))
+              spy get-env]]))
 
 (ns my-cljs-ns ; ; ClojureScript namespace
   (:require
     [taoensso.timbre :as timbre
-      :refer-macros (log  trace  debug  info  warn  error  fatal  report
+      :refer-macros [log  trace  debug  info  warn  error  fatal  report
                      logf tracef debugf infof warnf errorf fatalf reportf
-                     spy get-env log-env)]))
+                     spy get-env]]))
 ```
 
 > You can also call `(timbre/refer-timbre)` to configure Clj ns referrals **automatically**.
