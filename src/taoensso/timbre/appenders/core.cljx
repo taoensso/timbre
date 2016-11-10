@@ -70,7 +70,7 @@
 #+clj
 (defn spit-appender
   "Returns a simple `spit` file appender for Clojure."
-  [& [{:keys [fname] :or {fname "./timbre-spit.log"}}]]
+  [& [{:keys [fname append] :or {fname "./timbre-spit.log" append true}}]]
   {:enabled?   true
    :async?     false
    :min-level  nil
@@ -80,7 +80,7 @@
    (fn self [data]
      (let [{:keys [output_]} data]
        (try
-         (spit fname (str (force output_) "\n") :append true)
+         (spit fname (str (force output_) "\n") :append append)
          (catch java.io.IOException e
            (if (:__spit-appender/retry? data)
              (throw e) ; Unexpected error
