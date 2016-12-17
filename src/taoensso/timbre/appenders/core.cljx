@@ -5,12 +5,12 @@
   #+clj
   (:require
    [clojure.string  :as str]
-   [taoensso.encore :as enc :refer (have have? qb)])
+   [taoensso.encore :as enc :refer [have have? qb]])
 
   #+cljs
   (:require
    [clojure.string  :as str]
-   [taoensso.encore :as enc :refer-macros (have have?)]))
+   [taoensso.encore :as enc :refer-macros [have have?]]))
 
 ;; TODO Add a simple official rolling spit appender?
 

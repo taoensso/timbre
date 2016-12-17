@@ -5,18 +5,18 @@
   (:require
    [clojure.string     :as str]
    [io.aviso.exception :as aviso-ex]
-   [taoensso.encore    :as enc :refer (have have? qb)]
+   [taoensso.encore    :as enc :refer [have have? qb]]
    [taoensso.timbre.appenders.core :as core-appenders])
 
   #+cljs
   (:require
    [clojure.string  :as str]
-   [taoensso.encore :as enc :refer () :refer-macros (have have?)]
+   [taoensso.encore :as enc :refer [] :refer-macros [have have?]]
    [taoensso.timbre.appenders.core :as core-appenders])
 
   #+cljs
   (:require-macros
-   [taoensso.timbre :as timbre-macros :refer ()]))
+   [taoensso.timbre :as timbre-macros :refer []]))
 
 (if (vector? taoensso.encore/encore-version)
   (enc/assert-min-encore-version [2 87 0])

@@ -1,11 +1,11 @@
 (ns taoensso.timbre.appenders.postal
   "Email (Postal) appender. Requires https://github.com/drewr/postal."
   {:author "Peter Taoussanis (@ptaoussanis)"}
-  (:require [clojure.string  :as str]
+  (:require [clojure.string     :as str]
             [io.aviso.exception :as aviso-ex]
-            [postal.core     :as postal]
-            [taoensso.timbre :as timbre]
-            [taoensso.encore :as enc :refer (have have?)]))
+            [postal.core        :as postal]
+            [taoensso.timbre    :as timbre]
+            [taoensso.encore    :as enc :refer [have have?]]))
 
 (defn postal-appender
   "Returns a Postal email appender.

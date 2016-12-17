@@ -5,7 +5,7 @@
   (:require [taoensso.carmine :as car]
             [taoensso.nippy   :as nippy]
             [taoensso.timbre  :as timbre]
-            [taoensso.encore  :as enc :refer (have have?)]))
+            [taoensso.encore  :as enc :refer [have have?]]))
 
 (defn- sha48
   "Truncated 160bit SHA hash (48bit Long). Redis can store small
