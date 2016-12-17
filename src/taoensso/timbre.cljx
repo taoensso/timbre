@@ -234,10 +234,11 @@
          min-level (get  config :level :report)]
      (and
        (level>= level min-level)
-       (ns-filter
-         (get config :ns-whitelist)
-         (get config :ns-blacklist)
-         ?ns-str)
+       (boolean ; Resolves #206 (issue with slf4j-timbre)
+         (ns-filter
+           (get config :ns-whitelist)
+           (get config :ns-blacklist)
+           ?ns-str))
        true))))
 
 (comment (qb 1e5 (may-log? :info))) ; 34.13
