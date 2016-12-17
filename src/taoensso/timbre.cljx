@@ -19,8 +19,8 @@
    [taoensso.timbre :as timbre-macros :refer ()]))
 
 (if (vector? taoensso.encore/encore-version)
-  (enc/assert-min-encore-version [2 67 2])
-  (enc/assert-min-encore-version  2.67))
+  (enc/assert-min-encore-version [2 87 0])
+  (enc/assert-min-encore-version  2.87))
 
 ;;;; Config
 
@@ -348,29 +348,10 @@
   (when (may-log? level ?ns-str config)
     (let [instant (enc/now-dt)
           context *context*
-          vargs1  @vargs_
+          vargs   @vargs_
 
-          [?err ?meta ?msg-fmt vargs1] (parse-vargs ?err msg-type vargs1)
-
-          final-vargs_ (atom vargs1) ; Allow middleware to influece msg_
-          msg_
-          (case msg-type
-            nil ""
-            :p  (delay (str-join @final-vargs_))
-            :f  (do
-                  (have? string? ?msg-fmt)
-                  (delay (enc/format* @final-vargs_))))
-
-          ;; Uniquely identifies a particular logging call for purposes of
-          ;; rate limiting, etc.
-          hash_
-          (delay
-            (hash
-              ;; Nb excl. instant
-              [callsite-id ; Only useful for direct macro calls
-               ?msg-fmt
-               (get ?meta :hash ; Explicit hash provided
-                 @final-vargs_)]))
+          [?err ?meta ?msg-fmt vargs]
+          (parse-vargs ?err msg-type vargs)
 
           data ; Pre-middleware
           (conj
@@ -384,18 +365,11 @@
              :?line   ?line
              #+clj :hostname_ #+clj (delay (get-hostname))
              :error-level? (#{:error :fatal} level)
-
-             :?err_    (delay ?err)          ; Deprecated
-             :vargs_   (delay @final-vargs_) ; ''
-
              :?err     ?err
-             :?meta    ?meta    ; TODO Undocumented (experimental)
-             :?msg-fmt ?msg-fmt ; ''
-             :hash_    hash_    ; ''
-             :vargs    vargs1
-             :msg_     msg_})
-
-          ?middleware (:middleware config)
+             :?err_    (delay ?err) ; Deprecated
+             :?meta    ?meta        ; Undocumented
+             :?msg-fmt ?msg-fmt     ; Undocumented
+             :vargs    vargs})
 
           ?data ; Post middleware
           (reduce ; Apply middleware: data->?data
@@ -405,11 +379,32 @@
                   (reduced nil)
                   result)))
             data
-            ?middleware)]
+            (:middleware config))]
 
       (when-let [data ?data] ; Not filtered by middleware
-        (reset! final-vargs_ (:vargs data))
-        (let [;; Optimization: try maximize output+timestamp sharing
+        (let [{:keys [vargs]} data
+              data (assoc data :vargs_ (delay vargs)) ; Deprecated
+              data
+              (enc/assoc-nx data
+                :msg_
+                (delay
+                  (case msg-type
+                    nil ""
+                    :p  (str-join                            vargs)
+                    :f  (enc/format* (have string? ?msg-fmt) vargs)))
+
+                ;; Uniquely identifies a particular logging call for
+                ;; rate limiting, etc.
+                :hash_
+                (delay
+                  (hash
+                    ;; Nb excl. instant
+                    [callsite-id      ; Only useful for direct macro calls
+                     ?msg-fmt
+                     (get ?meta :hash ; Explicit hash provided
+                       vargs)])))
+
+              ;; Optimization: try maximize output+timestamp sharing
               ;; between appenders
               output-fn1 (enc/memoize_ (get config :output-fn default-output-fn))
               #+clj timestamp-opts1 #+clj (conj default-timestamp-opts (get config :timestamp-opts))
