@@ -293,52 +293,41 @@
 
   [context & body] `(binding [*context* ~context] ~@body))
 
-(defn-   next-vargs [v] (if (> (count v) 1) (subvec v 1) []))
-(defn- vargs->margs
-  "Transforms raw vargs -> {:?err _ :?meta _ ...}, extracting:
-  * Special error or ^:meta {} (experimental, undocumented) v0
-  * Message format string
-  * Message string delay"
+(defn- vrest [v] (if (> (count v) 1) (subvec v 1) []))
+(defn- parse-vargs
+  "vargs -> [?err ?meta ?msg-fmt api-vargs]"
   [?err msg-type vargs]
   (let [auto-error? (enc/kw-identical? ?err :auto)
-        msg-fmt?    (enc/kw-identical? msg-type :f)
+        fmt-msg?    (enc/kw-identical? msg-type :f)
         [v0] vargs]
 
     (if (and auto-error? (enc/error? v0))
-      (let [vargs    (next-vargs vargs)
-            ?msg-fmt (if msg-fmt? (let [[v0] vargs] v0) nil)
-            vargs    (if msg-fmt? (next-vargs vargs) vargs)
-            msg_     (delay
-                      (case msg-type
-                        nil ""
-                        :p  (str-join                            vargs)
-                        :f  (enc/format* (have string? ?msg-fmt) vargs)))]
+      (let [?err     v0
+            ?meta    nil
+            vargs    (vrest vargs)
+            ?msg-fmt (if fmt-msg? (let [[v0] vargs] v0) nil)
+            vargs    (if fmt-msg? (vrest vargs) vargs)]
 
-        {:?err v0 :?meta nil :?msg-fmt ?msg-fmt :msg_ msg_ :vargs vargs})
+        [?err ?meta ?msg-fmt vargs])
 
       (let [?meta    (if (and (map? v0) (:meta (meta v0))) v0 nil)
             ?err     (or (:err ?meta) (if auto-error? nil ?err))
             ?meta    (dissoc ?meta :err)
-            vargs    (if ?meta (next-vargs vargs) vargs)
-            ?msg-fmt (if msg-fmt? (let [[v0] vargs] v0) nil)
-            vargs    (if msg-fmt? (next-vargs vargs) vargs)
-            msg_     (delay
-                      (case msg-type
-                        nil ""
-                        :p  (str-join                            vargs)
-                        :f  (enc/format* (have string? ?msg-fmt) vargs)))]
+            vargs    (if ?meta (vrest vargs) vargs)
+            ?msg-fmt (if fmt-msg? (let [[v0] vargs] v0) nil)
+            vargs    (if fmt-msg? (vrest vargs) vargs)]
 
-        {:?err ?err :?meta ?meta :?msg-fmt ?msg-fmt :msg_ msg_ :vargs vargs}))))
+        [?err ?meta ?msg-fmt vargs]))))
 
 (comment
   (let [ex (Exception. "ex")]
     (qb 10000
-      (vargs->margs :auto :f ["fmt" :a :b :c])
-      (vargs->margs :auto :p [ex    :a :b :c])
-      (vargs->margs :auto :p [^:meta {:foo :bar} :a :b :c])
-      (vargs->margs :auto :p [       {:foo :bar} :a :b :c])
-      (vargs->margs :auto :p [ex])
-      (vargs->margs :auto :p [^:meta {:err ex}   :a :b :c])))
+      (parse-vargs :auto :f ["fmt" :a :b :c])
+      (parse-vargs :auto :p [ex    :a :b :c])
+      (parse-vargs :auto :p [^:meta {:foo :bar} :a :b :c])
+      (parse-vargs :auto :p [       {:foo :bar} :a :b :c])
+      (parse-vargs :auto :p [ex])
+      (parse-vargs :auto :p [^:meta {:err ex}   :a :b :c])))
   ;; [2.79 2.51 6.13 1.65 1.94 6.2]
   (infof                                 "Hi %s" "steve")
   (infof ^:meta {:hash :bar}             "Hi %s" "steve")
@@ -359,46 +348,56 @@
   (when (may-log? level ?ns-str config)
     (let [instant (enc/now-dt)
           context *context*
-          vargs   @vargs_
+          vargs1  @vargs_
 
-          ;; {:keys [?err ?meta ?msg-fmt msg_ vargs]}:
-          margs (vargs->margs ?err msg-type vargs)
-          data
-          (merge
-           ?base-data
-           margs
-           {:instant instant
-            :level   level
-            :context context
-            :config  config ; Entire config!
-            :?ns-str ?ns-str
-            :?file   ?file
-            :?line   ?line
-            #+clj :hostname_ #+clj (delay (get-hostname))
-            :error-level? (#{:error :fatal} level)
+          [?err ?meta ?msg-fmt vargs1] (parse-vargs ?err msg-type vargs1)
 
-            ;; Uniquely identifies a particular logging call for purposes of
-            ;; rate limiting, etc.
-            :hash_ ; TODO Undocumented (experimental)
-            (delay
-             (hash
+          final-vargs_ (atom vargs1) ; Allow middleware to influece msg_
+          msg_
+          (case msg-type
+            nil ""
+            :p  (delay (str-join @final-vargs_))
+            :f  (do
+                  (have? string? ?msg-fmt)
+                  (delay (enc/format* @final-vargs_))))
+
+          ;; Uniquely identifies a particular logging call for purposes of
+          ;; rate limiting, etc.
+          hash_
+          (delay
+            (hash
               ;; Nb excl. instant
               [callsite-id ; Only useful for direct macro calls
-               (:?msg-fmt margs)
-               (get-in margs [:?meta :hash] ; Explicit hash provided
-                 (:vargs margs))]))
+               ?msg-fmt
+               (get ?meta :hash ; Explicit hash provided
+                 @final-vargs_)]))
 
-            ;; :?err     <from-margs>
-            ;; :?meta    <from-margs> ; TODO Undocumented (experimental)
-            ;; :?msg-fmt <from-margs> ; TODO Undocumented (experimental)
-            ;; :msg_     <from-margs>
-            ;; :vargs    <from-margs>
+          data ; Pre-middleware
+          (conj
+            (or ?base-data {})
+            {:instant instant
+             :level   level
+             :context context
+             :config  config ; Entire config!
+             :?ns-str ?ns-str
+             :?file   ?file
+             :?line   ?line
+             #+clj :hostname_ #+clj (delay (get-hostname))
+             :error-level? (#{:error :fatal} level)
 
-            ;;; Deprecated
-            :?err_  (delay (:?err  margs))
-            :vargs_ (delay (:vargs margs))})
+             :?err_    (delay ?err)          ; Deprecated
+             :vargs_   (delay @final-vargs_) ; ''
 
-          ?data
+             :?err     ?err
+             :?meta    ?meta    ; TODO Undocumented (experimental)
+             :?msg-fmt ?msg-fmt ; ''
+             :hash_    hash_    ; ''
+             :vargs    vargs1
+             :msg_     msg_})
+
+          ?middleware (:middleware config)
+
+          ?data ; Post middleware
           (reduce ; Apply middleware: data->?data
             (fn [acc mf]
               (let [result (mf acc)]
@@ -406,9 +405,10 @@
                   (reduced nil)
                   result)))
             data
-            (:middleware config))]
+            ?middleware)]
 
       (when-let [data ?data] ; Not filtered by middleware
+        (reset! final-vargs_ (:vargs data))
         (let [;; Optimization: try maximize output+timestamp sharing
               ;; between appenders
               output-fn1 (enc/memoize_ (get config :output-fn default-output-fn))
