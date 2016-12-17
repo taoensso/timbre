@@ -277,13 +277,16 @@
 
 ;;;; Internal logging core
 
-(def ^:dynamic *context*
-  "General-purpose dynamic logging context. Context will be included in
-  appender data map at logging time."
-  nil)
+(def ^:dynamic *context* "General-purpose dynamic logging context" nil)
+(defmacro  with-context
+  "Executes body so that given arbitrary data will be included in the
+  data map passed to appenders for any enclosed logging calls.
 
-(defmacro with-context [context & body]
-  `(binding [*context* ~context] ~@body))
+  (with-context
+    {:user-name \"Stu\"} ; Will be incl. in data dispatched to appenders
+    (info \"User request\"))"
+
+  [context & body] `(binding [*context* ~context] ~@body))
 
 (defn-   next-vargs [v] (if (> (count v) 1) (subvec v 1) []))
 (defn- vargs->margs
