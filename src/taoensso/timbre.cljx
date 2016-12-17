@@ -754,5 +754,3 @@
     ([       level     ] `(log-env ~level "&env"))
     ([       level name] `(log-env *config* ~level ~name))
     ([config level name] `(log* ~config ~level ~name "=>" (get-env)))))
-
-

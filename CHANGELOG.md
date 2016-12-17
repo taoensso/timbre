@@ -1,5 +1,29 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.8.0 / 2016 Dec 18
+
+```clojure
+[com.taoensso/timbre "4.8.0"]
+```
+
+> This is a **major feature & maintenance release** that should be non-breaking in most cases (see 1 exception below)
+
+* **BREAKING**: Middleware no longer receives :msg_ or :hash_ (was rarely useful, caused confusion)
+* **DEPRECATED**: Per-appender :middleware-fn (was rarely useful, caused confusion)
+
+* [#198] **New**: Add 3rd-party kafka appender (@gfZeng)
+* [#202] **New**: Spit appender: add `:append?` option (@tkocmathla)
+* [#195] **New**: Logstash appender: add `:flush?` option (@tvanhens)
+
+* [#192] **Impl**: Rolling appender: create dirs when they don't exist (@dsapala)
+* [#207] **Impl**: Add docstring for `with-context`
+* **Impl**: Default output fn now falls back to `?file` when `?ns-str` unavailable
+* **Impl**: Improve error message for logging calls with missing format pattern
+
+* [#207] **Fix**: Middleware couldn't influence automatic msg_ generation
+* [#199] **Fix**: Unintended elision warning output to cljs
+* [#206] **Fix**: Resolve `slf4j-timbre` issue with `may-log?` and namespace filtering
+
 ## v4.7.4 / 2016 Aug 23
 
 ```clojure
