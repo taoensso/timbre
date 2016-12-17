@@ -191,7 +191,10 @@
 (def ^:private compile-time-level
   (when-let [level (or (enc/read-sys-val "TIMBRE_LEVEL")
                        (enc/read-sys-val "TIMBRE_LOG_LEVEL"))]
-    (println (str "Compile-time (elision) Timbre level: " level))
+    (enc/if-clj
+      (println (str "Compile-time (elision) Timbre level: " level))
+      nil)
+
     (let [;; Back compatibility
           level (if (string? level) (keyword level) level)]
       (valid-level level))))
@@ -200,7 +203,9 @@
 (def ^:private compile-time-ns-filter
   (if-let [ns-pattern (enc/read-sys-val "TIMBRE_NS_PATTERN")]
     (do
-      (println (str "Compile-time (elision) Timbre ns-pattern: " ns-pattern))
+      (enc/if-clj
+        (println (str "Compile-time (elision) Timbre ns-pattern: " ns-pattern))
+        nil)
       (-compile-ns-filter ns-pattern))
 
     ;; Back compatibility
