@@ -514,7 +514,7 @@
   Supports compile-time elision when compile-time const vals
   provided for `level` and/or `?ns-str`."
   [level msg-type args & [opts]]
-  (have sequential? args) ; To allow -> (delay [~@args])
+  (have [:or nil? sequential?] args) ; To allow -> (delay [~@args])
   (let [{:keys [?ns-str] :or {?ns-str (str *ns*)}} opts]
     ;; level, ns may/not be compile-time consts:
     (when-not (-elide? level ?ns-str)
@@ -754,3 +754,5 @@
     ([       level     ] `(log-env ~level "&env"))
     ([       level name] `(log-env *config* ~level ~name))
     ([config level name] `(log* ~config ~level ~name "=>" (get-env)))))
+
+
