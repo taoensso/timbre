@@ -389,8 +389,18 @@
                 (delay
                   (case msg-type
                     nil ""
-                    :p  (str-join                            vargs)
-                    :f  (enc/format* (have string? ?msg-fmt) vargs)))
+                    :p  (str-join vargs)
+                    :f  #_(enc/format* (have string? ?msg-fmt) vargs)
+                    (do
+                      (when-not (string? ?msg-fmt)
+                        (throw
+                          (ex-info "Timbre format-style logging call without a format pattern (string)"
+                            #_data
+                            {:level    level
+                             :location (str (or ?ns-str ?file "?") ":"
+                                            (or ?line         "?"))})))
+
+                      (enc/format* ?msg-fmt vargs))))
 
                 ;; Uniquely identifies a particular logging call for
                 ;; rate limiting, etc.
