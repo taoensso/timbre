@@ -38,13 +38,13 @@
   ([     data] (default-output-fn nil data))
   ([opts data] ; For partials
    (let [{:keys [no-stacktrace? stacktrace-fonts]} opts
-         {:keys [level ?err #_vargs msg_ ?ns-str hostname_
+         {:keys [level ?err #_vargs msg_ ?ns-str ?file hostname_
                  timestamp_ ?line]} data]
      (str
        #+clj (force timestamp_) #+clj " "
        #+clj (force hostname_)  #+clj " "
        (str/upper-case (name level))  " "
-       "[" (or ?ns-str "?") ":" (or ?line "?") "] - "
+       "[" (or ?ns-str ?file "?") ":" (or ?line "?") "] - "
        (force msg_)
        (when-not no-stacktrace?
          (when-let [err ?err]
