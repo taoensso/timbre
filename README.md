@@ -251,6 +251,18 @@ lein uberjar        # Compile jar ''
 
 ### Built-in appenders
 
+#### Basic file appender
+
+```clojure
+;; (:require [taoensso.timbre.appenders.core :as appenders]) ; Add to ns
+
+(timbre/merge-config!
+  {:appenders {:spit (appenders/spit-appender {:fname "/path/my-file.log"})}})
+
+;; (timbre/merge-config! {:appenders {:spit {:enabled? false}}} ; To disable
+;; (timbre/merge-config! {:appenders {:spit nil}}               ; To remove entirely
+```
+
 #### Redis ([Carmine]) appender (v3+)
 
 ```clojure
@@ -283,15 +295,6 @@ See also `car-appender/query-entries`.
     (postal-appender/postal-appender
       ^{:host "mail.isp.net" :user "jsmith" :pass "sekrat!!1"}
       {:from "me@draines.com" :to "foo@example.com"})}})
-```
-
-#### File appender
-
-```clojure
-;; (:require [taoensso.timbre.appenders.core :as appenders]) ; Add to ns
-
-(timbre/merge-config!
-  {:appenders {:spit (appenders/spit-appender {:fname "/path/my-file.log"})}})
 ```
 
 #### Other included appenders
