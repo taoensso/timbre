@@ -148,7 +148,9 @@
                       :msg_  ""
                       :?err nil))
                    ;; (<output> <raw-error> <raw-arg1> <raw-arg2> ...):
-                   args (->> (:vargs data) (cons (:?err data)) (cons output))]
+                   args (cond->>       (:vargs data)
+                          (:?err data) (cons (:?err data))
+                          true         (cons output))]
 
                (.apply logger js/console (into-array args)))
              (.call    logger js/console (force (:output_ data)))))))
