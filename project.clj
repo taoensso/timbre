@@ -12,13 +12,13 @@
 
   :dependencies
   [[org.clojure/clojure "1.5.1"]
-   [com.taoensso/encore "2.88.0"]
+   [com.taoensso/encore "2.91.0"]
    [io.aviso/pretty     "0.1.33"]]
 
   :plugins
   [[lein-pprint  "1.1.2"]
    [lein-ancient "0.6.10"]
-   [lein-codox   "0.10.2"]]
+   [lein-codox   "0.10.3"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
@@ -33,8 +33,8 @@
     [[org.clojure/tools.logging "0.3.1"]
 
      ;;; Appender deps
-     [com.taoensso/nippy      "2.12.2"]
-     [com.taoensso/carmine    "2.15.0"]
+     [com.taoensso/nippy      "2.13.0"]
+     [com.taoensso/carmine    "2.16.0"]
      [com.draines/postal      "2.0.2"]
      [irclj                   "0.5.0-alpha4"]
      [org.graylog2/gelfclient "1.4.1" :exclusions [com.fasterxml.jackson.core/jackson-core]]
@@ -47,11 +47,11 @@
 
    :dev
    [:1.9 :test :server-jvm
-    {:dependencies [[org.clojure/clojurescript "1.9.293"]]
+    {:dependencies [[org.clojure/clojurescript "1.9.521"]]
      :plugins
      [;; These must be in :dev, Ref. https://github.com/lynaghk/cljx/issues/47:
       [com.keminglabs/cljx "0.6.0"]
-      [lein-cljsbuild      "1.1.4"]]}]}
+      [lein-cljsbuild      "1.1.5"]]}]}
 
   ;; :jar-exclusions [#"\.cljx|\.DS_Store"]
   :source-paths ["src" "target/classes"]
