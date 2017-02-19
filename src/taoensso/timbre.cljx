@@ -187,12 +187,17 @@
 ;;;; Combo filtering
 
 #+clj
+(defn- compiling-cljs? []
+  (when-let [n (find-ns 'cljs.analyzer)]
+    (when-let [v (ns-resolve n '*cljs-file*)]
+      @v)))
+
+#+clj
 (def ^:private compile-time-level
   (when-let [level (or (enc/read-sys-val "TIMBRE_LEVEL")
                        (enc/read-sys-val "TIMBRE_LOG_LEVEL"))]
-    (enc/if-clj
-      (println (str "Compile-time (elision) Timbre level: " level))
-      nil)
+    (when-not (compiling-cljs?)
+      (println (str "Compile-time (elision) Timbre level: " level)))
 
     (let [;; Back compatibility
           level (if (string? level) (keyword level) level)]
@@ -202,16 +207,21 @@
 (def ^:private compile-time-ns-filter
   (if-let [ns-pattern (enc/read-sys-val "TIMBRE_NS_PATTERN")]
     (do
-      (enc/if-clj
-        (println (str "Compile-time (elision) Timbre ns-pattern: " ns-pattern))
-        nil)
+      (when-not (compiling-cljs?)
+        (println (str "Compile-time (elision) Timbre ns-pattern: " ns-pattern)))
+
       (-compile-ns-filter ns-pattern))
 
     ;; Back compatibility
     (let [whitelist (have [:or nil? vector?] (enc/read-sys-val "TIMBRE_NS_WHITELIST"))
           blacklist (have [:or nil? vector?] (enc/read-sys-val "TIMBRE_NS_BLACKLIST"))]
-      (when whitelist (println (str "Compile-time (elision) Timbre ns whitelist: " whitelist)))
-      (when blacklist (println (str "Compile-time (elision) Timbre ns blacklist: " blacklist)))
+
+      (when (and whitelist (not (compiling-cljs?)))
+        (println (str "Compile-time (elision) Timbre ns whitelist: " whitelist)))
+
+      (when (and blacklist (not (compiling-cljs?)))
+        (println (str "Compile-time (elision) Timbre ns blacklist: " blacklist)))
+
       (-compile-ns-filter whitelist blacklist))))
 
 #+clj ; Called only at macro-expansiom time
