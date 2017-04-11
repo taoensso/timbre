@@ -198,7 +198,7 @@
                (cond (ok-pow? 9) (str (to-pow 9 1) "s")
                      (ok-pow? 6) (str (to-pow 6 0) "ms")
                      (ok-pow? 3) (str (to-pow 3 0) "μs")
-                     :else       (str nanosecs     "ns"))))]
+                     :else       (str (to-pow 0 0) "ns"))))]
 
     (with-out-str
       (printf s-pattern "Id" "nCalls" "Min" "Max" "MAD" "Mean" "Time%" "Time")
