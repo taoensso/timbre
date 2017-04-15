@@ -142,15 +142,18 @@
 
            (if (or (:raw-console? data)
                    (get-in data [:?meta :raw-console?])) ; Undocumented
+
              (let [output
                    ((:output-fn data)
                     (assoc data
                       :msg_  ""
                       :?err nil))
-                   ;; (<output> <raw-error> <raw-arg1> <raw-arg2> ...):
-                   args (cond->>       (:vargs data)
-                          (:?err data) (cons (:?err data))
-                          true         (cons output))]
+
+                   args ; (<output> ?<raw-error> <raw-arg1> <raw-arg2> ...)
+                   (let [vargs (:vargs data)]
+                     (if-let [err (:?err data)]
+                       (cons output (cons err vargs))
+                       (cons output           vargs)))]
 
                (.apply logger js/console (into-array args)))
              (.call    logger js/console (force (:output_ data)))))))
