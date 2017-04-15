@@ -10,20 +10,21 @@
             [taoensso.encore :as enc]
             [taoensso.timbre :as timbre]))
 
+(defn- force-var "To support dynamic vars, etc."
+  [x] (if (var? x) (deref x) x))
+
 (deftype Logger [logger-ns-str timbre-config]
   clojure.tools.logging.impl/Logger
 
   (enabled? [_ level]
     ;; No support for per-call config
-    (timbre/may-log? level logger-ns-str timbre-config))
+    (timbre/may-log? level logger-ns-str
+      (force-var timbre-config)))
 
   (write! [_ level throwable message]
     (timbre/log! level :p
       [message] ; No support for pre-msg raw args
-      {:config  ; No support for per-call config
-       (if (var? timbre-config)
-         @timbre-config ; Support dynamic vars, etc.
-         timbre-config)
+      {:config  (force-var timbre-config) ; No support for per-call config
        :?ns-str logger-ns-str
        :?file   nil ; No support
        :?line   nil ; ''
