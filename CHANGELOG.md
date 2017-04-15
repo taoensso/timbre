@@ -1,5 +1,15 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.9.0 / 2017 Apr 14
+
+```clojure
+[com.taoensso/timbre "4.9.0"]
+```
+
+> This is a **maintenance release** that should be non-breaking
+
+* [#199] **Fix**: unintended warning output to cljs for compile-time elision
+
 ## v4.8.0 / 2016 Dec 18
 
 ```clojure
