@@ -1,5 +1,18 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v4.10.0 / 2017 Apr 14
+
+```clojure
+[com.taoensso/timbre "4.10.0"]
+```
+
+> This is a **feature and maintenance release** that should be non-breaking
+
+* [#215] **New**: Add 3rd-party appender for Sentry (@samuelotter)
+* [#199] **Fix**: Unintended warning output to cljs for compile-time elision
+* [#218] **Fix**: Nullary version of `timbre.tools.logging/use-timbre`
+* [#216] **Fix**: Cljs console appender: don't log superfluous 'null' for raw output (@michaelcameron)
+
 ## v4.8.0 / 2016 Dec 18
 
 ```clojure
