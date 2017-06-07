@@ -33,6 +33,31 @@
                       (.transport transport))]
     (GelfTransports/create config)))
 
+(defn data->gelf-message
+  [data]
+  (let [{:keys [msg_ hostname_
+                level instant
+                context ?err ?ns-str
+                ?file ?line]}
+        data
+
+        log-level   (timbre-to-gelf-level level)
+        msg         (or (and (not-empty (force msg_))
+                             (force msg_))
+                        (and ?err
+                             (.getMessage ?err))
+                        "EMPTY MSG")
+        msg-builder (-> (GelfMessageBuilder. msg (force hostname_))
+                        (.level log-level)
+                        (.timestamp (.getTime instant)))]
+    (cond-> msg-builder
+      ?err    (.fullMessage (timbre/stacktrace ?err {:stacktrace-fonts {}}))
+      context (.additionalField "context" context)
+      ?ns-str (.additionalField "namespace" ?ns-str)
+      ?file   (.additionalField "file" ?file)
+      ?line   (.additionalField "line" ?line))
+    (.build msg-builder)))
+
 (defn gelf-appender
   "Returns a Timbre appender that sends gelf messages to a remote host. Params:
     `gelf-server` - IP address or hostname string of the remote logging server
@@ -49,9 +74,5 @@
       :gelf-transport tranport
       :fn
       (fn [data]
-        (let [{:keys [appender msg_ level hostname_]} data
-              gelf-transport (:gelf-transport appender)
-              log-level      (timbre-to-gelf-level level)
-              gelf-message   (-> (GelfMessageBuilder. (force msg_) (force hostname_))
-                                 (.level log-level) .build)]
-          (.send gelf-transport gelf-message)))})))
+        (.send (get-in data [:appender :gelf-transport])
+               (data->gelf-message data)))})))
