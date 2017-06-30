@@ -82,8 +82,8 @@
   :codox
   {:language :clojure
    :source-uri
-   {#"target/classes" "https://github.com/ptaoussanis/timbre/blob/master/src/{classpath}x#L{line}"
-    #".*"             "https://github.com/ptaoussanis/timbre/blob/master/{filepath}#L{line}"}}
+   {#"target/classes" "https://github.com/ptaoussanis/timbre/blob/v{version}/src/{classpath}x#L{line}"
+    #".*"             "https://github.com/ptaoussanis/timbre/blob/v{version}/{filepath}#L{line}"}}
 
   :aliases
   {"test-all"   ["do" "clean," "cljx" "once,"
