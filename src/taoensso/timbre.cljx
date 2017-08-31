@@ -146,7 +146,9 @@
 (defn merge-config! [m] (swap-config! (fn [old] (enc/nested-merge old m))))
 
 (defn     set-level! [level] (swap-config! (fn [m] (assoc m :level level))))
-(defmacro with-level [level & body]
+(defmacro with-level
+  "set the log level dynamically for a given body"
+  [level & body]
   `(binding [*config* (assoc *config* :level ~level)] ~@body))
 
 (comment (set-level! :info) *config*)
