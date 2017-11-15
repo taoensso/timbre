@@ -27,7 +27,7 @@
 
 (def stack-trace-processor (comp (remove :omitted)
                                  (map (fn [stack-frame]
-                                        (select-keys stack-frame [:formatted-name :file :line])))))
+                                        (format "%s (%s:%s)" (:formatted-name stack-frame) (:file stack-frame) (:line stack-frame))))))
 
 (defn error-to-stacktrace
   "Create a tersely formatted vector of stack traces. This will show up in a
