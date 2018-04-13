@@ -111,6 +111,7 @@
    ;; logging in noisy libraries, etc.:
    :ns-whitelist  [] #_["my-app.foo-ns"]
    :ns-blacklist  [] #_["taoensso.*"]
+   :ns-log-level  [] #_[["taoensso.*" :info]]
 
    :middleware [] ; (fns [data]) -> ?data, applied left->right
 
@@ -237,6 +238,14 @@
         (not (string? ns-str-form)) ; Not a compile-time ns-str const
         (compile-time-ns-filter ns-str-form)))))
 
+(def ns-log-level
+  (enc/memoize_
+    (fn [min-level ns-log-level ?ns-str]
+      (or (some (fn [[pattern level]]
+                  (when (ns-filter [pattern] [] ?ns-str)
+                    level)) ns-log-level)
+          min-level))))
+
 (defn #+clj may-log? #+cljs ^boolean may-log?
   "Runtime check: would Timbre currently log at the given logging level?
     * `?ns-str` arg required to support ns filtering
@@ -245,7 +254,10 @@
   ([level ?ns-str        ] (may-log? level ?ns-str nil))
   ([level ?ns-str ?config]
    (let [config    (or  ?config *config*)
-         min-level (get  config :level :report)]
+         min-level (ns-log-level 
+                     (get config :level :report)
+                     (get config :ns-log-level)
+                     ?ns-str)]
      (and
        (level>= level min-level)
        (boolean ; Resolves #206 (issue with slf4j-timbre)
