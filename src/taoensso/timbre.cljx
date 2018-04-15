@@ -238,13 +238,17 @@
         (not (string? ns-str-form)) ; Not a compile-time ns-str const
         (compile-time-ns-filter ns-str-form)))))
 
-(def ns-log-level
+;; TODO Also add compile-time support?
+(def ^:private ns->?level
+  "[[<pattern> <level>] ...], ns -> ?level"
   (enc/memoize_
-    (fn [min-level ns-log-level ?ns-str]
-      (or (some (fn [[pattern level]]
-                  (when (ns-filter [pattern] [] ?ns-str)
-                    level)) ns-log-level)
-          min-level))))
+    (fn [ns-log-level ?ns-str]
+      (enc/rsome
+        (fn [[pattern level]]
+          (when (ns-filter [pattern] nil ?ns-str) level))
+        ns-log-level))))
+
+(comment (ns->?level [["taoensso.*" :info]] *ns*))
 
 (defn #+clj may-log? #+cljs ^boolean may-log?
   "Runtime check: would Timbre currently log at the given logging level?
@@ -253,11 +257,10 @@
   ([level                ] (may-log? level nil     nil))
   ([level ?ns-str        ] (may-log? level ?ns-str nil))
   ([level ?ns-str ?config]
-   (let [config    (or  ?config *config*)
-         min-level (ns-log-level 
-                     (get config :level :report)
-                     (get config :ns-log-level)
-                     ?ns-str)]
+   (let [config    (or ?config *config*)
+         min-level (or (when-let [ns-log-level (get config :ns-log-level)]
+                         (ns->?level ns-log-level ?ns-str))
+                         (get config :level :report))]
      (and
        (level>= level min-level)
        (boolean ; Resolves #206 (issue with slf4j-timbre)
