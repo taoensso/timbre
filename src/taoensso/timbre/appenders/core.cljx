@@ -74,7 +74,7 @@
        :or   {fname "./timbre-spit.log"
               append? true}}]]
   {:enabled?   true
-   :async?     false
+   :async?     true ; For thread safety, see #251
    :min-level  nil
    :rate-limit nil
    :output-fn  :inherit
