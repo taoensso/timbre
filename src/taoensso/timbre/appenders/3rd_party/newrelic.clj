@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.appenders.newrelic
+(ns taoensso.timbre.appenders.3rd-party.newrelic
   "New Relic appender. Requires an appropriate New Relic jar,
   Ref. https://goo.gl/3Nv0QX."
   {:author "Camilo Polymeris (@polymeris)"}
