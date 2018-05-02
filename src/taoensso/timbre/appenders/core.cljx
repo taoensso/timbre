@@ -54,7 +54,7 @@
          #+clj
          (let [stream
                (case stream
-                 :auto  (if (:error? data) *err* *out*)
+                 :auto  (if (:error-level? data) *err* *out*)
                  :*out* *out*
                  :*err* *err*
                  stream)]
