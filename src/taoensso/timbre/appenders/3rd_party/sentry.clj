@@ -26,10 +26,13 @@
     * :tags, :environment, :release, and :modules will be passed to Sentry
       as attributes, Ref. https://docs.sentry.io/clientdev/attributes/.
     * :event-fn can be used to modify the raw event before sending it
-      to Sentry."
+      to Sentry.
+    * :data-event-fn can be used to modify the raw event, and is given the
+      data from the log message"
 
   [dsn & [opts]]
-  (let [{:keys [event-fn] :or {event-fn identity}} opts
+  (let [{:keys [event-fn data-event-fn] :or {event-fn identity
+                                             data-event-fn (fn [_ e] e)}} opts
         base-event
         (->> (select-keys opts [:tags :environment :release :modules])
              (filter (comp not nil? second))
@@ -57,7 +60,8 @@
                  (interfaces/stacktrace event ?err)
                  event)
 
-               (event-fn event))]
+               (event-fn event)
+               (data-event-fn data event))]
 
          (raven/capture dsn event)))}))
 
