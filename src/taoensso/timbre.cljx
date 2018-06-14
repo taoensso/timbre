@@ -328,7 +328,9 @@
       {:session \"123123\"} ; Will be merged with context defined above
       (info \"User request with session attached\")))"
 
-  [context & body] `(binding [*context* ~(merge *context* context)] ~@body))
+  [context & body]
+  `(let [old-context# *context*]
+     (binding [*context* (merge old-context# ~context)] ~@body)))
 
 (defn- vrest [v] (if (> (count v) 1) (subvec v 1) []))
 (defn- parse-vargs
