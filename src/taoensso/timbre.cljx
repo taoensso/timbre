@@ -317,6 +317,19 @@
 
   [context & body] `(binding [*context* ~context] ~@body))
 
+(defmacro with-extra-context
+  "Executes body so that given data will be merged with previously
+  included data passed to appenders for any enclosed logging calls.
+
+  (with-context
+    {:user-name \"Stu\"} ; Will be incl. in data dispatched to appenders
+    (info \"User request\")
+    (with-extra-context
+      {:session \"123123\"} ; Will be merged with context defined above
+      (info \"User request with session attached\")))"
+
+  [context & body] `(binding [*context* ~(merge *context* context)] ~@body))
+
 (defn- vrest [v] (if (> (count v) 1) (subvec v 1) []))
 (defn- parse-vargs
   "vargs -> [?err ?meta ?msg-fmt api-vargs]"
