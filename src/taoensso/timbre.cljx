@@ -11,6 +11,7 @@
   #+cljs
   (:require
    [clojure.string  :as str]
+   [goog.i18n.DateTimeFormat :as dtf]
    [taoensso.encore :as enc :refer [] :refer-macros [have have?]]
    [taoensso.timbre.appenders.core :as core-appenders])
 
@@ -31,6 +32,11 @@
    :locale   :jvm-default #_(java.util.Locale. "en")
    :timezone :utc         #_(java.util.TimeZone/getTimeZone "Europe/Amsterdam")})
 
+#+cljs
+(def default-timestamp-opts
+  "Controls (:timestamp_ data)"
+  {:pattern  "yy-MM-dd HH:mm:ss" #_:iso8601})
+
 (declare stacktrace)
 (defn default-output-fn
   "Default (fn [data]) -> string output fn.
@@ -41,7 +47,8 @@
          {:keys [level ?err #_vargs msg_ ?ns-str ?file hostname_
                  timestamp_ ?line]} data]
      (str
-       #+clj (force timestamp_) #+clj " "
+       (force timestamp_)
+       " "
        #+clj (force hostname_)  #+clj " "
        (str/upper-case (name level))  " "
        "[" (or ?ns-str ?file "?") ":" (or ?line "?") "] - "
@@ -67,7 +74,7 @@
       :async?          ; Dispatch using agent? Useful for slow appenders (clj only)
       :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil
       :output-fn       ; Optional override for inherited (fn [data]) -> string
-      :timestamp-opts  ; Optional override for inherited {:pattern _ :locale _ :timezone _} (clj only)
+      :timestamp-opts  ; Optional override for inherited {:pattern _ :locale _ :timezone _}
       :ns-whitelist    ; Optional, stacks with active config's whitelist
       :ns-blacklist    ; Optional, stacks with active config's blacklist
       :fn              ; (fn [data]) -> side effects, with keys described below
@@ -87,7 +94,7 @@
       :output_         ; Forceable - final formatted output string created
                        ; by calling (output-fn <this-data-map>)
       :msg_            ; Forceable - args as a string
-      :timestamp_      ; Forceable - string (clj only)
+      :timestamp_      ; Forceable - string
       :hostname_       ; Forceable - string (clj only)
       :output-fn       ; (fn [data]) -> formatted output string
                        ; (see `default-output-fn` for details)
@@ -115,8 +122,8 @@
 
    :middleware [] ; (fns [data]) -> ?data, applied left->right
 
-   #+clj :timestamp-opts
-   #+clj default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
+   :timestamp-opts
+   default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
 
    :output-fn default-output-fn ; (fn [data]) -> string
 
@@ -442,16 +449,20 @@
               ;; Optimization: try maximize output+timestamp sharing
               ;; between appenders
               output-fn1 (enc/memoize_ (get config :output-fn default-output-fn))
-              #+clj timestamp-opts1 #+clj (conj default-timestamp-opts (get config :timestamp-opts))
-              #+clj get-timestamp_ ; (fn [timestamp-opts]) -> Shared delay
-              #+clj
+              timestamp-opts1 (conj default-timestamp-opts (get config :timestamp-opts))
+              get-timestamp_ ; (fn [timestamp-opts]) -> Shared delay
               (enc/memoize_
                (fn [opts]
                  (delay
                   (let [{:keys [pattern locale timezone]} opts]
+                    #+clj
                     (.format
                       ^java.text.SimpleDateFormat
                       (enc/simple-date-format* pattern locale timezone)
+                      (:instant data))
+                    #+cljs
+                    (.format
+                     (goog.i18n.DateTimeFormat. pattern)
                      (:instant data))))))]
 
           (reduce-kv
@@ -480,8 +491,7 @@
                                output-fn1
                                f))
 
-                           #+clj timestamp_
-                           #+clj
+                           timestamp_
                            (let [opts (:timestamp-opts appender)]
                              (if (or (nil? opts) (enc/kw-identical? opts :inherit))
                                (get-timestamp_       timestamp-opts1)
@@ -489,9 +499,7 @@
 
                            output_
                            (delay
-                            (output-fn
-                             #+clj  (assoc data :timestamp_ timestamp_)
-                             #+cljs data))
+                            (output-fn (assoc data :timestamp_ timestamp_)))
 
                            data
                            (conj data
@@ -499,7 +507,7 @@
                               :appender    appender
                               :output-fn   output-fn
                               :output_     output_
-                              #+clj :timestamp_ #+clj timestamp_})
+                              :timestamp_  timestamp_})
 
                            ?data ; Final data prep before going to appender
                            (if-let [mfn (:middleware-fn appender)]
