@@ -97,7 +97,7 @@ First-argument exceptions generate a nicely cleaned-up stack trace using [io.avi
 ```clojure
 (info (Exception. "Oh noes") "arg1" "arg2")
 %> 15-Jun-13 19:22:55 localhost INFO [my-app.core] - arg1 arg2
-java.lang.Exception: On noes
+java.lang.Exception: Oh noes
 <Stacktrace>
 ```
 
