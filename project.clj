@@ -11,7 +11,7 @@
                 *assert*             true}
 
   :dependencies
-  [[org.clojure/clojure "1.5.1"]
+  [[org.clojure/clojure "1.10.0" :scope "provided"]
    [com.taoensso/encore "2.91.0"]
    [io.aviso/pretty     "0.1.33"]]
 
