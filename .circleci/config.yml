@@ -1,0 +1,29 @@
+version: 2
+
+jobs:
+  test:
+    docker:
+      - image: circleci/clojure:lein-2.8.3
+
+    working_directory: ~/timbre
+
+    steps:
+      - checkout
+      - restore_cache:
+          key: timbre-{{ checksum "project.clj" }}
+
+      - run: lein deps
+      - save_cache:
+          paths:
+            - ~/.m2/repository
+            - ~/.lein
+
+          key: timbre-{{ checksum "project.clj" }}
+
+      - run: lein test-all
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test
