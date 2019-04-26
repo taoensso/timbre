@@ -4,9 +4,14 @@
 
 **[CHANGELOG]** | [API] | current [Break Version]:
 
+## Version and Documentation
+
 ```clojure
 [com.taoensso/timbre "4.10.0"] ; Please check CHANGELOG for details
 ```
+Please see [the API docs](https://ptaoussanis.github.io/timbre/) on Github Pages
+
+## Contributions 
 
 > Please consider helping to [support my continued open-source Clojure/Script work]? 
 > 
