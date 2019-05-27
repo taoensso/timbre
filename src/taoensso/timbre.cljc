@@ -250,7 +250,7 @@
 
 (comment (ns->?level [["taoensso.*" :info]] *ns*))
 
-(defn #?(:clj may-log?) #?@(:cljs ^boolean may-log?)
+(defn #?(:clj may-log?) #?@(:cljs ( ^boolean may-log?))
   "Runtime check: would Timbre currently log at the given logging level?
     * `?ns-str` arg required to support ns filtering
     * `config`  arg required to support non-global config"
