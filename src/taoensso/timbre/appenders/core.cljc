@@ -2,29 +2,29 @@
   "Core Timbre appenders without any special dependency requirements.
   These can be aliased into the main Timbre ns for convenience."
   {:author "Peter Taoussanis (@ptaoussanis)"}
-  #+clj
+  #?(:clj
   (:require
    [clojure.string  :as str]
-   [taoensso.encore :as enc :refer [have have? qb]])
+   [taoensso.encore :as enc :refer [have have? qb]]))
 
-  #+cljs
+  #?(:cljs
   (:require
    [clojure.string  :as str]
-   [taoensso.encore :as enc :refer-macros [have have?]]))
+   [taoensso.encore :as enc :refer-macros [have have?]])))
 
 ;; TODO Add a simple official rolling spit appender?
 
 ;;;; Println appender (clj & cljs)
 
-#+clj (enc/declare-remote taoensso.timbre/default-out
-                          taoensso.timbre/default-err)
-#+clj (alias 'timbre 'taoensso.timbre)
+#?(:clj (enc/declare-remote taoensso.timbre/default-out
+                          taoensso.timbre/default-err))
+#?(:clj (alias 'timbre 'taoensso.timbre))
 
-#+clj
+#?(:clj
 (def ^:private ^:const system-newline
-  (System/getProperty "line.separator"))
+  (System/getProperty "line.separator")))
 
-#+clj (defn- atomic-println [x] (print (str x system-newline)) (flush))
+#?(:clj (defn- atomic-println [x] (print (str x system-newline)) (flush)))
 
 (defn println-appender
   "Returns a simple `println` appender for Clojure/Script.
@@ -35,12 +35,12 @@
   ;; Unfortunately no easy way to check if *print-fn* is set. Metadata on the
   ;; default throwing fn would be nice...
 
-  [& #+clj [{:keys [stream] :or {stream :auto}}] #+cljs [_opts]]
-  (let [#+clj stream
-        #+clj (case stream
+  [& #?(:clj [{:keys [stream] :or {stream :auto}}]) #?(:cljs [_opts])]
+  (let [#?(:clj stream)
+        #?(:clj (case stream
                 :std-err timbre/default-err
                 :std-out timbre/default-out
-                stream)]
+                stream))]
 
     {:enabled?   true
      :async?     false
@@ -50,8 +50,8 @@
      :fn
      (fn [data]
        (let [{:keys [output_]} data]
-         #+cljs (println (force output_))
-         #+clj
+         #?(:cljs (println (force output_)))
+         #?(:clj
          (let [stream
                (case stream
                  :auto  (if (:error-level? data) *err* *out*)
@@ -60,14 +60,14 @@
                  stream)]
 
            (binding [*out* stream]
-             #+clj  (atomic-println (force output_))
-             #+cljs (println        (force output_))))))}))
+             #?(:clj  (atomic-println (force output_)))
+             #?(:cljs (println        (force output_))))))))}))
 
 (comment (println-appender))
 
 ;;;; Spit appender (clj only)
 
-#+clj
+#?(:clj
 (defn spit-appender
   "Returns a simple `spit` file appender for Clojure."
   [& [{:keys [fname append?]
@@ -91,7 +91,7 @@
                    dir  (.getParentFile (.getCanonicalFile file))]
 
                (when-not (.exists dir) (.mkdirs dir))
-               (self (assoc data :__spit-appender/retry? true))))))))})
+               (self (assoc data :__spit-appender/retry? true))))))))}))
 
 (comment
   (spit-appender)
@@ -100,7 +100,7 @@
 
 ;;;; js/console appender (cljs only)
 
-#+cljs
+#?(:cljs
 (defn console-appender
   "Returns a simple js/console appender for ClojureScript.
 
@@ -158,10 +158,10 @@
                (.apply logger js/console (into-array args)))
              (.call    logger js/console (force (:output_ data)))))))
 
-     (fn [data] nil))})
+     (fn [data] nil))}))
 
 (comment (console-appender))
 
 ;;;; Deprecated
 
-#+cljs (def console-?appender "DEPRECATED" console-appender)
+#?(:cljs (def console-?appender "DEPRECATED" console-appender))
