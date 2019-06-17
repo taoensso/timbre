@@ -29,7 +29,7 @@
   ;; Note: this it meant to target the logstash-filter-json; especially "message" and "@timestamp" get a special meaning there.
   (let [stacktrace-str (if-let [pr (:pr-stacktrace opts)]
                          #(with-out-str (pr %))
-                         timbre/stacktrace)]
+                         #(timbre/stacktrace % {:stacktrace-fonts nil}))]
     (cheshire/generate-stream
      (merge (:context data)
             {:level (:level data)
