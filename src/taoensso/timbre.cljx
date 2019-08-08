@@ -741,7 +741,7 @@
 (defn stacktrace
   ([err     ] (stacktrace err nil))
   ([err opts]
-   #+cljs (str err) ; TODO Alternatives?
+   #+cljs (or (.-stack err) (str err)) ; TODO Alternatives?
    #+clj
    (let [stacktrace-fonts ; {:stacktrace-fonts nil->{}}
          (if-let [e (find opts :stacktrace-fonts)]
