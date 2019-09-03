@@ -406,7 +406,7 @@
             (:middleware config))]
 
       (when-let [data ?data] ; Not filtered by middleware
-        (let [{:keys [vargs]} data
+        (let [{:keys [vargs ?msg-fmt]} data
               data (assoc data :vargs_ (delay vargs)) ; Deprecated
               data
               (enc/assoc-nx data
