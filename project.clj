@@ -44,7 +44,7 @@
      [cheshire                "5.6.3"]
      [ymilky/franzy           "0.0.1"]
      [com.newrelic.agent.java/newrelic-agent "3.31.1"]
-     [raven-clj               "1.5.0"]]}
+     [raven-clj               "1.6.0-alpha4"]]}
 
    :dev
    [:1.9 :test :server-jvm
