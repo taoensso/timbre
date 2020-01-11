@@ -13,6 +13,7 @@
   :dependencies
   [[org.clojure/clojure "1.5.1"]
    [com.taoensso/encore "2.91.0"]
+   [net.java.dev.jna/jna "3.4.0"]
    [io.aviso/pretty     "0.1.33"]]
 
   :plugins
@@ -44,6 +45,7 @@
      [cheshire                "5.6.3"]
      [ymilky/franzy           "0.0.1"]
      [com.newrelic.agent.java/newrelic-agent "3.31.1"]
+     [net.java.dev.jna/jna    "3.4.0"]
      [raven-clj               "1.5.0"]]}
 
    :dev
