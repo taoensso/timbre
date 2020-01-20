@@ -1,6 +1,7 @@
 (ns taoensso.timbre.appenders.3rd-party.syslog-appender
   "Requires https://github.com/java-native-access/jna"
-  {:author "Audrius Molis @audriu"}
+  {:author "Audrius Molis @audriu"
+   :inspired-by "https://github.com/joshrotenberg/brolog"}
   (:require
    [taoensso.timbre :as timbre])
   (:import [com.sun.jna Function]))
