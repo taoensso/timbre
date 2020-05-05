@@ -55,7 +55,7 @@
        (force msg_)
        (when-not no-stacktrace?
          (when-let [err ?err]
-           (str "\n" (stacktrace err opts))))))))
+           (str enc/system-newline (stacktrace err opts))))))))
 
 ;;; Alias core appenders here for user convenience
 (declare default-err default-out)
