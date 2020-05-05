@@ -19,7 +19,7 @@
 
 (defn- default-entry-fn [data]
   (let [{:keys [instant level hostname_
-                context ?err ?ns-str ?file ?line msg_]}]
+                context ?err ?ns-str ?file ?line msg_]} data]
     {:instant  instant
      :level    level
      :hostname (force hostname_)
