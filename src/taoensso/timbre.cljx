@@ -127,8 +127,9 @@
     }
 
    #+cljs
-   {;; :println (println-appender {})
-    :console (console-appender {})}})
+   (if (exists? js/window)
+     {:console (console-appender {})}
+     {:println (println-appender {})})})
 
 (comment
   (set-config! example-config)
