@@ -11,14 +11,14 @@
                 *assert*             true}
 
   :dependencies
-  [[org.clojure/clojure "1.5.1"]
-   [com.taoensso/encore "2.91.0"]
-   [io.aviso/pretty     "0.1.33"]]
+  [[org.clojure/clojure "1.5.1" :scope "provided"]
+   [com.taoensso/encore "2.120.0"]
+   [io.aviso/pretty     "0.1.37"]]
 
   :plugins
-  [[lein-pprint  "1.1.2"]
-   [lein-ancient "0.6.10"]
-   [lein-codox   "0.10.3"]]
+  [[lein-pprint  "1.3.2"]
+   [lein-ancient "0.6.15"]
+   [lein-codox   "0.10.7"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
@@ -27,32 +27,33 @@
    :1.6  {:dependencies [[org.clojure/clojure "1.6.0"]]}
    :1.7  {:dependencies [[org.clojure/clojure "1.7.0"]]}
    :1.8  {:dependencies [[org.clojure/clojure "1.8.0"]]}
-   :1.9  {:dependencies [[org.clojure/clojure "1.9.0-alpha10"]]}
+   :1.9  {:dependencies [[org.clojure/clojure "1.9.0"]]}
+   :1.10 {:dependencies [[org.clojure/clojure "1.10.1"]]}
    :test
    {:dependencies
-    [[org.clojure/tools.logging "0.3.1"]
+    [[org.clojure/tools.logging "1.1.0"]
 
      ;;; Appender deps
-     [com.taoensso/nippy      "2.13.0"]
-     [com.taoensso/carmine    "2.16.0"]
-     [com.draines/postal      "2.0.2"]
+     [com.taoensso/nippy      "2.14.0"]
+     [com.taoensso/carmine    "2.19.1"]
+     [com.draines/postal      "2.0.3"]
      [irclj                   "0.5.0-alpha4"]
-     [org.graylog2/gelfclient "1.4.1" :exclusions [com.fasterxml.jackson.core/jackson-core]]
-     [org.julienxx/clj-slack  "0.5.4"]
-     [org.clojure/java.jdbc   "0.6.1"]
-     [com.mchange/c3p0        "0.9.5.2"]
-     [cheshire                "5.6.3"]
+     [org.graylog2/gelfclient "1.5.0" :exclusions [com.fasterxml.jackson.core/jackson-core]]
+     [org.julienxx/clj-slack  "0.6.3"]
+     [org.clojure/java.jdbc   "0.7.11"]
+     [com.mchange/c3p0        "0.9.5.5"]
+     [cheshire                "5.10.0"]
      [ymilky/franzy           "0.0.1"]
-     [com.newrelic.agent.java/newrelic-agent "3.31.1"]
-     [raven-clj               "1.5.0"]]}
+     [com.newrelic.agent.java/newrelic-agent "5.12.0"]
+     [raven-clj               "1.6.0"]]}
 
    :dev
-   [:1.9 :test :server-jvm
-    {:dependencies [[org.clojure/clojurescript "1.9.521"]]
+   [:1.10 :test :server-jvm
+    {:dependencies [[org.clojure/clojurescript "1.10.758"]]
      :plugins
      [;; These must be in :dev, Ref. https://github.com/lynaghk/cljx/issues/47:
       [com.keminglabs/cljx "0.6.0"]
-      [lein-cljsbuild      "1.1.5"]]}]}
+      [lein-cljsbuild      "1.1.8"]]}]}
 
   ;; :jar-exclusions [#"\.cljx|\.DS_Store"]
   :source-paths ["src" "target/classes"]
