@@ -54,4 +54,4 @@
 (defn make-logcat-appender
   "DEPRECATED. Please use `android-logcat-appender` instead."
   [& [appender-merge opts]]
-  (merge (android-logcat-appender opts) appender-merge))
+  (merge (android-logcat-appender) appender-merge))

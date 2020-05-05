@@ -61,8 +61,7 @@
 (defn make-irc-appender
   "DEPRECATED. Please use `irclj-appender` instead."
   [& [appender-merge opts]]
-  (merge (irclj-appender (:irc-config opts) (dissoc :irc-config opts))
-    appender-merge))
+  (merge (irclj-appender (:irc-config opts)) appender-merge))
 
 ;;;;
 
