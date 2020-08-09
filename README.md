@@ -144,6 +144,7 @@ This is the biggest win over Java logging IMO.
       :timestamp-opts  ; Optional override for inherited {:pattern _ :locale _ :timezone _}
       :ns-whitelist    ; Optional, stacks with active config's whitelist
       :ns-blacklist    ; Optional, stacks with active config's blacklist
+      :ns-log-level    ; Optional control for per-namespace log level  
       :fn              ; (fn [data]) -> side effects, with keys described below
 
     An appender's fn takes a single data map with keys:
@@ -184,6 +185,7 @@ This is the biggest win over Java logging IMO.
    ;; logging in noisy libraries, etc.:
    :ns-whitelist  [] #_["my-app.foo-ns"]
    :ns-blacklist  [] #_["taoensso.*"]
+   :ns-log-level  [] #_[["taoensso.*" :info]]
 
    :middleware [] ; (fns [data]) -> ?data, applied left->right
 
