@@ -23,10 +23,8 @@
   :profiles
   {;; :default [:base :system :user :provided :dev]
    :server-jvm {:jvm-opts ^:replace ["-server"]}
-   :provided {:dependencies [[org.clojure/clojure       "1.5.1"]
+   :provided {:dependencies [[org.clojure/clojure       "1.7.0"]
                              [org.clojure/clojurescript "1.10.773"]]}
-   :1.5      {:dependencies [[org.clojure/clojure "1.5.1"]]}
-   :1.6      {:dependencies [[org.clojure/clojure "1.6.0"]]}
    :1.7      {:dependencies [[org.clojure/clojure "1.7.0"]]}
    :1.8      {:dependencies [[org.clojure/clojure "1.8.0"]]}
    :1.9      {:dependencies [[org.clojure/clojure "1.9.0"]]}
@@ -70,7 +68,7 @@
    "deploy-lib" ["do" "build-once," "deploy" "clojars," "install"]
    "start-dev"  ["with-profile" "+dev" "repl" ":headless"]
    "test-all"   ["do" "clean,"
-                 "with-profile" "+1.10:+1.9:+1.8:+1.7:+1.6:+1.5" "test"
+                 "with-profile" "+1.10:+1.9:+1.8:+1.7" "test"
                  "with-profile" "+test" "cljsbuild" "test"]}
 
   :repositories
