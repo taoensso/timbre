@@ -34,7 +34,7 @@
     [[org.clojure/tools.logging "1.1.0"]
 
      ;;; Appender deps
-     [com.taoensso/nippy      "2.14.0"]
+     [com.taoensso/nippy      "2.15.1"]
      [com.taoensso/carmine    "2.19.1"]
      [com.draines/postal      "2.0.3"]
      [irclj                   "0.5.0-alpha4"]
@@ -44,14 +44,15 @@
      [com.mchange/c3p0        "0.9.5.5"]
      [cheshire                "5.10.0"]
      [ymilky/franzy           "0.0.1"]
-     [com.newrelic.agent.java/newrelic-agent "5.12.0"]
-     [net.java.dev.jna/jna    "3.4.0"]
+     [com.newrelic.agent.java/newrelic-agent "6.0.0"]
+     [net.java.dev.jna/jna    "5.6.0"]
      [raven-clj               "1.6.0"]]}
+
+   :provided {:dependencies [[org.clojure/clojurescript "1.10.773"]]}
 
    :dev
    [:1.10 :test :server-jvm
-    {:dependencies [[org.clojure/clojurescript "1.10.758"]]
-     :plugins
+    {:plugins
      [;; These must be in :dev, Ref. https://github.com/lynaghk/cljx/issues/47:
       [com.keminglabs/cljx "0.6.0"]
       [lein-cljsbuild      "1.1.8"]]}]}
