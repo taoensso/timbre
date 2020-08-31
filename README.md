@@ -6,7 +6,7 @@
 
 ```clojure
 [com.taoensso/timbre "4.10.0"]        ; Stable, please check CHANGELOG for details
-[com.taoensso/timbre "4.11.0-alpha1"] ; Dev, please see commits for details
+[com.taoensso/timbre "4.11.0-alpha2"] ; Dev, please see commits for details
 ```
 
 > Please consider helping to [support my continued open-source Clojure/Script work]? 

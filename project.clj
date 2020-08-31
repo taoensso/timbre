@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "4.11.0-alpha1"
+(defproject com.taoensso/timbre "4.11.0-alpha2"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Pure Clojure/Script logging library"
   :url "https://github.com/ptaoussanis/timbre"
@@ -12,7 +12,7 @@
 
   :dependencies
   [[org.clojure/clojure "1.5.1" :scope "provided"]
-   [com.taoensso/encore "2.120.0"]
+   [com.taoensso/encore "2.126.2"]
    [io.aviso/pretty     "0.1.37"]]
 
   :plugins
