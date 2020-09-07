@@ -2,29 +2,28 @@
   "Core Timbre appenders without any special dependency requirements.
   These can be aliased into the main Timbre ns for convenience."
   {:author "Peter Taoussanis (@ptaoussanis)"}
-  #+clj
-  (:require
-   [clojure.string  :as str]
-   [taoensso.encore :as enc :refer [have have? qb]])
+  #?(:clj
+     (:require
+      [clojure.string  :as str]
+      [taoensso.encore :as enc :refer [have have? qb]])
 
-  #+cljs
-  (:require
-   [clojure.string  :as str]
-   [taoensso.encore :as enc :refer-macros [have have?]]))
+     :cljs
+     (:require
+      [clojure.string  :as str]
+      [taoensso.encore :as enc :refer-macros [have have?]])))
 
 ;; TODO Add a simple official rolling spit appender?
 
 ;;;; Println appender (clj & cljs)
 
-#+clj (enc/declare-remote taoensso.timbre/default-out
-                          taoensso.timbre/default-err)
-#+clj (alias 'timbre 'taoensso.timbre)
+#?(:clj (enc/declare-remote taoensso.timbre/default-out
+                            taoensso.timbre/default-err))
 
-#+clj
-(def ^:private ^:const system-newline
-  (System/getProperty "line.separator"))
+#?(:clj (alias 'timbre 'taoensso.timbre))
 
-#+clj (defn- atomic-println [x] (print (str x system-newline)) (flush))
+#?(:clj
+   (let [system-newline (System/getProperty "line.separator")]
+     (defn- atomic-println [x] (print (str x system-newline)) (flush))))
 
 (defn println-appender
   "Returns a simple `println` appender for Clojure/Script.
@@ -35,12 +34,13 @@
   ;; Unfortunately no easy way to check if *print-fn* is set. Metadata on the
   ;; default throwing fn would be nice...
 
-  [& #+clj [{:keys [stream] :or {stream :auto}}] #+cljs [_opts]]
-  (let [#+clj stream
-        #+clj (case stream
-                :std-err timbre/default-err
-                :std-out timbre/default-out
-                stream)]
+  [& #?(:clj [{:keys [stream] :or {stream :auto}}] :cljs [_opts])]
+  (let #?(:cljs []
+          :clj  [stream
+                 (case stream
+                   :std-err timbre/default-err
+                   :std-out timbre/default-out
+                   stream)])
 
     {:enabled?   true
      :async?     false
@@ -50,48 +50,48 @@
      :fn
      (fn [data]
        (let [{:keys [output_]} data]
-         #+cljs (println (force output_))
-         #+clj
-         (let [stream
-               (case stream
-                 :auto  (if (:error-level? data) *err* *out*)
-                 :*out* *out*
-                 :*err* *err*
-                 stream)]
+         #?(:cljs (println (force output_))
+            :clj
+            (let [stream
+                  (case stream
+                    :auto  (if (:error-level? data) *err* *out*)
+                    :*out* *out*
+                    :*err* *err*
+                    stream)]
 
-           (binding [*out* stream]
-             #+clj  (atomic-println (force output_))
-             #+cljs (println        (force output_))))))}))
+              (binding [*out* stream]
+                #?(:clj  (atomic-println (force output_))
+                   :cljs (println        (force output_))))))))}))
 
 (comment (println-appender))
 
 ;;;; Spit appender (clj only)
 
-#+clj
-(defn spit-appender
-  "Returns a simple `spit` file appender for Clojure."
-  [& [{:keys [fname append?]
-       :or   {fname "./timbre-spit.log"
-              append? true}}]]
-  {:enabled?   true
-   :async?     true ; For thread safety, see #251
-   :min-level  nil
-   :rate-limit nil
-   :output-fn  :inherit
-   :fn
-   (fn self [data]
-     (let [{:keys [output_]} data]
-       (try
-         (spit fname (str (force output_) "\n") :append append?)
-         (catch java.io.IOException e
-           (if (:__spit-appender/retry? data)
-             (throw e) ; Unexpected error
-             (let [_    (have? enc/nblank-str? fname)
-                   file (java.io.File. ^String fname)
-                   dir  (.getParentFile (.getCanonicalFile file))]
+#?(:clj
+   (defn spit-appender
+     "Returns a simple `spit` file appender for Clojure."
+     [& [{:keys [fname append?]
+          :or   {fname "./timbre-spit.log"
+                 append? true}}]]
+     {:enabled?   true
+      :async?     true ; For thread safety, see #251
+      :min-level  nil
+      :rate-limit nil
+      :output-fn  :inherit
+      :fn
+      (fn self [data]
+        (let [{:keys [output_]} data]
+          (try
+            (spit fname (str (force output_) "\n") :append append?)
+            (catch java.io.IOException e
+              (if (:spit-appender/retry? data)
+                (throw e) ; Unexpected error
+                (let [_    (have? enc/nblank-str? fname)
+                      file (java.io.File. ^String fname)
+                      dir  (.getParentFile (.getCanonicalFile file))]
 
-               (when-not (.exists dir) (.mkdirs dir))
-               (self (assoc data :__spit-appender/retry? true))))))))})
+                  (when-not (.exists dir) (.mkdirs dir))
+                  (self (assoc data :spit-appender/retry? true))))))))}))
 
 (comment
   (spit-appender)
@@ -100,68 +100,68 @@
 
 ;;;; js/console appender (cljs only)
 
-#+cljs
-(defn console-appender
-  "Returns a simple js/console appender for ClojureScript.
+#?(:cljs
+   (defn console-appender
+     "Returns a simple js/console appender for ClojureScript.
 
-  For accurate line numbers in Chrome, add these Blackbox[1] patterns:
-    `/taoensso/timbre/appenders/core\\.js$`
-    `/taoensso/timbre\\.js$`
-    `/cljs/core\\.js$`
+     For accurate line numbers in Chrome, add these Blackbox[1] patterns:
+       `/taoensso/timbre/appenders/core\\.js$`
+       `/taoensso/timbre\\.js$`
+       `/cljs/core\\.js$`
 
-  [1] Ref. https://goo.gl/ZejSvR"
+     [1] Ref. https://goo.gl/ZejSvR"
 
-  ;; TODO Any way of using something like `Function.prototype.bind`
-  ;; (Ref. https://goo.gl/IZzkQB) to get accurate line numbers in all
-  ;; browsers w/o the need for Blackboxing?
+     ;; TODO Any way of using something like `Function.prototype.bind`
+     ;; (Ref. https://goo.gl/IZzkQB) to get accurate line numbers in all
+     ;; browsers w/o the need for Blackboxing?
 
-  [& [opts]]
-  {:enabled?   true
-   :async?     false
-   :min-level  nil
-   :rate-limit nil
-   :output-fn  :inherit
-   :fn
-   (if (exists? js/console)
-     (let [;; Don't cache this; some libs dynamically replace js/console
-           level->logger
-           (fn [level]
-             (or
-               (case level
-                 :trace  js/console.trace
-                 :debug  js/console.debug
-                 :info   js/console.info
-                 :warn   js/console.warn
-                 :error  js/console.error
-                 :fatal  js/console.error
-                 :report js/console.info)
-               js/console.log))]
+     [& [opts]]
+     {:enabled?   true
+      :async?     false
+      :min-level  nil
+      :rate-limit nil
+      :output-fn  :inherit
+      :fn
+      (if (exists? js/console)
+        (let [;; Don't cache this; some libs dynamically replace js/console
+              level->logger
+              (fn [level]
+                (or
+                  (case level
+                    :trace  js/console.trace
+                    :debug  js/console.debug
+                    :info   js/console.info
+                    :warn   js/console.warn
+                    :error  js/console.error
+                    :fatal  js/console.error
+                    :report js/console.info)
+                  js/console.log))]
 
-       (fn [data]
-         (when-let [logger (level->logger (:level data))]
+          (fn [data]
+            (when-let [logger (level->logger (:level data))]
 
-           (if (or (:raw-console? data)
-                   (get-in data [:?meta :raw-console?])) ; Undocumented
+              (if (or (:raw-console? data)
+                      (get-in data [:?meta :raw-console?])) ; Undocumented
 
-             (let [output
-                   ((:output-fn data)
-                    (assoc data
-                      :msg_  ""
-                      :?err nil))
+                (let [output
+                      ((:output-fn data)
+                       (assoc data
+                         :msg_  ""
+                         :?err nil))
 
-                   args ; (<output> ?<raw-error> <raw-arg1> <raw-arg2> ...)
-                   (let [vargs (:vargs data)]
-                     (if-let [err (:?err data)]
-                       (cons output (cons err vargs))
-                       (cons output           vargs)))]
+                      args ; (<output> ?<raw-error> <raw-arg1> <raw-arg2> ...)
+                      (let [vargs (:vargs data)]
+                        (if-let [err (:?err data)]
+                          (cons output (cons err vargs))
+                          (cons output           vargs)))]
 
-               (.apply logger js/console (into-array args)))
-             (.call    logger js/console (force (:output_ data)))))))
+                  (.apply logger js/console (into-array args)))
+                (.call    logger js/console (force (:output_ data)))))))
 
-     (fn [data] nil))})
+        (fn [data] nil))}))
 
 (comment (console-appender))
 
 ;;;; Deprecated
 
-#+cljs (def console-?appender "DEPRECATED" console-appender)
+#?(:cljs (def console-?appender "DEPRECATED" console-appender))
