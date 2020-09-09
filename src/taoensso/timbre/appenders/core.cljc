@@ -136,7 +136,9 @@
       :rate-limit nil
       :output-fn  :inherit
       :fn
-      (if (exists? js/console)
+      (if-not (exists? js/console)
+        (fn [data] nil)
+
         (let [;; Don't cache this; some libs dynamically replace js/console
               level->logger
               (fn [level]
@@ -170,9 +172,7 @@
                           (cons output           vargs)))]
 
                   (.apply logger js/console (into-array args)))
-                (.call    logger js/console (force (:output_ data)))))))
-
-        (fn [data] nil))}))
+                (.call    logger js/console (force (:output_ data))))))))}))
 
 (comment (console-appender))
 

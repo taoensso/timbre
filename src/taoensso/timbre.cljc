@@ -372,162 +372,162 @@
   ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data            ] (-log! config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data nil         false))
   ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id] (-log! config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id false))
   ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id spying?]
-  (when (may-log? level ?ns-str config)
-    (let [instant (enc/now-dt)
-          context *context*
-          vargs   @vargs_
+   (when (may-log? level ?ns-str config)
+     (let [instant (enc/now-dt)
+           context *context*
+           vargs   @vargs_
 
-          [?err ?meta ?msg-fmt vargs]
-          (parse-vargs ?err msg-type vargs)
+           [?err ?meta ?msg-fmt vargs]
+           (parse-vargs ?err msg-type vargs)
 
-          data ; Pre-middleware
-          (conj
-            (or ?base-data {})
-            {:instant instant
-             :level   level
-             :context context
-             :config  config ; Entire config!
-             :?ns-str ?ns-str
-             :?file   ?file
-             :?line   ?line
-             #?(:clj :hostname_) #?(:clj (delay (get-hostname)))
-             :error-level? (#{:error :fatal} level)
-             :?err     ?err
-             :?err_    (delay ?err) ; Deprecated
-             :?meta    ?meta        ; Undocumented
-             :?msg-fmt ?msg-fmt     ; Undocumented
-             :vargs    vargs
-             :spying?  spying?})
+           data ; Pre-middleware
+           (conj
+             (or ?base-data {})
+             {:instant instant
+              :level   level
+              :context context
+              :config  config ; Entire config!
+              :?ns-str ?ns-str
+              :?file   ?file
+              :?line   ?line
+              #?(:clj :hostname_) #?(:clj (delay (get-hostname)))
+              :error-level? (#{:error :fatal} level)
+              :?err     ?err
+              :?err_    (delay ?err) ; Deprecated
+              :?meta    ?meta        ; Undocumented
+              :?msg-fmt ?msg-fmt     ; Undocumented
+              :vargs    vargs
+              :spying?  spying?})
 
-          ?data ; Post middleware
-          (reduce ; Apply middleware: data->?data
-            (fn [acc mf]
-              (let [result (mf acc)]
-                (if (nil? result)
-                  (reduced nil)
-                  result)))
-            data
-            (:middleware config))]
+           ?data ; Post middleware
+           (reduce ; Apply middleware: data->?data
+             (fn [acc mf]
+               (let [result (mf acc)]
+                 (if (nil? result)
+                   (reduced nil)
+                   result)))
+             data
+             (:middleware config))]
 
-      (when-let [data ?data] ; Not filtered by middleware
-        (let [{:keys [vargs]} data
-              data (assoc data :vargs_ (delay vargs)) ; Deprecated
-              data
-              (enc/assoc-nx data
-                :msg_
-                (delay
-                  (case msg-type
-                    nil ""
-                    :p  (str-join vargs)
-                    :f  #_(enc/format* (have string? ?msg-fmt) vargs)
-                    (do
-                      (when-not (string? ?msg-fmt)
-                        (throw
-                          (ex-info "Timbre format-style logging call without a format pattern (string)"
-                            #_data
-                            {:level    level
-                             :location (str (or ?ns-str ?file "?") ":"
-                                            (or ?line         "?"))})))
-
-                      (enc/format* ?msg-fmt vargs))))
-
-                ;; Uniquely identifies a particular logging call for
-                ;; rate limiting, etc.
-                :hash_
-                (delay
-                  (hash
-                    ;; Nb excl. instant
-                    [callsite-id      ; Only useful for direct macro calls
-                     ?msg-fmt
-                     (get ?meta :hash ; Explicit hash provided
-                       vargs)])))
-
-              ;; Optimization: try maximize output+timestamp sharing
-              ;; between appenders
-              output-fn1 (enc/memoize_ (get config :output-fn default-output-fn))
-              timestamp-opts1 (conj default-timestamp-opts (get config :timestamp-opts))
-              get-timestamp_ ; (fn [timestamp-opts]) -> Shared delay
-              (enc/memoize_
-               (fn [opts]
+       (when-let [data ?data] ; Not filtered by middleware
+         (let [{:keys [vargs]} data
+               data (assoc data :vargs_ (delay vargs)) ; Deprecated
+               data
+               (enc/assoc-nx data
+                 :msg_
                  (delay
-                  (let [{:keys [pattern locale timezone]} opts]
-                    #?(:clj
-                       (.format
-                         ^java.text.SimpleDateFormat
-                         (enc/simple-date-format* pattern locale timezone)
-                         (:instant data))
+                   (case msg-type
+                     nil ""
+                     :p  (str-join vargs)
+                     :f  #_(enc/format* (have string? ?msg-fmt) vargs)
+                     (do
+                       (when-not (string? ?msg-fmt)
+                         (throw
+                           (ex-info "Timbre format-style logging call without a format pattern (string)"
+                             #_data
+                             {:level    level
+                              :location (str (or ?ns-str ?file "?") ":"
+                                             (or ?line         "?"))})))
 
-                       :cljs
-                       (.format
-                         (goog.i18n.DateTimeFormat. pattern)
-                         (:instant data)))))))]
+                       (enc/format* ?msg-fmt vargs))))
 
-          (reduce-kv
-           (fn [_ id appender]
-             (when (and (:enabled? appender)
-                        (level>= level (or (:min-level appender) :trace)))
+                 ;; Uniquely identifies a particular logging call for
+                 ;; rate limiting, etc.
+                 :hash_
+                 (delay
+                   (hash
+                     ;; Nb excl. instant
+                     [callsite-id      ; Only useful for direct macro calls
+                      ?msg-fmt
+                      (get ?meta :hash ; Explicit hash provided
+                        vargs)])))
 
-               ;; Appender ns filter stacks with main config's ns filter:
-               (when (ns-filter (:ns-whitelist appender)
-                                (:ns-blacklist appender)
-                                ?ns-str)
+               ;; Optimization: try maximize output+timestamp sharing
+               ;; between appenders
+               output-fn1 (enc/memoize_ (get config :output-fn default-output-fn))
+               timestamp-opts1 (conj default-timestamp-opts (get config :timestamp-opts))
+               get-timestamp_ ; (fn [timestamp-opts]) -> Shared delay
+               (enc/memoize_
+                 (fn [opts]
+                   (delay
+                     (let [{:keys [pattern locale timezone]} opts]
+                       #?(:clj
+                          (.format
+                            ^java.text.SimpleDateFormat
+                            (enc/simple-date-format* pattern locale timezone)
+                            (:instant data))
 
-                 (let [rate-limit-specs (:rate-limit appender)
-                       rate-limit-okay?
-                       (or
-                        (empty? rate-limit-specs)
-                        (let [rl-fn (get-rate-limiter id rate-limit-specs)]
-                          (not (rl-fn (force (:hash_ data))))))]
+                          :cljs
+                          (.format
+                            (goog.i18n.DateTimeFormat. pattern)
+                            (:instant data)))))))]
 
-                   (when rate-limit-okay?
-                     (let [{:keys [async?] apfn :fn} appender
+           (reduce-kv
+             (fn [_ id appender]
+               (when (and (:enabled? appender)
+                       (level>= level (or (:min-level appender) :trace)))
 
-                           output-fn
-                           (let [f (:output-fn appender)]
-                             (if (or (nil? f) (enc/kw-identical? f :inherit))
-                               output-fn1
-                               f))
+                 ;; Appender ns filter stacks with main config's ns filter:
+                 (when (ns-filter (:ns-whitelist appender)
+                         (:ns-blacklist appender)
+                         ?ns-str)
 
-                           timestamp_
-                           (let [opts (:timestamp-opts appender)]
-                             (if (or (nil? opts) (enc/kw-identical? opts :inherit))
-                               (get-timestamp_       timestamp-opts1)
-                               (get-timestamp_ (conj timestamp-opts1 opts))))
+                   (let [rate-limit-specs (:rate-limit appender)
+                         rate-limit-okay?
+                         (or
+                           (empty? rate-limit-specs)
+                           (let [rl-fn (get-rate-limiter id rate-limit-specs)]
+                             (not (rl-fn (force (:hash_ data))))))]
 
-                           output_
-                           (delay
-                            (output-fn (assoc data :timestamp_ timestamp_)))
+                     (when rate-limit-okay?
+                       (let [{:keys [async?] apfn :fn} appender
 
-                           data
-                           (conj data
-                             {:appender-id id
-                              :appender    appender
-                              :output-fn   output-fn
-                              :output_     output_
-                              :timestamp_  timestamp_})
+                             output-fn
+                             (let [f (:output-fn appender)]
+                               (if (or (nil? f) (enc/kw-identical? f :inherit))
+                                 output-fn1
+                                 f))
 
-                           ?data ; Final data prep before going to appender
-                           (if-let [mfn (:middleware-fn appender)]
-                             (mfn data) ; Deprecated, undocumented
-                             data)]
+                             timestamp_
+                             (let [opts (:timestamp-opts appender)]
+                               (if (or (nil? opts) (enc/kw-identical? opts :inherit))
+                                 (get-timestamp_       timestamp-opts1)
+                                 (get-timestamp_ (conj timestamp-opts1 opts))))
 
-                       (when-let [data ?data] ; Not filtered by middleware
+                             output_
+                             (delay
+                               (output-fn (assoc data :timestamp_ timestamp_)))
 
-                         ;; NB Unless `async?`, we currently allow appenders
-                         ;; to throw since it's not particularly obvious
-                         ;; how/where we should report problems. Throwing
-                         ;; early seems preferable to just silently dropping
-                         ;; errors. In effect, we currently require appenders
-                         ;;  to take responsibility over appropriate trapping.
+                             data
+                             (conj data
+                               {:appender-id id
+                                :appender    appender
+                                :output-fn   output-fn
+                                :output_     output_
+                                :timestamp_  timestamp_})
 
-                         #?(:cljs (apfn data)
-                            :clj
-                            (if async?
-                              (send-off (get-agent id) (fn [_] (apfn data)))
-                              (apfn data))))))))))
-           nil
-           (:appenders config))))))
-  nil))
+                             ?data ; Final data prep before going to appender
+                             (if-let [mfn (:middleware-fn appender)]
+                               (mfn data) ; Deprecated, undocumented
+                               data)]
+
+                         (when-let [data ?data] ; Not filtered by middleware
+
+                           ;; NB Unless `async?`, we currently allow appenders
+                           ;; to throw since it's not particularly obvious
+                           ;; how/where we should report problems. Throwing
+                           ;; early seems preferable to just silently dropping
+                           ;; errors. In effect, we currently require appenders
+                           ;;  to take responsibility over appropriate trapping.
+
+                           #?(:cljs (apfn data)
+                              :clj
+                              (if async?
+                                (send-off (get-agent id) (fn [_] (apfn data)))
+                                (apfn data))))))))))
+             nil
+             (:appenders config))))))
+   nil))
 
 (comment
   (-log! *config* :info nil nil nil :p :auto
