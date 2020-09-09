@@ -11,7 +11,7 @@
                 *assert*             true}
 
   :dependencies
-  [[com.taoensso/encore "2.126.2"]
+  [[com.taoensso/encore "3.0.0"]
    [io.aviso/pretty     "0.1.37"]]
 
   :plugins
@@ -29,7 +29,8 @@
    :1.8      {:dependencies [[org.clojure/clojure "1.8.0"]]}
    :1.9      {:dependencies [[org.clojure/clojure "1.9.0"]]}
    :1.10     {:dependencies [[org.clojure/clojure "1.10.1"]]}
-   :dev      [:1.10 :test :server-jvm]
+   :depr     {:jvm-opts ["-Dtaoensso.elide-deprecated=true"]}
+   :dev      [:1.10 :test :server-jvm :depr]
    :test     {:dependencies
               [[org.clojure/test.check "1.1.0"]
                [org.clojure/tools.logging "1.1.0"]
