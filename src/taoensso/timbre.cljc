@@ -98,6 +98,7 @@
       :output-fn       ; (fn [data]) -> formatted output string
                        ; (see `default-output-fn` for details)
       :context         ; *context* value at log time (see `with-context`)
+      :spying?         ; Is call occuring via the `spy` macro?
 
       **NB** - any keys not specifically documented here should be
       considered private / subject to change without notice.
@@ -366,16 +367,11 @@
 
 (defn -log! "Core low-level log fn. Implementation detail!"
 
-  ;; TODO Temp workaround for
-  ;; https://github.com/fzakaria/slf4j-timbre/issues/20 and similar AOT tools
-  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data]
-   ;; (throw (ex-info "Invalid internal Timbre call. Please try run `lein clean` to clear out-of-date build artifacts." {}))
-   (-log! config level ?ns-str ?file ?line msg-type ?err vargs_
-     ?base-data nil))
-
-  ([config level ?ns-str ?file ?line msg-type ?err vargs_
-    ?base-data callsite-id]
-
+  ;; Backward-compatible arities for convenience of AOT tools, Ref.
+  ;; https://github.com/fzakaria/slf4j-timbre/issues/20
+  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data            ] (-log! config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data nil         false))
+  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id] (-log! config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id false))
+  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id spying?]
   (when (may-log? level ?ns-str config)
     (let [instant (enc/now-dt)
           context *context*
@@ -400,7 +396,8 @@
              :?err_    (delay ?err) ; Deprecated
              :?meta    ?meta        ; Undocumented
              :?msg-fmt ?msg-fmt     ; Undocumented
-             :vargs    vargs})
+             :vargs    vargs
+             :spying?  spying?})
 
           ?data ; Post middleware
           (reduce ; Apply middleware: data->?data
@@ -534,7 +531,7 @@
 
 (comment
   (-log! *config* :info nil nil nil :p :auto
-    (delay [(do (println "hi") :x) :y]) nil "callsite-id"))
+    (delay [(do (println "hi") :x) :y]) nil "callsite-id" false))
 
 #?(:clj (defn- fline [and-form] (:line (meta and-form))))
 
@@ -543,7 +540,7 @@
 
     * `level`    - must eval to a valid logging level
     * `msg-type` - must eval to e/o #{:p :f nil}
-    * `opts`     - ks e/o #{:config :?err :?ns-str :?file :?line :?base-data}
+    * `opts`     - ks e/o #{:config :?err :?ns-str :?file :?line :?base-data :spying?}
 
   Supports compile-time elision when compile-time const vals
   provided for `level` and/or `?ns-str`."
@@ -552,7 +549,7 @@
   (let [{:keys [?ns-str] :or {?ns-str (str *ns*)}} opts]
     ;; level, ns may/not be compile-time consts:
     (when-not (-elide? level ?ns-str)
-      (let [{:keys [config ?err ?file ?line ?base-data]
+      (let [{:keys [config ?err ?file ?line ?base-data spying?]
              :or   {config 'taoensso.timbre/*config*
                     ?err   :auto ; => Extract as err-type v0
                     ?file  *file*
@@ -569,7 +566,7 @@
                    ?ns-str ?file ?line (rand)])]
 
         `(-log! ~config ~level ~?ns-str ~?file ~?line ~msg-type ~?err
-           (delay [~@args]) ~?base-data ~callsite-id)))))
+           (delay [~@args]) ~?base-data ~callsite-id ~spying?)))))
 
 (comment
   (log! :info :p ["foo"])
@@ -673,7 +670,8 @@
      (let [result# ~expr]
        ;; Subject to elision:
        ;; (log* ~config ~level ~name "=>" result#) ; CLJ-865
-       (log! ~level :p [~name "=>" result#] ~{:?line ?line :config config})
+       (log! ~level :p [~name "=>" result#]
+         ~{:?line ?line :config config :spying? true})
 
        ;; NOT subject to elision:
        result#)))
@@ -687,7 +685,14 @@
   ([config level name expr] `(-spy ~(fline &form) ~config  ~level  ~name ~expr)))
 
 (defmacro get-env [] `(enc/get-env))
-(comment ((fn foo [x y] (get-env)) 5 10))
+
+(comment
+  ((fn foo [x y] (get-env)) 5 10)
+  (with-config
+    (assoc example-config :appenders
+      {:default {:enabled? true :fn (fn [m] (println #_(keys m) (:spying? m)))}})
+    (info "foo")
+    (spy  "foo")))
 
 #?(:clj
    (defn refer-timbre
