@@ -71,19 +71,24 @@
 #?(:clj
    (defn spit-appender
      "Returns a simple `spit` file appender for Clojure."
-     [& [{:keys [fname append?]
+     [& [{:keys [fname append? locking?]
           :or   {fname "./timbre-spit.log"
-                 append? true}}]]
+                 append?  true
+                 locking? true}}]]
+
      {:enabled?   true
-      :async?     true ; For thread safety, see #251
+      :async?     false
       :min-level  nil
       :rate-limit nil
       :output-fn  :inherit
       :fn
-      (let [system-newline enc/system-newline]
+      (let [lock (Object.) ; For thread safety, Ref. #251
+            system-newline enc/system-newline]
+
         (fn self [data]
           (let [{:keys [output_]} data]
             (try
+              (when locking? (monitor-enter lock))
               (with-open [^java.io.BufferedWriter w (jio/writer fname :append? append?)]
                 (.write   w ^String (force output_))
                 (.newLine w))
@@ -96,7 +101,11 @@
                         dir  (.getParentFile (.getCanonicalFile file))]
 
                     (when-not (.exists dir) (.mkdirs dir))
-                    (self (assoc data :spit-appender/retry? true)))))))))}))
+                    (self (assoc data :spit-appender/retry? true)))))
+
+              (finally
+                (when locking?
+                  (monitor-exit lock)))))))}))
 
 (comment
   (spit-appender)
