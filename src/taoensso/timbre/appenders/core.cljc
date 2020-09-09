@@ -118,6 +118,13 @@
    (defn console-appender
      "Returns a simple js/console appender for ClojureScript.
 
+     Use ^:meta {:raw-console? true} as first argument to logging call if
+     you want args sent to console in a raw format enabling console-based
+     pretty-printing of JS objects, etc. E.g.:
+
+       (info                             my-js-obj) ; Send string   to console
+       (info ^:meta {:raw-console? true} my-js-obj) ; Send raw args to console
+
      For accurate line numbers in Chrome, add these Blackbox[1] patterns:
        `/taoensso/timbre/appenders/core\\.js$`
        `/taoensso/timbre\\.js$`
@@ -156,8 +163,8 @@
           (fn [data]
             (when-let [logger (level->logger (:level data))]
 
-              (if (or (:raw-console? data)
-                      (get-in data [:?meta :raw-console?])) ; Undocumented
+              (if (or (get    data :raw-console?) ; Undocumented
+                      (get-in data [:?meta :raw-console?]))
 
                 (let [output
                       ((:output-fn data)

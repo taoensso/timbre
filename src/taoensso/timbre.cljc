@@ -89,6 +89,8 @@
       :?file           ; String,  or nil
       :?line           ; Integer, or nil ; Waiting on CLJ-865
       :?err            ; First-arg platform error, or nil
+      :?meta           ; First-arg map when it has ^:meta metadata, used as a
+                         way of passing advanced per-call options to appenders
       :vargs           ; Vector of raw args
       :output_         ; Forceable - final formatted output string created
                        ; by calling (output-fn <this-data-map>)
@@ -394,8 +396,8 @@
               :error-level? (#{:error :fatal} level)
               :?err     ?err
               :?err_    (delay ?err) ; Deprecated
-              :?meta    ?meta        ; Undocumented
               :?msg-fmt ?msg-fmt     ; Undocumented
+              :?meta    ?meta
               :vargs    vargs
               :spying?  spying?})
 
