@@ -5,6 +5,7 @@
   #?(:clj
      (:require
       [clojure.string  :as str]
+      [clojure.java.io :as jio]
       [taoensso.encore :as enc :refer [have have? qb]])
 
      :cljs
@@ -83,7 +84,10 @@
         (fn self [data]
           (let [{:keys [output_]} data]
             (try
-              (spit fname (str (force output_) system-newline) :append append?)
+              (with-open [^java.io.BufferedWriter w (jio/writer fname :append? append?)]
+                (.write   w ^String (force output_))
+                (.newLine w))
+
               (catch java.io.IOException e
                 (if (:spit-appender/retry? data)
                   (throw e) ; Unexpected error
