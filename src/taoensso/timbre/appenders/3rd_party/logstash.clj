@@ -57,7 +57,7 @@
         flush? (or (:flush? opts) false)
         nl     "\n"]
     {:enabled?   true
-     :async?     false
+     :async?     true
      :min-level  nil
      :rate-limit nil
      :output-fn  :inherit
