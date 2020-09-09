@@ -83,8 +83,7 @@
 
        (when (> nmax-entries 0)
          (car/wcar conn-opts
-           (binding [nippy/*final-freeze-fallback*
-                     nippy/freeze-fallback-as-str]
+           (binding [nippy/*freeze-fallback* :write-unfreezable]
              (car/hset k-hash entry-hash entry))
            (car/zadd k-zset udt entry-hash)
 
