@@ -728,17 +728,19 @@
        (try (.getHostName (java.net.InetAddress/getLocalHost))
             (catch java.net.UnknownHostException _ nil)))
 
-     (defn get-?hostname_ "Returns a new `(get-?hostname)` promise." []
-       ;; Android doesn't like hostname calls on the main thread. Using `future`
-       ;; would start the Clojure agent threadpool though, which can slow down
-       ;; application shutdown w/o a `(shutdown-agents)` call.
-       (let [p (promise)]
-         (.start (Thread. (fn [] (deliver p (get-?hostname)))))
-         p))
-
-     (def get-hostname "Returns cached hostname string."
-       (enc/memoize* (enc/ms :mins 1)
-         (fn [] (or (deref (get-?hostname_) 5000 nil) "UnknownHost"))))))
+     (let [unknown "UnknownHost"]
+       (def get-hostname "Returns cached hostname string."
+         (enc/memoize (enc/ms :mins 1)
+           (fn []
+             (try
+               (let [p (promise)]
+                 ;; Android doesn't like hostname calls on the main thread.
+                 ;; Using `future` would start the Clojure agent threadpool though,
+                 ;; which can slow down application shutdown w/o a `(shutdown-agents)`
+                 ;; call.
+                 (.start (Thread. (fn [] (deliver p (get-?hostname)))))
+                 (or (deref p 5000 nil) unknown))
+               (catch Exception _ unknown))))))))
 
 (comment (get-hostname))
 
