@@ -1,11 +1,12 @@
 (ns taoensso.timbre.appenders.postal
   "Email (Postal) appender. Requires https://github.com/drewr/postal."
   {:author "Peter Taoussanis (@ptaoussanis)"}
-  (:require [clojure.string     :as str]
-            [io.aviso.exception :as aviso-ex]
-            [postal.core        :as postal]
-            [taoensso.timbre    :as timbre]
-            [taoensso.encore    :as enc :refer [have have?]]))
+  (:require
+   [clojure.string     :as str]
+   [taoensso.encore    :as enc :refer [have have?]]
+   [taoensso.timbre    :as timbre]
+   [io.aviso.exception :as aviso-ex]
+   [postal.core        :as postal]))
 
 (defn postal-appender
   "Returns a Postal email appender.
@@ -40,8 +41,9 @@
 
 ;;;; Deprecated
 
-(defn make-postal-appender
-  "DEPRECATED. Please use `postal-appender` instead."
-  [& [appender-merge opts]]
-  (merge (postal-appender (:postal-config opts) (dissoc opts :postal-config))
-    appender-merge))
+(enc/deprecated
+  (defn make-postal-appender
+    "DEPRECATED. Please use `postal-appender` instead."
+    [& [appender-merge opts]]
+    (merge (postal-appender (:postal-config opts) (dissoc opts :postal-config))
+      appender-merge)))

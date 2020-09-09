@@ -2,10 +2,14 @@
   "TCP socket appender.
   Requires https://github.com/technomancy/server-socket."
   {:author "Emlyn Corrin (@emlyn)"}
-  (:require [server.socket :refer [create-server]]
-            [taoensso.timbre :refer [stacktrace]])
-  (:import  [java.net Socket InetAddress]
-            [java.io BufferedReader InputStreamReader PrintWriter]))
+  (:require
+   [taoensso.encore :as enc]
+   [taoensso.timbre :as timbre]
+   [server.socket :refer [create-server]])
+
+  (:import
+   [java.net Socket InetAddress]
+   [java.io BufferedReader InputStreamReader PrintWriter]))
 
 ;; TODO Test port to Timbre v4
 
@@ -55,7 +59,8 @@
 
 ;;;; Deprecated
 
-(defn make-socket-appender
-  "DEPRECATED. Please use `server-socket-appender` instead."
-  [& [appender-merge opts]]
-  (merge (server-socket-appender opts) appender-merge))
+(enc/deprecated
+  (defn make-socket-appender
+    "DEPRECATED. Please use `server-socket-appender` instead."
+    [& [appender-merge opts]]
+    (merge (server-socket-appender opts) appender-merge)))

@@ -1,9 +1,13 @@
 (ns taoensso.timbre.appenders.3rd-party.rotor
   "Rotating file appender."
   {:author "Karsten Schmidt (@postspectacular)"}
-  (:require [clojure.java.io :as io]
-            [taoensso.timbre :as timbre])
-  (:import  [java.io File FilenameFilter]))
+  (:require
+   [taoensso.encore :as enc]
+   [taoensso.timbre :as timbre]
+   [clojure.java.io :as io])
+
+  (:import
+   [java.io File FilenameFilter]))
 
 (defn- ^FilenameFilter file-filter
   "Returns a Java FilenameFilter instance which only matches
@@ -73,7 +77,8 @@
 
 ;;;; Deprecated
 
-(defn make-rotor-appender
-  "DEPRECATED. Please use `rotor-appender` instead."
-  [& [appender-merge opts]]
-  (merge (rotor-appender opts) appender-merge))
+(enc/deprecated
+  (defn make-rotor-appender
+    "DEPRECATED. Please use `rotor-appender` instead."
+    [& [appender-merge opts]]
+    (merge (rotor-appender opts) appender-merge)))

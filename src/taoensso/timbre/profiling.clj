@@ -2,8 +2,9 @@
   "DEPRECATED, further development work will be focused on
   Tufte at https://github.com/ptaoussanis/tufte."
   {:author "Peter Taoussanis (@ptaoussanis)"}
-  (:require [taoensso.encore :as enc]
-            [taoensso.timbre :as timbre]))
+  (:require
+   [taoensso.encore :as enc]
+   [taoensso.timbre :as timbre]))
 
 ;;;; Utils
 

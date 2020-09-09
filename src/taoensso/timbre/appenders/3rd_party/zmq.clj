@@ -1,8 +1,10 @@
 (ns taoensso.timbre.appenders.3rd-party.zmq
   "ØMQ appender. Requires https://github.com/zeromq/cljzmq."
   {:author "Angus Fletcher (@angusiguess)"}
-  (:require [zeromq.zmq      :as zmq]
-            [taoensso.timbre :as timbre]))
+  (:require
+   [taoensso.encore :as enc]
+   [taoensso.timbre :as timbre]
+   [zeromq.zmq      :as zmq]))
 
 ;; TODO Test port to Timbre v4
 
@@ -38,7 +40,8 @@
 
 ;;;; Deprecated
 
-(defn make-zmq-appender
-  "DEPRECATED. Please use `zmq-appender` instead."
-  [& [appender-merge opts]]
-  (merge (zmq-appender opts) zmq-merge))
+(enc/deprecated
+  (defn make-zmq-appender
+    "DEPRECATED. Please use `zmq-appender` instead."
+    [& [appender-merge opts]]
+    (merge (zmq-appender opts) zmq-merge)))

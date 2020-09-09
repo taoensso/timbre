@@ -1,10 +1,14 @@
 (ns taoensso.timbre.appenders.3rd-party.rolling
   "Rolling file appender."
   {:author "Unknown - please let me know?"}
-  (:require [clojure.java.io :as io]
-            [taoensso.timbre :as timbre])
-  (:import  [java.text SimpleDateFormat]
-            [java.util Calendar]))
+  (:require
+   [clojure.java.io :as io]
+   [taoensso.encore :as enc]
+   [taoensso.timbre :as timbre])
+
+  (:import
+   [java.text SimpleDateFormat]
+   [java.util Calendar]))
 
 ;; TODO Test port to Timbre v4
 
@@ -72,7 +76,8 @@
 
 ;;;; Deprecated
 
-(defn make-rolling-appender
-  "DEPRECATED. Please use `rolling-appender` instead."
-  [& [appender-merge opts]]
-  (merge (rolling-appender opts) appender-merge))
+(enc/deprecated
+  (defn make-rolling-appender
+    "DEPRECATED. Please use `rolling-appender` instead."
+    [& [appender-merge opts]]
+    (merge (rolling-appender opts) appender-merge)))

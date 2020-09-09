@@ -2,10 +2,11 @@
   "Carmine (Redis) appender.
   Requires https://github.com/ptaoussanis/carmine."
   {:author "Peter Taoussanis (@ptaoussanis)"}
-  (:require [taoensso.carmine :as car]
-            [taoensso.nippy   :as nippy]
-            [taoensso.timbre  :as timbre]
-            [taoensso.encore  :as enc :refer [have have?]]))
+  (:require
+   [taoensso.encore  :as enc :refer [have have?]]
+   [taoensso.carmine :as car]
+   [taoensso.nippy   :as nippy]
+   [taoensso.timbre  :as timbre]))
 
 (defn- sha48
   "Truncated 160bit SHA hash (48bit Long). Redis can store small
@@ -145,10 +146,11 @@
 
 ;;;; Deprecated
 
-(defn make-carmine-appender
-  "DEPRECATED. Please use `carmine-appender` instead."
-  [& [appender-merge opts]]
-  (merge (carmine-appender opts) appender-merge))
+(enc/deprecated
+  (defn make-carmine-appender
+    "DEPRECATED. Please use `carmine-appender` instead."
+    [& [appender-merge opts]]
+    (merge (carmine-appender opts) appender-merge)))
 
 ;;;; Dev/tests
 

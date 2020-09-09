@@ -1,9 +1,11 @@
 (ns taoensso.timbre.appenders.3rd-party.irclj
   "IRC appender. Requires https://github.com/flatland/irclj."
   {:author "Emlyn Corrin (@emlyn)"}
-  (:require [clojure.string  :as str]
-            [irclj.core      :as irc]
-            [taoensso.timbre :as timbre]))
+  (:require
+   [clojure.string  :as str]
+   [taoensso.encore :as enc]
+   [taoensso.timbre :as timbre]
+   [irclj.core      :as irc]))
 
 ;; TODO Test port to Timbre v4
 
@@ -58,10 +60,11 @@
 
 ;;;; Deprecated
 
-(defn make-irc-appender
-  "DEPRECATED. Please use `irclj-appender` instead."
-  [& [appender-merge opts]]
-  (merge (irclj-appender (:irc-config opts)) appender-merge))
+(enc/deprecated
+  (defn make-irc-appender
+    "DEPRECATED. Please use `irclj-appender` instead."
+    [& [appender-merge opts]]
+    (merge (irclj-appender (:irc-config opts)) appender-merge)))
 
 ;;;;
 

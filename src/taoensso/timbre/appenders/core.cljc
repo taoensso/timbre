@@ -6,12 +6,16 @@
      (:require
       [clojure.string  :as str]
       [clojure.java.io :as jio]
-      [taoensso.encore :as enc :refer [have have? qb]])
+      [taoensso.encore :as enc :refer [have have? qb deprecated]])
 
      :cljs
      (:require
       [clojure.string  :as str]
-      [taoensso.encore :as enc :refer-macros [have have?]])))
+      [taoensso.encore :as enc :refer-macros [have have?]]))
+
+  #?(:cljs
+     (:require-macros
+      [taoensso.encore :as enc-macros :refer [deprecated]])))
 
 ;; TODO Add a simple official rolling spit appender?
 
@@ -185,4 +189,5 @@
 
 ;;;; Deprecated
 
-#?(:cljs (def console-?appender "DEPRECATED" console-appender))
+(deprecated
+  #?(:cljs (def console-?appender "DEPRECATED" console-appender)))
