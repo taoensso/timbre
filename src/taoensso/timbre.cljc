@@ -39,7 +39,7 @@
 (declare stacktrace)
 (defn default-output-fn
   "Default (fn [data]) -> string output fn.
-  Use`(partial default-output-fn <opts-map>)` to modify default opts."
+    Use`(partial default-output-fn <opts-map>)` to modify default opts."
   ([     data] (default-output-fn nil data))
   ([opts data] ; For partials
    (let [{:keys [no-stacktrace? stacktrace-fonts]} opts

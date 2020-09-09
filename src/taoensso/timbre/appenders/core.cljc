@@ -22,7 +22,7 @@
 #?(:clj (alias 'timbre 'taoensso.timbre))
 
 #?(:clj
-   (let [system-newline (System/getProperty "line.separator")]
+   (let [system-newline enc/system-newline]
      (defn- atomic-println [x] (print (str x system-newline)) (flush))))
 
 (defn println-appender
@@ -79,19 +79,20 @@
       :rate-limit nil
       :output-fn  :inherit
       :fn
-      (fn self [data]
-        (let [{:keys [output_]} data]
-          (try
-            (spit fname (str (force output_) "\n") :append append?)
-            (catch java.io.IOException e
-              (if (:spit-appender/retry? data)
-                (throw e) ; Unexpected error
-                (let [_    (have? enc/nblank-str? fname)
-                      file (java.io.File. ^String fname)
-                      dir  (.getParentFile (.getCanonicalFile file))]
+      (let [system-newline enc/system-newline]
+        (fn self [data]
+          (let [{:keys [output_]} data]
+            (try
+              (spit fname (str (force output_) system-newline) :append append?)
+              (catch java.io.IOException e
+                (if (:spit-appender/retry? data)
+                  (throw e) ; Unexpected error
+                  (let [_    (have? enc/nblank-str? fname)
+                        file (java.io.File. ^String fname)
+                        dir  (.getParentFile (.getCanonicalFile file))]
 
-                  (when-not (.exists dir) (.mkdirs dir))
-                  (self (assoc data :spit-appender/retry? true))))))))}))
+                    (when-not (.exists dir) (.mkdirs dir))
+                    (self (assoc data :spit-appender/retry? true)))))))))}))
 
 (comment
   (spit-appender)
