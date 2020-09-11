@@ -1,7 +1,6 @@
 <a href="https://www.taoensso.com" title="More stuff by @ptaoussanis at www.taoensso.com">
 <img src="https://www.taoensso.com/taoensso-open-source.png" alt="Taoensso open-source" width="400"/></a>
 
-
 **[CHANGELOG]** | [API] | current [Break Version]:
 
 ```clojure
@@ -9,11 +8,7 @@
 [com.taoensso/timbre "4.11.0-alpha2"] ; Dev, please see commits for details
 ```
 
-> Please consider helping to [support my continued open-source Clojure/Script work]? 
-> 
-> Even small contributions can add up + make a big difference to help sustain my time writing, maintaining, and supporting Timbre and other Clojure/Script libraries. **Thank you!**
->
-> \- Peter Taoussanis
+> See [here](https://taoensso.com/clojure/backers) if you're interested in helping support my open-source work, thanks! - Peter Taoussanis
 
 # Timbre
 
@@ -336,7 +331,6 @@ Copyright &copy; 2015-2020 [Peter Taoussanis].
 [@ptaoussanis]: https://www.taoensso.com
 [More by @ptaoussanis]: https://www.taoensso.com
 [Break Version]: https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md
-[support my continued open-source Clojure/Script work]: http://taoensso.com/clojure/backers
 
 <!--- Standard links (repo specific) -->
 [CHANGELOG]: https://github.com/ptaoussanis/timbre/releases
