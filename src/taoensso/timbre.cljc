@@ -20,8 +20,8 @@
       [taoensso.timbre :as timbre-macros :refer []])))
 
 (if (vector? taoensso.encore/encore-version)
-  (enc/assert-min-encore-version [2 87 0])
-  (enc/assert-min-encore-version  2.87))
+  (enc/assert-min-encore-version [2 126 2])
+  (enc/assert-min-encore-version  2.126))
 
 ;;;; Config
 
@@ -156,131 +156,180 @@
 (defn   set-config! [m] (swap-config! (fn [_old] m)))
 (defn merge-config! [m] (swap-config! (fn [old] (enc/nested-merge old m))))
 
-(defn     set-level! [level] (swap-config! (fn [m] (assoc m :level level))))
+(defn     set-level! [level] (swap-config! (fn [m] (assoc m :min-level level))))
 (defmacro with-level [level & body]
-  `(binding [*config* (assoc *config* :level ~level)] ~@body))
+  `(binding [*config* (assoc *config* :min-level ~level)] ~@body))
 
 (comment (set-level! :info) *config*)
 
-;;;; Levels
-;; Note that for historical reasons we don't make a distinction
-;; between form "level"s and config "min-level"s.
+;;;; Level filtering
 
-(def ^:const -levels-vec [:trace :debug :info :warn :error :fatal :report])
-(def ^:const -levels-set (set    -levels-vec))
-(def ^:const -levels-map (zipmap -levels-vec (next (range))))
+;; Terminology note: we loosely distinguish between call/form and min levels,
+;; though there's no motivation for a semantic (domain) difference between the
+;; two as in Tufte.
 
-(defn valid-level? [x] (if (-levels-set x) true false))
-(defn valid-level  [x]
-  (or (-levels-set x)
-      (throw (ex-info "Invalid Timbre logging level" {:given x}))))
+(let [err "Invalid Timbre logging level: should be e/o #{:trace :debug :info :warn :error :fatal :report}"
+      level->int
+      #(case %
+         :trace  0
+         :debug  1
+         :info   2
+         :warn   3
+         :error  4
+         :fatal  5
+         :report 6 ; High-level non-error type
+         nil)]
 
-(defn level>= [x y]
-  (>= ^long (-levels-map (valid-level x))
-      ^long (-levels-map (valid-level y))))
+  (defn- valid-level?     [x] (if (level->int x) true false))
+  (defn- valid-level      [x] (if (level->int x) x (throw (ex-info err {:given x :type (type x)}))))
+  (defn- valid-level->int [x] (or (level->int x)   (throw (ex-info err {:given x :type (type x)})))))
 
-(comment (qb 1e6 (level>= :info :debug))) ; 81.25
+(let [valid-level->int valid-level->int]
+  (defn- #?(:clj level>= :cljs ^:boolean level>=) [x y]
+    (>= ^long (valid-level->int x) ^long (valid-level->int y))))
+
+(comment (qb 1e6 (level>= :info :trace))) ; 89.77
 
 ;;;; Namespace filtering
 
-(def ^:private -compile-ns-filter (enc/memoize_ enc/compile-ns-filter))
-(def ^:private          ns-filter
-  "Returns true iff given ns passes white/black lists."
-  (enc/memoize_
-    (fn [whitelist blacklist ?ns]
-      ((-compile-ns-filter whitelist blacklist) ?ns))))
+;; Terminology note: we distinguish loosely between `ns-filter` (which may be a
+;; fn or `ns-pattern`) and `ns-pattern` (subtype of `ns-filter`).
+
+(let [fn?         fn?
+      compile     (enc/fmemoize (fn [x] (enc/compile-str-filter x)))
+      conform?*   (enc/fmemoize (fn [x ns] ((compile x) ns)))
+      ;; conform? (enc/fmemoize (fn [x ns] (if (fn? x) (x ns) ((compile x) ns))))
+      conform?
+      (fn [ns-filter ns]
+        (if (fn? ns-filter)
+          (ns-filter           ns) ; Intentionally uncached, can be handy
+          (conform?* ns-filter ns)))]
+
+  (defn- #?(:clj may-log-ns? :cljs ^boolean may-log-ns?)
+    [ns-filter ns] (if (conform? ns-filter ns) true false))
+
+  (def ^:private ns->?min-level
+    "[[<ns-pattern> <min-level>] ... [\"*\" <default-min-level>]], ns -> ?min-level"
+    (enc/fmemoize
+      (fn [specs ns]
+        (enc/rsome
+          (fn [[ns-pattern min-level]]
+            (when (conform?* ns-pattern ns)
+              (valid-level min-level)))
+          specs)))))
 
 (comment
-  (qb 1e6 (ns-filter ["foo.*"] ["foo.baz"] "foo.bar")) ; 238.33
-  (ns-filter nil nil "")
-  (ns-filter nil nil nil))
+  (enc/qb 1e6 ; [145.78 275.69]
+    (may-log-ns? "*" "taoensso.timbre")
+    (ns->?min-level [[#{"taoensso.*" "foo.bar"} :info] ["*" :debug]] "foo.bar")))
 
 ;;;; Combo filtering
 
-#?(:clj
-   (defn- compiling-cljs? []
-     (when-let [n (find-ns 'cljs.analyzer)]
-       (when-let [v (ns-resolve n '*cljs-file*)]
-         @v))))
+(let [valid-level    valid-level
+      ns->?min-level ns->?min-level]
+
+  (defn- get-min-level [x ns] (valid-level (if (vector? x) (ns->?min-level x ns) x))))
+
+(comment
+  (let [ns *ns*]
+    (enc/qb 1e6 ; [128.1 191.52]
+      (get-min-level :info     ns)
+      (get-min-level [["*" 0]] ns))))
+
+(let [;; Legacy API unfortunately treated empty colls as allow-all
+      leglist (fn [x] (when x (if (#{[] #{}} x) nil x)))]
+  (defn- legacy-ns-filter [ns-whitelist ns-blacklist]
+    (let [ns-whitelist (leglist ns-whitelist)
+          ns-blacklist (leglist ns-blacklist)]
+      (when (or ns-whitelist ns-blacklist)
+        {:allow ns-whitelist :deny ns-blacklist}))))
+
+(comment (legacy-ns-filter [] ["foo"]))
+
+(let [level>=          level>=
+      may-log-ns?      may-log-ns?
+      get-min-level    get-min-level
+      legacy-ns-filter legacy-ns-filter]
+
+  (defn #?(:clj may-log? :cljs ^:boolean may-log?)
+    "Returns true iff level and ns are runtime unfiltered."
+    ([level                ] (may-log? level nil     nil))
+    ([level ?ns-str        ] (may-log? level ?ns-str nil))
+    ([level ?ns-str ?config]
+     (let [config (or ?config *config*)
+           min-level
+           (get-min-level
+             (or
+               (get config :min-level)
+               (get config :level) ; Legacy
+               :report             ; Legacy
+               )
+             ?ns-str)]
+
+       (if (level>= level min-level)
+         (if-let [ns-filter
+                  (or
+                    (get config :ns-filter)
+                    (legacy-ns-filter ; Legacy
+                      (get config :ns-whitelist)
+                      (get config :ns-blacklist)))]
+
+           (if (may-log-ns? ns-filter ?ns-str) true false)
+           true)
+         false)))))
+
+(comment (qb 1e5 (may-log? :info))) ; 122.3
+
+;;;; Compile-time filtering
 
 #?(:clj
-   (def ^:private compile-time-level
-     (when-let [level (or (enc/read-sys-val "TIMBRE_LEVEL")
-                          (enc/read-sys-val "TIMBRE_LOG_LEVEL"))]
-       (when-not (compiling-cljs?)
-         (println (str "Compile-time (elision) Timbre level: " level)))
+   (def ^:private compile-time-min-level
+     (when-let [level
+                (or
+                  (enc/read-sys-val "taoensso.timbre.min-level" "TAOENSSO_TIMBRE_MIN_LEVEL")
+                  (enc/read-sys-val "TIMBRE_LEVEL")     ; Legacy
+                  (enc/read-sys-val "TIMBRE_LOG_LEVEL") ; Legacy
+                  )]
 
-       (let [;; Back compatibility
-             level (if (string? level) (keyword level) level)]
-         (valid-level level)))))
+       (let [level (if (string? level) (keyword level) level)] ; Legacy
+         (valid-level level)
+         (println (str "Compile-time (elision) Timbre min-level: " level))
+         level))))
 
 #?(:clj
    (def ^:private compile-time-ns-filter
-     (if-let [ns-pattern (enc/read-sys-val "TIMBRE_NS_PATTERN")]
-       (do
-         (when-not (compiling-cljs?)
-           (println (str "Compile-time (elision) Timbre ns-pattern: " ns-pattern)))
+     (let [ns-pattern
+           (or
+             (enc/read-sys-val "taoensso.timbre.ns-pattern" "TAOENSSO_TIMBRE_NS_PATTERN")
+             (enc/read-sys-val "TIMBRE_NS_PATTERN") ; Legacy
+             (legacy-ns-filter ; Legacy
+               (enc/read-sys-val "TIMBRE_NS_WHITELIST")
+               (enc/read-sys-val "TIMBRE_NS_BLACKLIST")))]
 
-         (-compile-ns-filter ns-pattern))
+       (let [ns-pattern ; Legacy
+             (if (map? ns-pattern)
+               {:allow (or (:allow ns-pattern) (:whitelist ns-pattern))
+                :deny  (or (:deny  ns-pattern) (:blacklist ns-pattern))}
+               ns-pattern)]
 
-       ;; Back compatibility
-       (let [whitelist (have [:or nil? vector?] (enc/read-sys-val "TIMBRE_NS_WHITELIST"))
-             blacklist (have [:or nil? vector?] (enc/read-sys-val "TIMBRE_NS_BLACKLIST"))]
+         (when ns-pattern (println (str "Compile-time (elision) Timbre ns-pattern: " ns-pattern)))
+         (or   ns-pattern "*")))))
 
-         (when (and whitelist (not (compiling-cljs?)))
-           (println (str "Compile-time (elision) Timbre ns whitelist: " whitelist)))
-
-         (when (and blacklist (not (compiling-cljs?)))
-           (println (str "Compile-time (elision) Timbre ns blacklist: " blacklist)))
-
-         (-compile-ns-filter whitelist blacklist)))))
-
-#?(:clj ; Called only at macro-expansiom time
-   (defn -elide? [level-form ns-str-form]
+#?(:clj
+   (defn -elide?
+     "Returns true iff level or ns are compile-time filtered.
+     Called only at macro-expansiom time."
+     [level-form ns-str-form]
      (not
        (and
          (or ; Level okay
-           (nil? compile-time-level)
+           (nil? compile-time-min-level)
            (not (valid-level? level-form)) ; Not a compile-time level const
-           (level>= level-form compile-time-level))
+           (level>= level-form compile-time-min-level))
 
          (or ; Namespace okay
            (not (string? ns-str-form)) ; Not a compile-time ns-str const
-           (compile-time-ns-filter ns-str-form))))))
-
-;; TODO Also add compile-time support?
-(def ^:private ns->?level
-  "[[<pattern> <level>] ...], ns -> ?level"
-  (enc/memoize_
-    (fn [ns-log-level ?ns-str]
-      (enc/rsome
-        (fn [[pattern level]]
-          (when (ns-filter [pattern] nil ?ns-str) level))
-        ns-log-level))))
-
-(comment (ns->?level [["taoensso.*" :info]] *ns*))
-
-(defn #?(:clj may-log? :cljs ^boolean may-log?)
-  "Runtime check: would Timbre currently log at the given logging level?
-    * `?ns-str` arg required to support ns filtering
-    * `config`  arg required to support non-global config"
-  ([level                ] (may-log? level nil     nil))
-  ([level ?ns-str        ] (may-log? level ?ns-str nil))
-  ([level ?ns-str ?config]
-   (let [config    (or ?config *config*)
-         min-level (or (when-let [ns-log-level (get config :ns-log-level)]
-                         (ns->?level ns-log-level ?ns-str))
-                         (get config :level :report))]
-     (and
-       (level>= level min-level)
-       (boolean ; Resolves #206 (issue with slf4j-timbre)
-         (ns-filter
-           (get config :ns-whitelist)
-           (get config :ns-blacklist)
-           ?ns-str))
-       true))))
-
-(comment (qb 1e5 (may-log? :info))) ; 34.13
+           (may-log-ns? compile-time-ns-filter ns-str-form))))))
 
 ;;;; Utils
 
@@ -785,7 +834,7 @@
 
 (enc/deprecated
   #?(:cljs (def console-?appender core-appenders/console-appender))
-  (def ordered-levels -levels-vec)
+  (def ordered-levels [:trace :debug :info :warn :error :fatal :report])
   (def log? may-log?)
   (defn logging-enabled? [level compile-time-ns] (may-log? level (str compile-time-ns)))
   (defn str-println      [& xs] (str-join xs))
