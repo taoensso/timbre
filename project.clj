@@ -11,7 +11,7 @@
                 *assert*             true}
 
   :dependencies
-  [[com.taoensso/encore "3.0.0"]
+  [[com.taoensso/encore "3.1.0"]
    [io.aviso/pretty     "0.1.37"]]
 
   :plugins
@@ -37,7 +37,7 @@
 
                ;;; Appender deps
                [com.taoensso/nippy      "2.15.1"]
-               [com.taoensso/carmine    "2.19.1"]
+               [com.taoensso/carmine    "2.20.0"]
                [com.draines/postal      "2.0.3"]
                [irclj                   "0.5.0-alpha4"]
                [org.graylog2/gelfclient "1.5.0"
