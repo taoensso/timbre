@@ -30,26 +30,30 @@
    :1.9      {:dependencies [[org.clojure/clojure "1.9.0"]]}
    :1.10     {:dependencies [[org.clojure/clojure "1.10.1"]]}
    :depr     {:jvm-opts ["-Dtaoensso.elide-deprecated=true"]}
-   :dev      [:1.10 :test :server-jvm :depr]
-   :test     {:dependencies
-              [[org.clojure/test.check "1.1.0"]
-               [org.clojure/tools.logging "1.1.0"]
+   :dev      [:1.10 :test :server-jvm :depr :3pa]
 
-               ;;; Appender deps
-               [com.taoensso/nippy      "2.15.1"]
-               [com.taoensso/carmine    "2.20.0"]
-               [com.draines/postal      "2.0.3"]
-               [irclj                   "0.5.0-alpha4"]
-               [org.graylog2/gelfclient "1.5.0"
-                :exclusions [com.fasterxml.jackson.core/jackson-core]]
-               [org.julienxx/clj-slack  "0.6.3"]
-               [org.clojure/java.jdbc   "0.7.11"]
-               [com.mchange/c3p0        "0.9.5.5"]
-               [cheshire                "5.10.0"]
-               [ymilky/franzy           "0.0.1"]
-               [com.newrelic.agent.java/newrelic-agent "6.0.0"]
-               [net.java.dev.jna/jna    "5.6.0"]
-               [raven-clj               "1.6.0"]]}}
+   :3pa ; 3rd-party appenders
+   {:dependencies
+    [[irclj                   "0.5.0-alpha4"]
+     [org.graylog2/gelfclient "1.5.0"
+      :exclusions [com.fasterxml.jackson.core/jackson-core]]
+     [org.julienxx/clj-slack  "0.6.3"]
+     [org.clojure/java.jdbc   "0.7.11"]
+     [com.mchange/c3p0        "0.9.5.5"]
+     [cheshire                "5.10.0"]
+     [ymilky/franzy           "0.0.1"]
+     [com.newrelic.agent.java/newrelic-agent "6.0.0"]
+     [net.java.dev.jna/jna    "5.6.0"]
+     [raven-clj               "1.6.0"]]}
+
+   :test
+   {:dependencies
+    [[org.clojure/test.check    "1.1.0"]
+     [org.clojure/tools.logging "1.1.0"]
+     [com.taoensso/nippy        "2.15.1"]
+     [com.taoensso/carmine      "2.20.0"
+      :exclusions [com.taoensso/timbre]]
+     [com.draines/postal        "2.0.3"]]}}
 
   :cljsbuild
   {:test-commands
