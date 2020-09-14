@@ -4,8 +4,8 @@
 **[CHANGELOG]** | [API] | current [Break Version]:
 
 ```clojure
-[com.taoensso/timbre "4.10.0"]        ; Stable, please check CHANGELOG for details
-[com.taoensso/timbre "4.11.0-alpha2"] ; Dev, please see commits for details
+[com.taoensso/timbre "5.0.0-RC1"] ; Dev, please see CHANGELOG for details
+[com.taoensso/timbre "4.10.0"]    ; Stable
 ```
 
 > See [here](https://taoensso.com/clojure/backers) if you're interested in helping support my open-source work, thanks! - Peter Taoussanis
@@ -14,9 +14,9 @@
 
 ## A pure Clojure/Script logging library
 
-Java logging is a Kafkaesque mess of complexity that buys you _nothing_. It can be comically hard to get even the simplest logging working, and it just gets worse at scale.
+Java logging can be a Kafkaesque mess of complexity that buys you little. Getting even the simplest logging working can be comically hard, and it often gets worse at scale as your needs become more sophisticated.
 
-Timbre offers an **all Clojure/Script** alternative that's fast, deeply flexible, easy to configure, and that **works out the box**.  No XML.
+Timbre offers an **all Clojure/Script** alternative that's fast, deeply flexible, easy to configure with pure Clojure data, and that **just works out the box**.  No XML.
 
 Supports optional interop with [tools.logging](https://github.com/ptaoussanis/timbre/blob/master/src/taoensso/timbre/tools/logging.clj) and [log4j/logback/slf4j](https://github.com/fzakaria/slf4j-timbre).
 
@@ -27,7 +27,7 @@ Happy hacking!
  * No XML or properties files. **A single, simple config map**, and you're set.
  * Simple, flexible **fn appender model** with **middleware**.
  * **Great performance** at any scale.
- * Filter logging by levels, **namespace whitelist/blacklist patterns**, and more.
+ * Filter logging by levels, **namespace patterns**, and more.
  * **Zero overhead** with **complete Clj+Cljs elision** for compile-time level/ns filters.
  * Useful built-in appenders for **out-the-box** Clj+Cljs logging.
  * Powerful, easy-to-configure **rate limits** and **async logging**.
@@ -111,7 +111,7 @@ And/or you can set the `TIMBRE_DEFAULT_STACKTRACE_FONTS` environment variable (s
 
 ### Data flow
 
-Timbre's inherently a very simple design, no magic. It's just Clojure data and functions:
+Timbre's inherently a simple design, no magic. It's just Clojure data and functions:
 
  1. Unfiltered logging calls generate a **data map**: `{:level _ :?ns-str _ ...}`
  2. The resulting data map passes through any **middleware fns**, `(fn [data]) -> ?data`
@@ -119,126 +119,43 @@ Timbre's inherently a very simple design, no magic. It's just Clojure data and f
 
 ### Configuration
 
-This is the biggest win over Java logging IMO. 
+This is the biggest win over Java logging IMO. Timbre's behaviour is entirelly controlled through a single Clojure map fully documented in about 100 lines of docstring:
 
-**All** of Timbre's behaviour is controlled through a single, simple Clojure map.
+  - See Timbre's (v5) [config API][] for **full documentation**!
+  - See Timbre's (v5) [default config][].
 
-> See `timbre/example-config` for Timbre's default config map
+Sophisticated behaviour is easily achieved through regular fn composition and the power of arbitrary Clojure fns: e.g. write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
 
-```clojure
-(def example-config
-  "An example Timbre v4 config map.
+#### Log levels and ns filters: basics
 
-  APPENDERS
-    An appender is a map with keys:
-      :min-level       ; Level keyword, or nil (=> no minimum level)
-      :enabled?        ;
-      :async?          ; Dispatch using agent? Useful for slow appenders (clj only)
-      :rate-limit      ; [[ncalls-limit window-ms] <...>], or nil
-      :output-fn       ; Optional override for inherited (fn [data]) -> string
-      :timestamp-opts  ; Optional override for inherited {:pattern _ :locale _ :timezone _}
-      :ns-whitelist    ; Optional, stacks with active config's whitelist
-      :ns-blacklist    ; Optional, stacks with active config's blacklist
-      :fn              ; (fn [data]) -> side effects, with keys described below
+Timbre logging calls will be disabled (noop) when:
 
-    An appender's fn takes a single data map with keys:
-      :config          ; Entire config map (this map, etc.)
-      :appender-id     ; Id of appender currently dispatching
-      :appender        ; Entire map of appender currently dispatching
-      :instant         ; Platform date (java.util.Date or js/Date)
-      :level           ; Keyword
-      :error-level?    ; Is level e/o #{:error :fatal}?
-      :?ns-str         ; String,  or nil
-      :?file           ; String,  or nil
-      :?line           ; Integer, or nil ; Waiting on CLJ-865
-      :?err            ; First-arg platform error, or nil
-      :vargs           ; Vector of raw args
-      :output_         ; Forceable - final formatted output string created
-                       ; by calling (output-fn <this-data-map>)
-      :msg_            ; Forceable - args as a string
-      :timestamp_      ; Forceable - string
-      :hostname_       ; Forceable - string (clj only)
-      :output-fn       ; (fn [data]) -> formatted output string
-                       ; (see `default-output-fn` for details)
-      :context         ; *context* value at log time (see `with-context`)
+  - The call's logging level (e.g. `:info`) is < the active `:min-level` (e.g. `:warn`).
+  - The call is within a namespace not allowed by the current `:ns-filter` (e.g. `{:allow #{"*"} :deny #{"taoensso.*"}}`.
 
-      **NB** - any keys not specifically documented here should be
-      considered private / subject to change without notice.
+#### Log levels and ns filters: advanced
 
-  MIDDLEWARE
-    Middleware are simple (fn [data]) -> ?data fns (applied left->right) that
-    transform the data map dispatched to appender fns. If any middleware
-    returns nil, NO dispatch will occur (i.e. the event will be filtered).
+  - `:min-level` can also be a vector **mapping namespaces to minimum levels**, e.g.: `[[#{\"taoensso.*\"} :error] ... [#{\"*\"} :debug]]`.
+  - Appenders can optionally have their own `:min-level`.
 
-  The `example-config` source code contains further settings and details.
-  See also `set-config!`, `merge-config!`, `set-level!`."
+With all of the above, it's possible to easily enable/disable logging based on **any combination** of: 
 
-  {:level :debug  ; e/o #{:trace :debug :info :warn :error :fatal :report}
+  - Logging call level
+  - Namespace
+  - Appender
 
-   ;; Control log filtering by namespaces/patterns. Useful for turning off
-   ;; logging in noisy libraries, etc.:
-   :ns-whitelist  [] #_["my-app.foo-ns"]
-   :ns-blacklist  [] #_["taoensso.*"]
+#### Log levels and ns filters: compile-time elision
 
-   :middleware [] ; (fns [data]) -> ?data, applied left->right
-
-   :timestamp-opts default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
-
-   :output-fn default-output-fn ; (fn [data]) -> string
-
-   :appenders
-   {;; The standard println appender:
-    ;; :println (println-appender {:stream :auto})
-
-    :an-example-custom-println-appender
-    ;; Inline appender definition (just a map):
-    {:enabled?   true
-     :async?     false
-     :min-level  nil
-     :rate-limit [[1 250] [10 5000]] ; 1/250ms, 10/5s
-     :output-fn  :inherit
-     :fn ; Appender's (fn [data]) -> side effects
-     (fn [data]
-       (let [{:keys [output_]} data
-             formatted-output-str (force output_)]
-         (println formatted-output-str)))}}})
-```
-
-A few things to note:
-
- * Appenders are _trivial_ to write & configure - **they're just fns**. It's Timbre's job to dispatch useful args to appenders when appropriate, it's their job to do something interesting with them.
- * Being 'just fns', appenders have basically limitless potential: write to your database, send a message over the network, check some other state (e.g. environment config) before making a choice, etc.
-
-#### Log levels and ns filters
-
-The **log level** may be set:
-
- * At compile-time: (`TIMBRE_LEVEL` environment variable).
- * Statically using: `timbre/set-level!`/`timbre/merge-level!`.
- * Dynamically using: `timbre/with-level`.
-
-The **ns filters** may be set:
-
- * At compile-time: (`TIMBRE_NS_WHITELIST`, `TIMBRE_NS_BLACKLIST` env vars).
- * Statically using: `timbre/set-config!`/`timbre/merge-config!`.
- * Dynamically using: `timbre/with-config`.
-
-There are also variants of the core logging macros that take an **explicit config arg**:
-
-```clojure
-(timbre/log*  <config-map> <level> <& args>) ; or
-(timbre/logf* <config-map> <level> <& args>)
-```
-
-Logging calls excluded by a compile-time option (e.g. during Cljs compilation) will be **entirely elided from your codebase**, e.g.:
+By setting the [relevant][config API] JVM properties or environment variables, Timbre can actually entirely exclude the code for disabled logging calls **at compile-time**, e.g.:
 
 ```bash
 #!/bin/bash
 
-# edn values welcome:
-export TIMBRE_LEVEL=':warn'               # Elide all lower logging calls
-export TIMBRE_NS_WHITELIST='["my-app.*"]' # Elide all other ns logging calls
-export TIMBRE_NS_BLACKLIST='["my-app.foo" "my-app.bar.*"]'
+# Elide all lower-level logging calls:
+export TAOENSSO_TIMBRE_MIN_LEVEL_EDN=':warn'
+
+# Elide all other ns logging calls:
+export TAOENSSO_TIMBRE_NS_PATTERN_EDN='{:allow #{"my-app.*"} :deny #{"my-app.foo" "my-app.bar.*"}}'
 
 lein cljsbuild once # Compile js with appropriate logging calls excluded
 lein uberjar        # Compile jar ''
@@ -298,16 +215,6 @@ A number of 3rd-party appenders are included out-the-box [here](https://github.c
 
 Just give me a shout if you've got an appender you'd like to have added.
 
-## Profiling
-
-As of v4.6.0, Timbre's profiling features have been enhanced and exported to a dedicated profiling library called [Tufte].
-
-Timbre's old profiling features **will be kept for backwards compatibility** throughout v4.x, but future development will be focused exclusively on Tufte.
-
-Tufte has out-the-box support for integration with Timbre, and [migration](https://github.com/ptaoussanis/tufte#how-does-tufte-compare-to-the-profiling-in-timbre) is usually simple.
-
-Sorry for the inconvenience!
-
 ## This project supports the ![ClojureWerkz-logo] goals
 
 [ClojureWerkz] is a growing collection of open-source, **batteries-included Clojure libraries** that emphasise modern targets, great documentation, and thorough testing.
@@ -351,3 +258,5 @@ Copyright &copy; 2015-2020 [Peter Taoussanis].
 [Postal]: https://github.com/drewr/postal
 [ClojureWerkz-logo]: https://raw.github.com/clojurewerkz/clojurewerkz.org/master/assets/images/logos/clojurewerkz_long_h_50.png
 [ClojureWerkz]: http://clojurewerkz.org/
+[config API]: http://ptaoussanis.github.io/timbre/taoensso.timbre.html#var-*config*
+[default config]: http://ptaoussanis.github.io/timbre/taoensso.timbre.html#var-default-config
