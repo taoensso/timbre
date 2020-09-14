@@ -29,7 +29,7 @@
   "Controls (:timestamp_ data)"
   #?(:cljs {:pattern  "yy-MM-dd HH:mm:ss" #_:iso8601}
      :clj
-     {:pattern  :iso8601     #_"yy-MM-dd HH:mm:ss"
+     {:pattern  :iso8601     #_"yyyy-MM-dd'T'HH:mm:ss.SSSX" #_"yy-MM-dd HH:mm:ss"
       :locale   :jvm-default #_(java.util.Locale. "en")
       :timezone :utc         #_(java.util.TimeZone/getTimeZone "Europe/Amsterdam")}))
 
@@ -493,6 +493,25 @@
 
 (declare get-hostname)
 
+(defn- get-timestamp [timestamp-opts instant]
+  #?(:clj
+     (let [{:keys [pattern locale timezone]} timestamp-opts]
+       ;; iso8601 example: 2020-09-14T08:31:17.040Z (UTC)
+       (.format ^java.text.SimpleDateFormat
+         (enc/simple-date-format* pattern locale timezone)
+         instant))
+
+     :cljs
+     (let [{:keys [pattern]} timestamp-opts]
+       (if (enc/kw-identical? pattern :iso8601)
+         (.toISOString (js/Date. instant)) ; e.g. 2020-09-14T08:29:49.711Z (UTC)
+         ;; Pattern can also be be `goog.i18n.DateTimeFormat.Format`, etc.
+         (.format
+           (goog.i18n.DateTimeFormat. pattern)
+           instant)))))
+
+(comment (get-timestamp default-timestamp-opts (enc/now-udt)))
+
 (defn -log! "Core low-level log fn. Implementation detail!"
 
   ;; Backward-compatible arities for convenience of AOT tools, Ref.
@@ -577,18 +596,7 @@
                get-timestamp_ ; (fn [timestamp-opts]) -> Shared delay
                (enc/fmemoize
                  (fn [opts]
-                   (delay
-                     (let [{:keys [pattern locale timezone]} opts]
-                       #?(:clj
-                          (.format
-                            ^java.text.SimpleDateFormat
-                            (enc/simple-date-format* pattern locale timezone)
-                            (:instant data))
-
-                          :cljs
-                          (.format
-                            (goog.i18n.DateTimeFormat. pattern)
-                            (:instant data)))))))]
+                   (delay (get-timestamp opts (get data :instant)))))]
 
            (reduce-kv
              (fn [_ id appender]
