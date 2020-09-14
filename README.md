@@ -29,8 +29,8 @@ Happy hacking!
  * No XML or properties files. **A single, simple config map**, and you're set.
  * Simple, flexible **fn appender model** with **middleware**.
  * **Great performance** at any scale.
- * Filter logging by levels, **namespace patterns**, and more.
- * **Zero overhead** with **complete Clj+Cljs elision** for compile-time level/ns filters.
+ * Easily filter logging calls by **any combination** of: level, namespace, appender.
+ * **Zero overhead** compile-time level/ns elision.
  * Useful built-in appenders for **out-the-box** Clj+Cljs logging.
  * Powerful, easy-to-configure **rate limits** and **async logging**.
  * [Logs as Clojure values][] (v3+).
@@ -101,21 +101,11 @@ java.lang.Exception: Oh noes
 
 Other utils include: `log-errors`, `log-and-rethrow-errors`, `logged-future`, and `handle-uncaught-jvm-exceptions!` (please see the [API] for details).
 
-#### Disabling stacktrace colors
-
-ANSI colors are enabled by default for stacktraces. To turn these off (e.g. for log files or emails), you can add the following entry to your top-level config **or** individual appender map/s:
-
-```clojure
-:output-fn (partial timbre/default-output-fn {:stacktrace-fonts {}})
-```
-
-And/or you can set the `TIMBRE_DEFAULT_STACKTRACE_FONTS` environment variable (supports edn).
-
 ### Data flow
 
 Timbre's inherently a simple design, no magic. It's just Clojure data and functions:
 
- 1. Unfiltered logging calls generate a **data map**: `{:level _ :?ns-str _ ...}`
+ 1. Enabled logging calls generate a **data map**: `{:level _ :?ns-str _ ...}`
  2. The resulting data map passes through any **middleware fns**, `(fn [data]) -> ?data`
  3. The resulting data map is sent to all **appender fns**, `(fn [data]) -> ?effects`
 
@@ -162,6 +152,16 @@ export TAOENSSO_TIMBRE_NS_PATTERN_EDN='{:allow #{"my-app.*"} :deny #{"my-app.foo
 lein cljsbuild once # Compile js with appropriate logging calls excluded
 lein uberjar        # Compile jar ''
 ```
+
+### Disabling stacktrace colors
+
+ANSI colors are enabled by default for stacktraces. To turn these off (e.g. for log files or emails), you can add the following entry to your top-level config **or** individual appender map/s:
+
+```clojure
+:output-fn (partial timbre/default-output-fn {:stacktrace-fonts {}})
+```
+
+And/or you can set the `TAOENSSO_TIMBRE_DEFAULT_STACKTRACE_FONTS_EDN` environment variable (supports edn).
 
 ### Built-in appenders
 

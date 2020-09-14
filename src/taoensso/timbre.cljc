@@ -111,7 +111,8 @@
   "This map controls all Timbre behaviour including:
     - When to log (via level and namespace filtering)
     - How  to log (which appenders to use)
-    - What to log (output formatting config for data sent to appenders)
+    - What to log (config to control how data sent to appenders
+                   will be formatted to output string)
 
   See `default-config` for default value (and example config).
 
