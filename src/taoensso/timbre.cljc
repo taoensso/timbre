@@ -27,7 +27,7 @@
 
 (def default-timestamp-opts
   "Controls (:timestamp_ data)"
-  #?(:cljs {:pattern  "yy-MM-dd HH:mm:ss" #_:iso8601}
+  #?(:cljs {:pattern  :iso8601 #_"yy-MM-dd HH:mm:ss"}
      :clj
      {:pattern  :iso8601     #_"yyyy-MM-dd'T'HH:mm:ss.SSSX" #_"yy-MM-dd HH:mm:ss"
       :locale   :jvm-default #_(java.util.Locale. "en")
