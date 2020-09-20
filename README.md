@@ -8,6 +8,8 @@
 [com.taoensso/timbre "4.10.0"]    ; Stable
 ```
 
+<!-- ![build status](https://github.com/ptaoussanis/timbre/workflows/build/badge.svg?branch=master) -->
+
 > See [here](https://taoensso.com/clojure/backers) if you're interested in helping support my open-source work, thanks! - Peter Taoussanis
 
 # Timbre
