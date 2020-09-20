@@ -53,7 +53,7 @@
    {:dependencies
     [[org.clojure/test.check    "1.1.0"]
      [org.clojure/tools.logging "1.1.0"]
-     [com.taoensso/nippy        "2.15.1"]
+     [com.taoensso/nippy        "3.0.0"]
      [com.taoensso/carmine      "2.20.0"
       :exclusions [com.taoensso/timbre]]
      [com.draines/postal        "2.0.3"]]}}
