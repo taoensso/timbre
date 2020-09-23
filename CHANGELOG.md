@@ -1,5 +1,14 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v5.0.1 / 2020 Sep 23
+
+```clojure
+[com.taoensso/timbre "5.0.1"]
+```
+
+- [#319] Hotfix for broken spit-appender (@dimovich).
+
+
 ## v5.0.0 / 2020 Sep 21
 
 ```clojure
