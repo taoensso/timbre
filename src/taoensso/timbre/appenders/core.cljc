@@ -93,7 +93,7 @@
           (let [{:keys [output_]} data]
             (try
               (when locking? (monitor-enter lock))
-              (with-open [^java.io.BufferedWriter w (jio/writer fname :append? append?)]
+              (with-open [^java.io.BufferedWriter w (jio/writer fname :append append?)]
                 (.write   w ^String (force output_))
                 (.newLine w))
 
