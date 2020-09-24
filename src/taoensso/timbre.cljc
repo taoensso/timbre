@@ -836,11 +836,7 @@
      (require '[taoensso.timbre :as timbre
                 :refer (log  trace  debug  info  warn  error  fatal  report
                          logf tracef debugf infof warnf errorf fatalf reportf
-                         spy get-env log-env)])
-
-     ;; Undocumented, for back compatibility:
-     (require '[taoensso.timbre.profiling :as profiling
-                :refer (pspy p defnp profile)])))
+                         spy get-env log-env)])))
 
 ;;;; Misc public utils
 
