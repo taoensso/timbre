@@ -80,19 +80,15 @@
                  append?  true
                  locking? true}}]]
 
-     {:enabled?   true
-      :async?     false
-      :min-level  nil
-      :rate-limit nil
-      :output-fn  :inherit
-      :fn
-      (let [lock (Object.) ; For thread safety, Ref. #251
-            system-newline enc/system-newline]
+     (have? enc/nblank-str? fname)
 
+     {:enabled? true
+      :fn
+      (let [lock (Object.)]
         (fn self [data]
           (let [{:keys [output_]} data]
             (try
-              (when locking? (monitor-enter lock))
+              (when locking? (monitor-enter lock)) ; For thread safety, Ref. #251
               (with-open [^java.io.BufferedWriter w (jio/writer fname :append append?)]
                 (.write   w ^String (force output_))
                 (.newLine w))
@@ -100,11 +96,8 @@
               (catch java.io.IOException e
                 (if (:spit-appender/retry? data)
                   (throw e) ; Unexpected error
-                  (let [_    (have? enc/nblank-str? fname)
-                        file (java.io.File. ^String fname)
-                        dir  (.getParentFile (.getCanonicalFile file))]
-
-                    (when-not (.exists dir) (.mkdirs dir))
+                  (do
+                    (jio/make-parents fname)
                     (self (assoc data :spit-appender/retry? true)))))
 
               (finally

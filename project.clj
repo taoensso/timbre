@@ -47,7 +47,9 @@
      [raven-clj               "1.6.0"]
      [congomongo              "2.2.1"]
      [server-socket           "1.0.0"]
-     [org.zeromq/cljzmq       "0.1.4"]]}
+     [org.zeromq/cljzmq       "0.1.4"]
+     [cljs-node-io            "1.1.2"] ; Node spit appender
+     ]}
 
    :test
    {:dependencies
