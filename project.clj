@@ -12,7 +12,8 @@
 
   :dependencies
   [[com.taoensso/encore "3.1.0"]
-   [io.aviso/pretty     "0.1.37"]]
+   [io.aviso/pretty     "0.1.37"]
+   [cljs-node-io "1.1.2"]]
 
   :plugins
   [[lein-pprint    "1.3.2"]
