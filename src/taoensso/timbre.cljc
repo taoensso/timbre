@@ -444,14 +444,24 @@
 
 (def ^:dynamic *context* "General-purpose dynamic logging context" nil)
 (defmacro  with-context
-  "Executes body so that given arbitrary data will be included in the
-  data map passed to appenders for any enclosed logging calls.
+  "Executes body so that given arbitrary data will be passed (as `:context`)
+  to appenders for any enclosed logging calls.
 
   (with-context
     {:user-name \"Stu\"} ; Will be incl. in data dispatched to appenders
-    (info \"User request\"))"
+    (info \"User request\"))
+
+  See also `with-context+`."
 
   [context & body] `(binding [*context* ~context] ~@body))
+
+(defmacro with-context+
+  "Like `with-context`, but merges given context into current context."
+  [context & body]
+  `(binding [*context* (conj (or *context* {}) ~context)]
+     ~@body))
+
+(comment (with-context+ {:foo1 :bar1} (with-context+ {:foo2 :bar2} *context*)))
 
 (defn- parse-vargs
   "vargs -> [?err ?meta ?msg-fmt api-vargs]"
