@@ -8,6 +8,33 @@
    [io.aviso.exception :as aviso-ex]
    [postal.core        :as postal]))
 
+(defn default-subject-fn
+  "Given an `output-str`, returns an appropriate email subject string:
+    - Take only the first line
+    - Trim it
+    - Simplify whitespace
+    - Never exceed `max-subject-len` characters."
+
+  [{:keys [max-len]
+    :or   {max-len 150}}
+   output-str]
+
+  (let [s (->
+            (re-find #"\A.*" output-str) ; 1st line
+            (str/trim)
+            (str/replace #"\s+" " "))]
+
+    (if (and max-len (> (count s) ^long max-len))
+      (str (enc/get-substring s 0 (- ^long max-len 3)) "...")
+      s)))
+
+(comment
+  (default-subject-fn {:max-len 8} "sdfghsjhfdg shj
+sfjsdgfjhsdgf s
+sfsdf
+sfsdf
+sdf"))
+
 (defn postal-appender
   "Returns a Postal email appender.
   (postal-appender
@@ -15,10 +42,14 @@
     {:from \"Bob's logger <me@draines.com>\" :to \"foo@example.com\"})"
 
   [postal-config &
-   [{:keys [subject-len body-fn]
+   [{:keys [subject-len subject-fn body-fn]
      :or   {subject-len 150
-            body-fn (fn [output-str] [{:type "text/plain; charset=utf-8"
-                                      :content output-str}])}}]]
+            subject-fn  (partial default-subject-fn {:max-len subject-len})
+            body-fn
+            (fn [output-str]
+              [{:type "text/plain; charset=utf-8"
+                :content output-str}])}}]]
+
   {:enabled?   true
    :async?     true  ; Slow!
    :min-level  :warn ; Elevated
@@ -33,11 +64,8 @@
 
        (postal/send-message
          (assoc postal-config
-           :subject (-> output-str
-                        (str/trim)
-                        (str/replace #"\s+" " ")
-                        (enc/get-substring 0 subject-len))
-           :body (body-fn output-str)))))})
+           :subject (subject-fn output-str)
+           :body    (body-fn    output-str)))))})
 
 ;;;; Deprecated
 
