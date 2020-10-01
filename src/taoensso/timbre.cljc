@@ -259,8 +259,9 @@
   (defn- valid-level->int [x] (or (level->int x)   (throw (ex-info err {:given x :type (type x)})))))
 
 (let [valid-level->int valid-level->int]
-  (defn- #?(:clj level>= :cljs ^:boolean level>=) [x y]
-    (>= ^long (valid-level->int x) ^long (valid-level->int y))))
+  (defn #?(:clj level>= :cljs ^:boolean level>=)
+    "Implementation detail."
+    [x y] (>= ^long (valid-level->int x) ^long (valid-level->int y))))
 
 (comment (qb 1e6 (level>= :info :trace))) ; 89.77
 
