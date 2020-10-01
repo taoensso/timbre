@@ -1,5 +1,30 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v5.1.0 / 2020 Oct 1
+
+```clojure
+[com.taoensso/timbre "5.1.0"]
+```
+
+> This is a **minor feature release**.  
+> See [here](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
+
+### Changes since `v5.0.0`
+
+- [BREAKING] [#315] Remove long-deprecated profiling code
+
+### New since `v5.0.0`
+
+- [#262] Add `with-context+` macro (@DeLaGuardo)
+- [#308 #320] Add cljs spit-appender 3rd-party appender for running on node (@mavines)
+- Postal appender: support arbitrary :subject-fn, make default fn smarter
+
+### Fixes since `v5.0.0`
+
+- [#319] Hotfix for broken spit-appender (@dimovich)
+- [#321] Make `level>=` a public implementation.
+
+
 ## v5.0.1 / 2020 Sep 23
 
 ```clojure
