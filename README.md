@@ -11,9 +11,7 @@
 
 > See [here](https://taoensso.com/clojure/backers) if you're interested in helping support my open-source work, thanks! - Peter Taoussanis
 
-# Timbre
-
-## A pure Clojure/Script logging library
+# Timbre: a pure Clojure/Script logging library
 
 Java logging can be a Kafkaesque mess of complexity that buys you little. Getting even the simplest logging working can be comically hard, and it often gets worse at scale as your needs become more sophisticated.
 
@@ -48,7 +46,8 @@ Your link here?          | **PR's welcome!**
 Add the necessary dependency to your project:
 
 ```clojure
-[com.taoensso/timbre "5.1.0"]
+Leiningen: [com.taoensso/timbre "5.1.0"] ; or
+deps.edn:   com.taoensso/timbre {:mvn/version "5.1.0"}
 ```
 
 And setup your namespace imports:
