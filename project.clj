@@ -11,7 +11,7 @@
                 *assert*             true}
 
   :dependencies
-  [[com.taoensso/encore "3.4.0"]
+  [[com.taoensso/encore "3.9.2"]
    [io.aviso/pretty     "0.1.37"]]
 
   :plugins
@@ -55,10 +55,10 @@
    {:dependencies
     [[org.clojure/test.check    "1.1.0"]
      [org.clojure/tools.logging "1.1.0"]
-     [com.taoensso/nippy        "3.0.0"]
-     [com.taoensso/carmine      "3.0.0"
+     [com.taoensso/nippy        "3.1.1"]
+     [com.taoensso/carmine      "3.1.0"
       :exclusions [com.taoensso/timbre]]
-     [com.draines/postal        "2.0.3"]]}}
+     [com.draines/postal        "2.0.4"]]}}
 
   :cljsbuild
   {:test-commands
