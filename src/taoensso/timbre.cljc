@@ -43,8 +43,7 @@
          {:keys [level ?err #_vargs msg_ ?ns-str ?file hostname_
                  timestamp_ ?line]} data]
      (str
-       (force timestamp_)
-       " "
+       (when-let [ts (force timestamp_)] (str ts " "))
        #?(:clj (force hostname_))  #?(:clj " ")
        (str/upper-case (name level))  " "
        "[" (or ?ns-str ?file "?") ":" (or ?line "?") "] - "
