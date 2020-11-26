@@ -12,3 +12,5 @@ pom.xml*
 /logs/
 /docs/
 /doc/
+.idea/
+*.iml
