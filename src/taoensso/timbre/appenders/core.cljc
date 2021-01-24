@@ -73,6 +73,20 @@
 ;;;; Spit appender (clj only)
 
 #?(:clj
+   (defn- write-to-file [data fname append? output self]
+     (try
+       (with-open [^java.io.BufferedWriter w (jio/writer fname :append append?)]
+         (.write   w ^String output)
+         (.newLine w))
+
+       (catch java.io.IOException e
+         (if (:spit-appender/retry? data)
+           (throw e) ; Unexpected error
+           (do
+             (jio/make-parents fname)
+             (self (assoc data :spit-appender/retry? true))))))))
+
+#?(:clj
    (defn spit-appender
      "Returns a simple `spit` file appender for Clojure."
      [& [{:keys [fname append? locking?]
@@ -85,26 +99,11 @@
      {:enabled? true
       :fn
       (let [lock (Object.)]
-        (fn self [data]
-          (let [{:keys [output_]} data
-                output (force output_)
-                locklocal lock ; Ensure obj on stack for verifiers, Ref. CLJ-1472
-                ]
-            (try
-              (when locking? (monitor-enter locklocal)) ; For thread safety, Ref. #251
-              (with-open [^java.io.BufferedWriter w (jio/writer fname :append append?)]
-                (.write   w ^String output)
-                (.newLine w))
-
-              (catch java.io.IOException e
-                (if (:spit-appender/retry? data)
-                  (throw e) ; Unexpected error
-                  (do
-                    (jio/make-parents fname)
-                    (self (assoc data :spit-appender/retry? true)))))
-              (finally
-                (when locking?
-                  (monitor-exit locklocal)))))))}))
+        (fn self [{:keys [output_] :as data}]
+          (let [output (force output_)] ; Must deref outside lock, Ref. #330
+            (if locking? ; For thread safety, Ref. #251
+              (locking lock (write-to-file data fname append? output self))
+              (do           (write-to-file data fname append? output self))))))}))
 
 (comment
   (spit-appender)
