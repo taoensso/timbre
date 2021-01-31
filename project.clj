@@ -11,12 +11,12 @@
                 *assert*             true}
 
   :dependencies
-  [[com.taoensso/encore "3.9.2"]
+  [[com.taoensso/encore "3.10.1"]
    [io.aviso/pretty     "0.1.37"]]
 
   :plugins
   [[lein-pprint    "1.3.2"]
-   [lein-ancient   "0.6.15"]
+   [lein-ancient   "0.7.0"]
    [lein-codox     "0.10.7"]
    [lein-cljsbuild "1.1.8"]]
 
@@ -28,7 +28,7 @@
    :1.7      {:dependencies [[org.clojure/clojure "1.7.0"]]}
    :1.8      {:dependencies [[org.clojure/clojure "1.8.0"]]}
    :1.9      {:dependencies [[org.clojure/clojure "1.9.0"]]}
-   :1.10     {:dependencies [[org.clojure/clojure "1.10.1"]]}
+   :1.10     {:dependencies [[org.clojure/clojure "1.10.2"]]}
    :depr     {:jvm-opts ["-Dtaoensso.elide-deprecated=true"]}
    :dev      [:1.10 :test :server-jvm :depr :3pa]
 
