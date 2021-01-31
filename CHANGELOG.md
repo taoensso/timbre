@@ -1,5 +1,22 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v5.1.1 / 2021 Jan 31
+
+```clojure
+[com.taoensso/timbre "5.1.1"]
+```
+
+> This is a **minor hotfix release**.  
+> See [here](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
+
+### Fixes since `v5.1.0`
+
+- [#329 #330] Fix spit-appender deadlock (@ryfow)
+- [#331] Skip unnecessary space in default-output-fn `:timestamp_` (@lnostdal)
+- [#334] `spit-appender`: fix for GraalVM verifier (@ericdallo)
+- [#326] project.clj: disable dev dependencies (workaround)
+
+
 ## v5.1.0 / 2020 Oct 1
 
 ```clojure
