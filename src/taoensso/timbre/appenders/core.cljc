@@ -87,9 +87,11 @@
       (let [lock (Object.)]
         (fn self [data]
           (let [{:keys [output_]} data
-                output (force output_)]
+                output (force output_)
+                locklocal lock ; Ensure obj on stack for verifiers, Ref. CLJ-1472
+                ]
             (try
-              (when locking? (monitor-enter lock)) ; For thread safety, Ref. #251
+              (when locking? (monitor-enter locklocal)) ; For thread safety, Ref. #251
               (with-open [^java.io.BufferedWriter w (jio/writer fname :append append?)]
                 (.write   w ^String output)
                 (.newLine w))
@@ -102,7 +104,7 @@
                     (self (assoc data :spit-appender/retry? true)))))
               (finally
                 (when locking?
-                  (monitor-exit lock)))))))}))
+                  (monitor-exit locklocal)))))))}))
 
 (comment
   (spit-appender)
