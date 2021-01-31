@@ -97,13 +97,14 @@
 
      (have? enc/nblank-str? fname)
 
-     {:enabled? true
-      :fn
-      (fn self [data]
-        (if locking?
-          (locking (Object.)
-            (write-to-file data fname append? self))
-          (write-to-file data fname append? self)))}))
+     (let [lock (Object.)]
+       {:enabled? true
+        :fn
+        (fn self [data]
+          (if locking?
+            (locking lock
+              (write-to-file data fname append? self))
+            (write-to-file data fname append? self)))})))
 
 (comment
   (spit-appender)
