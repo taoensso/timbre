@@ -78,7 +78,7 @@
    "deploy-lib" ["do" "build-once," "deploy" "clojars," "install"]
    "start-dev"  ["with-profile" "+dev" "repl" ":headless"]
    "test-all"   ["do" "clean,"
-                 "with-profile" "+1.10:+1.9:+1.8:+1.7" "test"
+                 "with-profile" "+1.10:+1.9:+1.8:+1.7" "test,"
                  "with-profile" "+test" "cljsbuild" "test"]}
 
   :repositories
