@@ -73,19 +73,18 @@
 ;;;; Spit appender (clj only)
 
 #?(:clj
-   (defn- write-to-file [{:keys [output_] :as data} fname append? self]
-     (let [output (force output_)]
-       (try
-         (with-open [^java.io.BufferedWriter w (jio/writer fname :append append?)]
-           (.write   w ^String output)
-           (.newLine w))
+   (defn- write-to-file [data fname append? output self]
+     (try
+       (with-open [^java.io.BufferedWriter w (jio/writer fname :append append?)]
+         (.write   w ^String output)
+         (.newLine w))
 
-         (catch java.io.IOException e
-           (if (:spit-appender/retry? data)
-             (throw e) ; Unexpected error
-             (do
-               (jio/make-parents fname)
-               (self (assoc data :spit-appender/retry? true)))))))))
+       (catch java.io.IOException e
+         (if (:spit-appender/retry? data)
+           (throw e) ; Unexpected error
+           (do
+             (jio/make-parents fname)
+             (self (assoc data :spit-appender/retry? true))))))))
 
 #?(:clj
    (defn spit-appender
@@ -100,11 +99,12 @@
      (let [lock (Object.)]
        {:enabled? true
         :fn
-        (fn self [data]
-          (if locking?
-            (locking lock
-              (write-to-file data fname append? self))
-            (write-to-file data fname append? self)))})))
+        (fn self [{:keys [output_] :as data}]
+          (let [output (force output_)]
+            (if locking?
+              (locking lock
+                (write-to-file data fname append? output self))
+              (write-to-file data fname append? output self))))})))
 
 (comment
   (spit-appender)
