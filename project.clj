@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "5.1.1"
+(defproject com.taoensso/timbre "5.1.2"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Pure Clojure/Script logging library"
   :url "https://github.com/ptaoussanis/timbre"
