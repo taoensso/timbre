@@ -11,7 +11,7 @@
                 *assert*             true}
 
   :dependencies
-  [[com.taoensso/encore "3.10.1"]
+  [[com.taoensso/encore "3.12.1"]
    [io.aviso/pretty     "0.1.37"]]
 
   :plugins
@@ -38,7 +38,7 @@
      [org.graylog2/gelfclient "1.5.0"
       :exclusions [com.fasterxml.jackson.core/jackson-core]]
      [org.julienxx/clj-slack  "0.6.3"]
-     [org.clojure/java.jdbc   "0.7.11"]
+     [org.clojure/java.jdbc   "0.7.12"]
      [com.mchange/c3p0        "0.9.5.5"]
      [cheshire                "5.10.0"]
      [ymilky/franzy           "0.0.1"]
