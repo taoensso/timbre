@@ -945,7 +945,13 @@
 (defn stacktrace
   ([err     ] (stacktrace err nil))
   ([err opts]
-   #?(:cljs (or (.-stack err) (str err)) ; TODO Alternatives?
+   #?(:cljs
+      (let [nl enc/system-newline]
+       (str
+         (.-stack err) ; Includes `ex-message`
+         (when-let [d (ex-data  err)] (str nl "ex-data" enc/system-newline "    " (pr-str d)))
+         (when-let [c (ex-cause err)] (str nl "caused by - " (stacktrace c opts)))))
+
       :clj
       (let [stacktrace-fonts ; {:stacktrace-fonts nil->{}}
             (if-let [e (find opts :stacktrace-fonts)]
