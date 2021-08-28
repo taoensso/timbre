@@ -896,7 +896,11 @@
 (defn stacktrace
   ([err     ] (stacktrace err nil))
   ([err opts]
-   #?(:cljs (str err enc/system-newline (.-stack err)) ; TODO Alternatives?
+   #?(:cljs
+      ;; TODO Alternatives?
+      (str err
+           (when-let [s (.-stack err)]
+             (str enc/system-newline s)))
       :clj
       (let [stacktrace-fonts ; {:stacktrace-fonts nil->{}}
             (if-let [e (find opts :stacktrace-fonts)]
