@@ -1,0 +1,2 @@
+{:deps {com.taoensso/encore {:mvn/version "3.12.1"}
+        io.aviso/pretty     {:mvn/version "0.1.37"}}}
