@@ -59,20 +59,22 @@
    :rate-limit nil
    :output-fn  :inherit
    :fn
-   (fn [data]
-     (let [{:keys [instant output_]} data
-           output-str (force output_)
-           prev-cal   (prev-period-end-cal instant pattern)]
-       (when-let [log (io/file path)]
-         (try
-           (when-not (.exists log)
-             (io/make-parents log))
-           (if (.exists log)
-             (if (<= (.lastModified log) (.getTimeInMillis prev-cal))
-               (shift-log-period log path prev-cal))
-             (.createNewFile log))
-           (spit path (with-out-str (println output-str)) :append true)
-           (catch java.io.IOException _)))))})
+   (let [lock (Object.)]
+     (fn [data]
+       (let [{:keys [instant output_]} data
+             output-str (force output_)
+             prev-cal   (prev-period-end-cal instant pattern)]
+         (when-let [log (io/file path)]
+           (try
+             (locking lock
+               (when-not (.exists log)
+                 (io/make-parents log))
+               (if (.exists log)
+                 (if (<= (.lastModified log) (.getTimeInMillis prev-cal))
+                   (shift-log-period log path prev-cal))
+                 (.createNewFile log)))
+             (spit path (with-out-str (println output-str)) :append true)
+             (catch java.io.IOException _))))))})
 
 ;;;; Deprecated
 
