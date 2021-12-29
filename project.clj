@@ -11,7 +11,7 @@
                 *assert*             true}
 
   :dependencies
-  [[com.taoensso/encore "3.12.1"]
+  [[com.taoensso/encore "3.20.0"]
    [io.aviso/pretty     "0.1.37"]]
 
   :plugins
