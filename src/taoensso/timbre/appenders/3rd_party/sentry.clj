@@ -16,11 +16,22 @@
    :fatal  "fatal"
    :report "info"})
 
+;; Copied from raven-clj.ring since it's private there, too.
+(defn- truncate-extra-str [text]
+  (subs text 0 (min (count text) 4096)))
+
 (defn sentry-appender
   "Returns a raven-clj Sentry appender.
 
   Requires the DSN (e.g. \"https://<key>:<secret>@sentry.io/<project>\")
   to be passed in, see Sentry documentation for details.
+
+  A Timbre context map will be passed through to Sentry as additional
+  data.
+
+  When logging an exception which has ex-data attached, it will be
+  stringified and passed as part of the additional data map under
+  the :ex-data key (unless that key already exists in context).
 
   Common options:
     * :tags, :environment, :release, and :modules will be passed to Sentry
@@ -43,6 +54,10 @@
      :fn
      (fn [data]
        (let [{:keys [instant level output_ ?err msg_ ?ns-str context]} data
+             ?ex-data (some-> ?err ex-data)
+             extra (cond-> context
+                     (and ?ex-data (not (:ex-data context)))
+                     (assoc :ex-data (truncate-extra-str (str ?ex-data))))
 
              event
              (as-> base-event event
@@ -51,7 +66,7 @@
                   :logger  ?ns-str
                   :level   (get timbre->sentry-levels level)}
 
-                 (when context {:extra context}))
+                 (when extra {:extra extra}))
 
                (if ?err
                  (interfaces/stacktrace event ?err)
