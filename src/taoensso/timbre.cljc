@@ -693,16 +693,23 @@
 (defn- fline [and-form] (:line (meta and-form)))
 
 (defmacro log! ; Public wrapper around `-log!`
-  "Core low-level log macro. Useful for tooling, etc.
+  "Core low-level log macro. Useful for tooling/library authors, etc.
 
     * `level`    - must eval to a valid logging level
     * `msg-type` - must eval to e/o #{:p :f nil}
+    * `args`     - arguments for logging call
     * `opts`     - ks e/o #{:config :?err :?ns-str :?file :?line :?base-data :spying?}
 
   Supports compile-time elision when compile-time const vals
-  provided for `level` and/or `?ns-str`."
+  provided for `level` and/or `?ns-str`.
+
+  Logging wrapper examples:
+
+    (defn     log-wrapper-fn    [& args]  (timbre/log! :info :p  args))
+    (defmacro log-wrapper-macro [& args] `(timbre/log! :info :p ~args))"
+
   [level msg-type args & [opts]]
-  (have [:or nil? sequential?] args) ; To allow -> (delay [~@args])
+  (have [:or nil? sequential? symbol?] args)
   (let [{:keys [?ns-str] :or {?ns-str (str *ns*)}} opts]
     ;; level, ns may/not be compile-time consts:
     (when-not #?(:clj (-elide? level ?ns-str) :cljs false)
@@ -720,15 +727,24 @@
             ;; `slf4j-timbre`, etc.):
             callsite-id
             (hash [level msg-type args ; Unevaluated args (arg forms)
-                   ?ns-str ?file ?line (rand)])]
+                   ?ns-str ?file ?line (rand)])
+
+            vargs-form
+            (if (symbol? args)
+              `(enc/ensure-vec ~args)
+              `[               ~@args])]
 
         `(-log! ~config ~level ~?ns-str ~?file ~?line ~msg-type ~?err
-           (delay [~@args]) ~?base-data ~callsite-id ~spying?)))))
+           (delay ~vargs-form) ~?base-data ~callsite-id ~spying?)))))
 
 (comment
   (do           (log! :info :p ["foo"]))
-  (macroexpand '(log! :info :p ["foo"]))
-  (macroexpand '(log! :info :p ["foo"] {:?line 42})))
+  (macroexpand '(log! :info :p ["foo" x]))
+  (macroexpand '(log! :info :p ["foo" x] {:?line 42}))
+  (macroexpand '(log! :info :p args      {:?line 42}))
+
+  (defn wrapper-fn [& args] (log! :info :p args))
+  (wrapper-fn "a" "b"))
 
 ;;;; Benchmarking
 
