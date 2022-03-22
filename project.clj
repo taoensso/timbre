@@ -11,36 +11,37 @@
                 *assert*             true}
 
   :dependencies
-  [[com.taoensso/encore "3.12.1"]
-   [io.aviso/pretty     "0.1.37"]]
+  [[com.taoensso/encore "3.21.0"]
+   [io.aviso/pretty     "1.1.1"]]
 
   :plugins
   [[lein-pprint    "1.3.2"]
    [lein-ancient   "0.7.0"]
-   [lein-codox     "0.10.7"]
+   [lein-codox     "0.10.8"]
    [lein-cljsbuild "1.1.8"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
    :server-jvm {:jvm-opts ^:replace ["-server"]}
    :provided {:dependencies [[org.clojure/clojure       "1.7.0"]
-                             [org.clojure/clojurescript "1.10.773"]]}
+                             [org.clojure/clojurescript "1.11.4"]]}
    :1.7      {:dependencies [[org.clojure/clojure "1.7.0"]]}
    :1.8      {:dependencies [[org.clojure/clojure "1.8.0"]]}
    :1.9      {:dependencies [[org.clojure/clojure "1.9.0"]]}
-   :1.10     {:dependencies [[org.clojure/clojure "1.10.2"]]}
+   :1.10     {:dependencies [[org.clojure/clojure "1.10.3"]]}
+   :1.11     {:dependencies [[org.clojure/clojure "1.11.0-rc1"]]}
    :depr     {:jvm-opts ["-Dtaoensso.elide-deprecated=true"]}
    :dev      [:1.10 :test :server-jvm :depr :3pa]
 
    :3pa ; 3rd-party appenders
    {:dependencies
     [[irclj                   "0.5.0-alpha4"]
-     [org.graylog2/gelfclient "1.5.0"
+     [org.graylog2/gelfclient "1.5.1"
       :exclusions [com.fasterxml.jackson.core/jackson-core]]
      [org.julienxx/clj-slack  "0.6.3"]
      [org.clojure/java.jdbc   "0.7.12"]
      [com.mchange/c3p0        "0.9.5.5"]
-     [cheshire                "5.10.0"]
+     [cheshire                "5.10.2"]
      [ymilky/franzy           "0.0.1"]
      [com.newrelic.agent.java/newrelic-agent "3.30.0"]
      [net.java.dev.jna/jna    "5.6.0"]
@@ -53,12 +54,12 @@
 
    :test
    {:dependencies
-    [[org.clojure/test.check    "1.1.0"]
-     [org.clojure/tools.logging "1.1.0"]
+    [[org.clojure/test.check    "1.1.1"]
+     [org.clojure/tools.logging "1.2.4"]
      [com.taoensso/nippy        "3.1.1"]
      [com.taoensso/carmine      "3.1.0"
       :exclusions [com.taoensso/timbre]]
-     [com.draines/postal        "2.0.4"]]}}
+     [com.draines/postal        "2.0.5"]]}}
 
   :cljsbuild
   {:test-commands
