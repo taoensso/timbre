@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.android-logcat
+(ns taoensso.timbre.appenders.community.android-logcat
   "Android LogCat appender. Requires Android runtime."
   {:author "Adam Clements (@AdamClements)"}
   (:require

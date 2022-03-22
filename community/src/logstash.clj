@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.logstash
+(ns taoensso.timbre.appenders.community.logstash
   "Appender that sends output to Logstash.
    Requires Cheshire (https://github.com/dakrone/cheshire)."
   {:author "Mike Sperber (@mikesperber), David Frese (@dfrese)"}
@@ -7,7 +7,7 @@
   (:import  [java.net Socket InetAddress]
             [java.io PrintWriter]))
 
-;; Adapted from taoensso.timbre.appenders.3rd-party.server-socket
+;; Adapted from taoensso.timbre.appenders.community.server-socket
 
 (defn connect
   [host port]

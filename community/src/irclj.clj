@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.irclj
+(ns taoensso.timbre.appenders.community.irclj
   "IRC appender. Requires https://github.com/flatland/irclj."
   {:author "Emlyn Corrin (@emlyn)"}
   (:require

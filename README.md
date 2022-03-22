@@ -33,7 +33,7 @@ Happy hacking!
  * [Logs as Clojure values][] (v3+).
  * Small, simple, cross-platform codebase.
 
-## 3rd-party tools, appenders, etc.
+## Community tools, appenders, etc.
 
 Link                     | Description
 ------------------------ | -----------------------------------------------------
@@ -211,7 +211,7 @@ See also `car-appender/query-entries`.
 
 #### Other included appenders
 
-A number of 3rd-party appenders are included out-the-box [here](https://github.com/ptaoussanis/timbre/tree/master/src/taoensso/timbre/appenders/3rd_party). **Please see the relevant docstring for details**. Thanks goes to the respective authors! 
+A number of community appenders are included out-the-box [here](https://github.com/ptaoussanis/timbre/tree/master/src/taoensso/timbre/appenders/community). **Please see the relevant docstring for details**. Thanks goes to the respective authors! 
 
 Just give me a shout if you've got an appender you'd like to have added.
 
@@ -230,7 +230,7 @@ Otherwise, you can reach me at [Taoensso.com]. Happy hacking!
 ## License
 
 Distributed under the [EPL v1.0] \(same as Clojure).  
-Copyright &copy; 2015-2020 [Peter Taoussanis].
+Copyright &copy; 2015-2022 [Peter Taoussanis].
 
 <!--- Standard links -->
 [Taoensso.com]: https://www.taoensso.com

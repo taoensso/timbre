@@ -1,10 +1,10 @@
-(ns taoensso.timbre.appenders.3rd-party.rotor-test
+(ns taoensso.timbre.appenders.community.rotor-test
   (:require
     [clojure.test :refer :all]
     [clojure.java.io :as io]
     [clojure.set :as set]
     [taoensso.timbre :as timbre]
-    [taoensso.timbre.appenders.3rd-party.rotor :as rotor]))
+    [taoensso.timbre.appenders.community.rotor :as rotor]))
 
 (def logfile "rotor-test.log")
 

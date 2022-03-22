@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.slack
+(ns taoensso.timbre.appenders.community.slack
   "Slack appender. Requires https://github.com/julienXX/clj-slack."
   {:author "Simon Belak (@sbelak)"}
   (:require

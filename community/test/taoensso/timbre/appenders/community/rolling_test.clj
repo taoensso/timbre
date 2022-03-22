@@ -1,7 +1,7 @@
-(ns taoensso.timbre.appenders.3rd-party.rolling-test
+(ns taoensso.timbre.appenders.community.rolling-test
   (:require
     [clojure.test :refer [deftest is use-fixtures]]
-    [taoensso.timbre.appenders.3rd-party.rolling :as rolling])
+    [taoensso.timbre.appenders.community.rolling :as rolling])
   (:import
    (java.io File)
    (java.nio.file Files)

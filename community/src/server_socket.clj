@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.server-socket
+(ns taoensso.timbre.appenders.community.server-socket
   "TCP socket appender.
   Requires https://github.com/technomancy/server-socket."
   {:author "Emlyn Corrin (@emlyn)"}

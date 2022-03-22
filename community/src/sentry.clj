@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.sentry
+(ns taoensso.timbre.appenders.community.sentry
   "Sentry appender. Requires https://github.com/sethtrain/raven-clj."
   {:author "Samuel Otter (@samuelotter)"}
   (:require

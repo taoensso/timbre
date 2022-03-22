@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.syslog-appender
+(ns taoensso.timbre.appenders.community.syslog-appender
   "Requires https://github.com/java-native-access/jna"
   {:author "Audrius Molis @audriu"
    :inspired-by "https://github.com/joshrotenberg/brolog"}
@@ -90,7 +90,7 @@
   (timbre/merge-config!
    {:appenders
     {:syslog-appender
-     (taoensso.timbre.appenders.3rd-party.syslog-appender/syslog-appender
+     (taoensso.timbre.appenders.community.syslog-appender/syslog-appender
       {:ident "my-app"
        :syslog-options (byte 0x03)
        :facility :log-user})}}))

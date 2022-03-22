@@ -31,10 +31,12 @@
    :1.10     {:dependencies [[org.clojure/clojure "1.10.3"]]}
    :1.11     {:dependencies [[org.clojure/clojure "1.11.1"]]}
    :depr     {:jvm-opts ["-Dtaoensso.elide-deprecated=true"]}
-   :dev      [:1.11 :test :server-jvm #_:depr :3pa] ; TODO :depr
+   :dev      [:1.11 :test :server-jvm #_:depr #_:community] ; TODO :depr
 
-   :3pa ; 3rd-party appenders
-   {:dependencies
+   :community
+   {:source-paths [       "src"                  "community/src"]
+    :test-paths   ["test" "src" "community/test" "community/src"]
+    :dependencies
     [[irclj                   "0.5.0-alpha4"]
      [org.graylog2/gelfclient "1.5.1"
       :exclusions [com.fasterxml.jackson.core/jackson-core]]
@@ -76,7 +78,8 @@
 
   :aliases
   {"build-once" ["cljsbuild" "once"]
-   "deploy-lib" ["do" "build-once," "deploy" "clojars," "install"]
+   "deploy-lib" ["with-profile" "+community"
+                 "do" "build-once," "deploy" "clojars," "install"]
    "start-dev"  ["with-profile" "+dev" "repl" ":headless"]
    "test-all"   ["do" "clean,"
                  "with-profile" "+1.11:+1.10:+1.9:+1.8:+1.7" "test,"

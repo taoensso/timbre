@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.franzy
+(ns taoensso.timbre.appenders.community.franzy
   "Franzy (Kafka) appender.
   Requires Franzy (https://github.com/ymilky/franzy."
   {:author "Isaac Zeng (@gfZeng)"}

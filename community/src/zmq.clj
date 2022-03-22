@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.zmq
+(ns taoensso.timbre.appenders.community.zmq
   "ØMQ appender. Requires https://github.com/zeromq/cljzmq."
   {:author "Angus Fletcher (@angusiguess)"}
   (:require

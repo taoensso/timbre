@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.postgresql
+(ns taoensso.timbre.appenders.community.postgresql
   "JDBC PostgreSQL database appender.
   Requires https://github.com/clojure/java.jdbc,
            https://github.com/swaldman/c3p0."

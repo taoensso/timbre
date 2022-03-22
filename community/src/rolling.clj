@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.rolling
+(ns taoensso.timbre.appenders.community.rolling
   "Rolling file appender."
   {:author "Unknown - please let me know?"}
   (:require

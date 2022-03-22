@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.rotor
+(ns taoensso.timbre.appenders.community.rotor
   "Rotating file appender."
   {:author "Karsten Schmidt (@postspectacular)"}
   (:require

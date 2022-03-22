@@ -1,4 +1,4 @@
-(ns taoensso.timbre.appenders.3rd-party.udp-socket
+(ns taoensso.timbre.appenders.community.udp-socket
   {:author "Leo Zovic (@inaimathi)"}
   (:import [java.net DatagramSocket DatagramPacket InetSocketAddress]))
 
