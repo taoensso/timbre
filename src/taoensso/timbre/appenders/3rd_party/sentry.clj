@@ -22,6 +22,10 @@
   Requires the DSN (e.g. \"https://<key>:<secret>@sentry.io/<project>\")
   to be passed in, see Sentry documentation for details.
 
+  Timbre's `*context*` will be passed to Sentry as `:extra` data. When logging
+  an exception with ex-data attached, it will be stringified and added under
+  `:ex-data` key (unless that key already exists in context).
+
   Common options:
     * :tags, :environment, :release, and :modules will be passed to Sentry
       as attributes, Ref. https://docs.sentry.io/clientdev/attributes/.
@@ -44,6 +48,13 @@
      (fn [data]
        (let [{:keys [instant level output_ ?err msg_ ?ns-str context]} data
 
+             ?ex-data (ex-data ?err)
+             extra
+             (cond-> context
+               (and ?ex-data (not (contains? context :ex-data)))
+               (assoc :ex-data
+                 (enc/get-substr (str ?ex-data) 0 4096)))
+
              event
              (as-> base-event event
                (merge event
@@ -51,7 +62,7 @@
                   :logger  ?ns-str
                   :level   (get timbre->sentry-levels level)}
 
-                 (when context {:extra context}))
+                 (when extra {:extra extra}))
 
                (if ?err
                  (interfaces/stacktrace event ?err)
