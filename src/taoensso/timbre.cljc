@@ -169,13 +169,27 @@
         :ns-filter       ; Optional *additional* appender-specific ns-filter
 
         :async?          ; Dispatch using agent? Useful for slow appenders (clj only)
+
         :rate-limit      ; [[<ncalls-limit> <window-msecs>] ...], or nil
-                         ; Appender will noop after exceeding given maximum number
-                         ; of calls within given rolling window/s.
-                         ; e.g. [[100 (encore/ms :mins 1)] [1000 (encore/ms :hours 1)]]
-                         ; will limit noop after:
-                         ;   - >100  calls in 1 rolling minute, or
-                         ;   - >1000 calls in 1 rolling hour
+                         ; Appender will noop a call after exceeding given number
+                         ; of the \"same\" calls within given rolling window/s.
+                         ;
+                         ; Example:
+                         ;   [[100  (encore/ms :mins  1)]
+                         ;    [1000 (encore/ms :hours 1)]] will noop a call after:
+                         ;
+                         ;   - >100  \"same\" calls in 1 rolling minute, or
+                         ;   - >1000 \"same\" calls in 1 rolling hour
+                         ;
+                         ; \"Same\" calls are identified by default as the
+                         ; combined hash of:
+                         ;   - Callsite (i.e. each individual Timbre macro form)
+                         ;   - Logging level
+                         ;   - All arguments provided for logging
+                         ;
+                         ; You can manually override call identification:
+                         ;   (timbre/infof ^:meta {:id \"my-limiter-call-id\"} ...)
+                         ;
 
         :output-fn       ; Optional override for inherited (fn [appender-data]) -> string
         :timestamp-opts  ; Optional override for inherited config map
@@ -589,16 +603,18 @@
 
                        (enc/format* ?msg-fmt vargs))))
 
-                 ;; Uniquely identifies a particular logging call for
-                 ;; rate limiting, etc.
-                 :hash_
+                 :hash_ ; Identify unique logging "calls" for rate limiting, etc.
                  (delay
                    (hash
-                     ;; Nb excl. instant
-                     [callsite-id      ; Only useful for direct macro calls
-                      ?msg-fmt
-                      (get ?meta :hash ; Explicit hash provided
-                        vargs)])))
+                     (enc/cond
+                       ;; Partial control, callsite-id only useful for direct macro calls
+                       :if-let [id (get ?meta :id)] [id callsite-id level]
+                       :if-let [id (get ?meta :id!)] id ; Complete control, undocumented
+
+                       ;; Deprecated, was never officially documented
+                       :if-let [h (get ?meta :hash)] [h     callsite-id ?msg-fmt level]
+                       :else                         [vargs callsite-id ?msg-fmt level] ; Auto/default
+                       ))))
 
                ;; Optimization: try maximize output+timestamp sharing
                ;; between appenders
