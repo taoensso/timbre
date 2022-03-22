@@ -4,7 +4,7 @@
 **[CHANGELOG]** | [API] | current [Break Version]:
 
 ```clojure
-[com.taoensso/timbre "5.1.2"] ; See CHANGELOG for details
+[com.taoensso/timbre "5.2.1"] ; See CHANGELOG for details
 ```
 
 <!-- ![build status](https://github.com/ptaoussanis/timbre/workflows/build/badge.svg?branch=master) -->
@@ -46,8 +46,8 @@ Your link here?          | **PR's welcome!**
 Add the necessary dependency to your project:
 
 ```clojure
-Leiningen: [com.taoensso/timbre "5.1.2"] ; or
-deps.edn:   com.taoensso/timbre {:mvn/version "5.1.2"}
+Leiningen: [com.taoensso/timbre "5.2.1"] ; or
+deps.edn:   com.taoensso/timbre {:mvn/version "5.2.1"}
 ```
 
 And setup your namespace imports:

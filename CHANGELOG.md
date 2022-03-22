@@ -1,5 +1,27 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v5.2.1 / 2022 Mar 22
+
+```clojure
+[com.taoensso/timbre "5.2.1"]
+```
+
+> This is a **minor maintenance release**.  
+> See [here](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
+
+### Fixes since `v5.1.2`
+
+- [#341 #342] [3rd-party appender] Make rolling appender thread-safe (@eerohele) 
+- [#338] Fix `*config*` docstring typo (@vise890)
+- [#344] Update dependencies, fix warning under Clojure 1.11
+
+### New since `v5.1.2`
+
+- [#350] Low-level `log!` fn now supports runtime arguments as intended. Relevant for tool/library authors.
+- [#258] Improved rate limit feature and documentation
+- [#349] [3rd-party appender] Pass ex-data on to Sentry as additional data field (@DerGuteMoritz)
+
+
 ## v5.1.2 / 2021 Feb 5
 
 ```clojure
