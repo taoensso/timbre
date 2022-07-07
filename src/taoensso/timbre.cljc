@@ -616,14 +616,23 @@
                        :else                         [vargs callsite-id ?msg-fmt level] ; Auto/default
                        ))))
 
-               ;; Optimization: try maximize output+timestamp sharing
-               ;; between appenders
-               output-fn1 (enc/fmemoize (get config :output-fn default-output-fn))
-               timestamp-opts1 (conj default-timestamp-opts (get config :timestamp-opts))
-               get-timestamp_ ; (fn [timestamp-opts]) -> Shared delay
-               (enc/fmemoize
-                 (fn [opts]
-                   (delay (get-timestamp opts (get data :instant)))))]
+               ;;; Optimization: try share timestamp & output between appenders
+               get-timestamp-delay
+               (let [get-shared-delay (enc/fmemoize (fn [opts] (delay (get-timestamp opts (get data :instant)))))
+                     base-opts_ (delay (conj default-timestamp-opts (get config :timestamp-opts)))]
+
+                 (fn [appender-opts] ; Return timestamp_ delay
+                   (if (or (nil? appender-opts) (enc/kw-identical? appender-opts :inherit))
+                     (get-shared-delay       @base-opts_)
+                     (get-shared-delay (conj @base-opts_ appender-opts)))))
+
+               get-output-fn
+               (let [;; Cache base output-fn
+                     base-ofn (enc/fmemoize (get config :output-fn default-output-fn))]
+                 (fn [appender-ofn] ; Return output-fn
+                   (if (or (nil? appender-ofn) (enc/kw-identical? appender-ofn :inherit))
+                     base-ofn
+                     appender-ofn)))]
 
            (reduce-kv
              (fn [_ id appender]
@@ -639,18 +648,8 @@
                    (when rate-limit-okay?
                      (let [{:keys [async?] apfn :fn} appender
 
-                           output-fn
-                           (let [f (:output-fn appender)]
-                             (if (or (nil? f) (enc/kw-identical? f :inherit))
-                               output-fn1
-                               f))
-
-                           timestamp_
-                           (let [opts (:timestamp-opts appender)]
-                             (if (or (nil? opts) (enc/kw-identical? opts :inherit))
-                               (get-timestamp_       timestamp-opts1)
-                               (get-timestamp_ (conj timestamp-opts1 opts))))
-
+                           timestamp_ (get-timestamp-delay (:timestamp-opts appender))
+                           output-fn  (get-output-fn       (:output-fn      appender))
                            output_
                            (delay
                              (output-fn (assoc data :timestamp_ timestamp_)))
