@@ -14,9 +14,7 @@
   disable std-out to prevent printing nested timestamps, etc."
   []
   {:enabled?   true
-   :async?     false
    :min-level  :debug
-   :rate-limit nil
 
    :output-fn ; Drop hostname, ns, stacktrace
    (fn [data]

@@ -21,24 +21,23 @@
   etc. Returns the appender map."
 
   ;; []
-  [& [opts]] ; Only necessary if your appender constructor takes any special opts
+  [opts] ; Please always accept an opts map, even if initially unused
 
   (let [{:keys []} opts] ; Destructure any special appender constructor opts
 
     ;; We'll return a new appender (just a map),
     ;; see `timbre/example-config` for info on all available keys:
 
-    {:enabled?   true  ; Please enable new appenders by default
-     :async?     false ; Use agent for appender dispatch? Useful for slow dispatch
-     :min-level  nil   ; nil (no min level), or min logging level keyword
+    {:enabled?     true  ; Please enable new appenders by default
+     ;; :async?    true  ; Use agent for appender dispatch? Useful for slow dispatch
+     ;; :min-level :info ; Optional minimum logging level
 
      ;; Provide any default rate limits?
-     ;; :rate-limit nil
-     :rate-limit [[5   (enc/ms :mins  1)] ; 5 calls/min
-                  [100 (enc/ms :hours 1)] ; 100 calls/hour
-                  ]
+     ;; :rate-limit [[5   (enc/ms :mins  1)] ; 5 calls/min
+     ;;              [100 (enc/ms :hours 1)] ; 100 calls/hour
+     ;;              ]
 
-     :output-fn :inherit ; or a custom (fn [data]) -> string
+     ;; :output-fn ; A custom (fn [data]) -> string output_
 
      ;; The actual appender (fn [data]) -> possible side effects
      :fn

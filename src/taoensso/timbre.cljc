@@ -1,29 +1,31 @@
 (ns taoensso.timbre
   "Simple, flexible logging for Clojure/Script. No XML."
   {:author "Peter Taoussanis (@ptaoussanis)"}
-  #?(:clj
-     (:require
-      [clojure.string     :as str]
-      [io.aviso.exception :as aviso-ex]
-      [taoensso.encore    :as enc :refer [have have? qb]]
-      [taoensso.timbre.appenders.core :as core-appenders])
 
-     :cljs
-     (:require
-      [clojure.string  :as str]
-      [goog.i18n.DateTimeFormat :as dtf]
-      [taoensso.encore :as enc :refer [] :refer-macros [have have?]]
-      [taoensso.timbre.appenders.core :as core-appenders]))
+  (:require
+   [clojure.string  :as str]
+   [clojure.test    :as test :refer [deftest is]]
+   [taoensso.encore :as enc  :refer [have have?]]
+   [taoensso.timbre.appenders.core :as core-appenders]
 
-  #?(:cljs
-     (:require-macros
-      [taoensso.timbre :as timbre-macros :refer []])))
+   #?(:clj  [io.aviso.exception :as aviso-ex])
+   #?(:cljs [goog.i18n.DateTimeFormat :as dtf]))
+
+  #?(:cljs (:require-macros [taoensso.timbre])))
 
 (if (vector? taoensso.encore/encore-version)
-  (enc/assert-min-encore-version [2 126 2])
-  (enc/assert-min-encore-version  2.126))
+  (enc/assert-min-encore-version [3 26 0])
+  (enc/assert-min-encore-version  3.26))
+
+(comment (test/run-tests))
 
 ;;;; Config
+
+;;; Alias core appenders here for user convenience
+#?(:clj  (enc/defalias         core-appenders/println-appender))
+#?(:clj  (enc/defalias         core-appenders/spit-appender))
+#?(:cljs (def println-appender core-appenders/println-appender))
+#?(:cljs (def console-appender core-appenders/console-appender))
 
 (def default-timestamp-opts
   "Controls (:timestamp_ data)"
@@ -65,10 +67,10 @@
     {:min-level :debug #_[[\"taoensso.*\" :error] [\"*\" :debug]]
      :ns-filter #{\"*\"} #_{:deny #{\"taoensso.*\"} :allow #{\"*\"}}
 
-     :middleware [] ; (fns [appender-data]) -> ?data, applied left->right
+     :middleware [] ; (fns [data]) -> ?data, applied left->right
 
      :timestamp-opts default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
-     :output-fn      default-output-fn ; (fn [appender-data]) -> string
+     :output-fn      default-output-fn ; (fn [data]) -> string output_
 
      :appenders
      #?(:clj
@@ -86,10 +88,10 @@
   {:min-level :debug #_[["taoensso.*" :error] ["*" :debug]]
    :ns-filter #{"*"} #_{:deny #{"taoensso.*"} :allow #{"*"}}
 
-   :middleware [] ; (fns [appender-data]) -> ?data, applied left->right
+   :middleware [] ; (fns [data]) -> ?data, applied left->right
 
    :timestamp-opts default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
-   :output-fn      default-output-fn ; (fn [appender-data]) -> string
+   :output-fn      default-output-fn ; (fn [data]) -> string output_
 
    :appenders
    #?(:clj
@@ -110,8 +112,8 @@
   "This map controls all Timbre behaviour including:
     - When to log (via level and namespace filtering)
     - How  to log (which appenders to use)
-    - What to log (config to control how data sent to appenders
-                   will be formatted to output string)
+    - What to log (config to control how log data sent to
+                   appenders will be formatted to output string)
 
   See `default-config` for default value (and example config).
 
@@ -152,14 +154,14 @@
       Useful for turning off logging in noisy libraries, etc.
 
     :middleware
-      Vector of simple (fn [appender-data]) -> ?new-data fns (applied left->right)
+      Vector of simple (fn [data]) -> ?new-data fns (applied left->right)
       that transform the data map dispatched to appender fns. If any middleware
       returns nil, NO dispatch will occur (i.e. the event will be filtered).
 
       Useful for layering advanced functionality. Similar to Ring middleware.
 
     :timestamp-opts ; Config map, see `default-timestamp-opts`
-    :output-fn      ; (fn [appender-data]) -> string, see `default-output-fn`
+    :output-fn      ; (fn [data]) -> string output_, see `default-output-fn`
 
     :appenders ; {<appender-id> <appender-map>}
 
@@ -191,12 +193,12 @@
                          ;   (timbre/infof ^:meta {:id \"my-limiter-call-id\"} ...)
                          ;
 
-        :output-fn       ; Optional override for inherited (fn [appender-data]) -> string
+        :output-fn       ; Optional override for inherited (fn [data]) -> string output_
         :timestamp-opts  ; Optional override for inherited config map
-        :fn              ; (fn [appender-data]) -> side-effects, with keys described below
+        :fn              ; (fn [data]) -> side-effects, with keys described below
 
-  APPENDER DATA
-    An appender's fn takes a single data map with keys:
+  LOG DATA
+    A single map with keys:
       :config          ; Entire active config map
       :appender-id     ; Id of appender currently dispatching
       :appender        ; Entire map of appender currently dispatching
@@ -215,7 +217,7 @@
       :msg_            ; Forceable - args as a string
       :timestamp_      ; Forceable - string
       :hostname_       ; Forceable - string (clj only)
-      :output-fn       ; (fn [data]) -> formatted output string
+      :output-fn       ; (fn [data]) -> final formatted string output_
                        ; (see `default-output-fn` for details)
       :context         ; `*context*` value at log time (see `with-context`)
       :spying?         ; Is call occuring via the `spy` macro?
@@ -539,7 +541,7 @@
 
 (defn -log! "Core low-level log fn. Implementation detail!"
 
-  ;; Backward-compatible arities for convenience of AOT tools, Ref.
+  ;; Back compatible arities for convenience of AOT tools, Ref.
   ;; https://github.com/fzakaria/slf4j-timbre/issues/20
   ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data            ] (-log! config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data nil         false))
   ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id] (-log! config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id false))
@@ -579,7 +581,7 @@
                    (reduced nil)
                    result)))
              data
-             (:middleware config))]
+             (get config :middleware))]
 
        (when-let [data ?data] ; Not filtered by middleware
          (let [{:keys [vargs]} data
@@ -621,35 +623,42 @@
                (let [get-shared-delay (enc/fmemoize (fn [opts] (delay (get-timestamp opts (get data :instant)))))
                      base-opts_ (delay (conj default-timestamp-opts (get config :timestamp-opts)))]
 
-                 (fn [appender-opts] ; Return timestamp_ delay
-                   (if (or (nil? appender-opts) (enc/kw-identical? appender-opts :inherit))
+                 (fn [?appender-opts] ; Return timestamp_ delay
+                   (if (or
+                         (nil? ?appender-opts)
+                         (enc/kw-identical? ?appender-opts :inherit) ; Back compatibility
+                         )
+
                      (get-shared-delay       @base-opts_)
-                     (get-shared-delay (conj @base-opts_ appender-opts)))))
+                     (get-shared-delay (conj @base-opts_ ?appender-opts)))))
 
                get-output-fn
-               (let [;; Cache base output-fn
-                     base-ofn (enc/fmemoize (get config :output-fn default-output-fn))]
-                 (fn [appender-ofn] ; Return output-fn
-                   (if (or (nil? appender-ofn) (enc/kw-identical? appender-ofn :inherit))
-                     base-ofn
-                     appender-ofn)))]
+               (let [base-fn (enc/fmemoize (get config :output-fn default-output-fn))]
+                 (fn [?appender-fn] ; Return output-fn
+                   (if (or
+                         (nil? ?appender-fn)
+                         (enc/kw-identical? ?appender-fn :inherit) ; Back compatibility
+                         )
+
+                     base-fn
+                     ?appender-fn)))]
 
            (reduce-kv
              (fn [_ id appender]
-               (when (and (:enabled? appender) (may-log? :trace level ?ns-str appender))
+               (when (and (get appender :enabled?) (may-log? :trace level ?ns-str appender))
 
-                 (let [rate-limit-specs (:rate-limit appender)
+                 (let [rate-limit-specs (get appender :rate-limit)
                        rate-limit-okay?
                        (or
                          (empty? rate-limit-specs)
                          (let [rl-fn (get-rate-limiter id rate-limit-specs)]
-                           (not (rl-fn (force (:hash_ data))))))]
+                           (not (rl-fn (force (get data :hash_))))))]
 
                    (when rate-limit-okay?
                      (let [{:keys [async?] apfn :fn} appender
 
-                           timestamp_ (get-timestamp-delay (:timestamp-opts appender))
-                           output-fn  (get-output-fn       (:output-fn      appender))
+                           timestamp_ (get-timestamp-delay (get appender :timestamp-opts))
+                           output-fn  (get-output-fn       (get appender :output-fn))
                            output_
                            (delay
                              (output-fn (assoc data :timestamp_ timestamp_)))
@@ -663,7 +672,7 @@
                               :timestamp_  timestamp_})
 
                            ?data ; Final data prep before going to appender
-                           (if-let [mfn (:middleware-fn appender)]
+                           (if-let [mfn (get appender :middleware-fn)]
                              (mfn data) ; Deprecated, undocumented
                              data)]
 
@@ -682,7 +691,7 @@
                               (send-off (get-agent id) (fn [_] (apfn data)))
                               (apfn data)))))))))
              nil
-             (:appenders config))))))
+             (get config :appenders))))))
    nil))
 
 (comment
@@ -872,23 +881,32 @@
      (require '[taoensso.timbre :as timbre
                 :refer (log  trace  debug  info  warn  error  fatal  report
                         logf tracef debugf infof warnf errorf fatalf reportf
-                        spy get-env log-env)])"
+                        spy)])"
      []
      (require '[taoensso.timbre :as timbre
                 :refer (log  trace  debug  info  warn  error  fatal  report
                          logf tracef debugf infof warnf errorf fatalf reportf
-                         spy get-env log-env)])))
+                         spy)])))
 
 ;;;; Misc public utils
 
 #?(:clj
-   (defn color-str [color & xs]
-     (let [ansi-color #(format "\u001b[%sm"
-                         (case % :reset  "0"  :black  "30" :red   "31"
-                               :green  "32" :yellow "33" :blue  "34"
-                               :purple "35" :cyan   "36" :white "37"
-                               "0"))]
-       (str (ansi-color color) (apply str xs) (ansi-color :reset)))))
+   (defn ansi-color [color]
+     (str "\u001b["
+       (case color
+         :reset  "0"  :black  "30" :red   "31"
+         :green  "32" :yellow "33" :blue  "34"
+         :purple "35" :cyan   "36" :white "37"
+         "0")
+       "m")))
+
+#?(:clj
+   (let [ansi-reset (ansi-color :reset)]
+     (defn color-str
+       ([color           ] (str (ansi-color color)                      ansi-reset)) ; Back compatibility
+       ([color x         ] (str (ansi-color color) x                    ansi-reset))
+       ([color x y       ] (str (ansi-color color) x y                  ansi-reset))
+       ([color x y & more] (str (ansi-color color) x y (apply str more) ansi-reset)))))
 
 #?(:clj (def default-out (java.io.OutputStreamWriter. System/out)))
 #?(:clj (def default-err (java.io.PrintWriter.        System/err)))

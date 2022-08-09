@@ -56,11 +56,8 @@
   (let [conn   (atom nil)
         flush? (or (:flush? opts) false)
         nl     "\n"]
-    {:enabled?   true
-     :async?     true
-     :min-level  nil
-     :rate-limit nil
-     :output-fn  :inherit
+    {:enabled? true
+     :async?   true
      :fn
      (fn [data]
        (try

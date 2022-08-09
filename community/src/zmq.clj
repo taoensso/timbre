@@ -22,11 +22,9 @@
         socket (make-zmq-socket context transport address port)
         poller (doto (zmq/poller context)
                  (zmq/register socket :pollout :pollerr))]
-    {:enabled?   true
-     :async?     true
-     :min-level  :error
-     :rate-limit nil
-     :output-fn  :inherit
+    {:enabled?  true
+     :async?    true
+     :min-level :error
      :fn
      (fn [data]
        (let [{:keys [output_]} data

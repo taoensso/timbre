@@ -25,7 +25,7 @@
             (str/replace #"\s+" " "))]
 
     (if (and max-len (> (count s) ^long max-len))
-      (str (enc/get-substring s 0 (- ^long max-len 3)) "...")
+      (str (enc/get-substr-by-len s 0 (- ^long max-len 3)) "...")
       s)))
 
 (comment

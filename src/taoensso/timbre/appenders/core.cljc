@@ -2,20 +2,10 @@
   "Core Timbre appenders without any special dependency requirements.
   These can be aliased into the main Timbre ns for convenience."
   {:author "Peter Taoussanis (@ptaoussanis)"}
-  #?(:clj
-     (:require
-      [clojure.string  :as str]
-      [clojure.java.io :as jio]
-      [taoensso.encore :as enc :refer [have have? qb deprecated]])
-
-     :cljs
-     (:require
-      [clojure.string  :as str]
-      [taoensso.encore :as enc :refer-macros [have have?]]))
-
-  #?(:cljs
-     (:require-macros
-      [taoensso.encore :as enc-macros :refer [deprecated]])))
+  (:require
+   [clojure.string  :as str]
+   #?(:clj [clojure.java.io :as jio])
+   [taoensso.encore :as enc :refer [have have?]]))
 
 ;; TODO Add a simple official rolling spit appender?
 
@@ -47,11 +37,7 @@
                    :std-out timbre/default-out
                    stream)])
 
-    {:enabled?   true
-     :async?     false
-     :min-level  nil
-     :rate-limit nil
-     :output-fn  :inherit
+    {:enabled? true
      :fn
      (fn [data]
        (let [{:keys [output_]} data]
@@ -65,8 +51,7 @@
                     stream)]
 
               (binding [*out* stream]
-                #?(:clj  (atomic-println (force output_))
-                   :cljs (println        (force output_))))))))}))
+                (atomic-println (force output_)))))))}))
 
 (comment (println-appender))
 
@@ -135,11 +120,7 @@
      ;; browsers w/o the need for Blackboxing?
 
      [& [opts]]
-     {:enabled?   true
-      :async?     false
-      :min-level  nil
-      :rate-limit nil
-      :output-fn  :inherit
+     {:enabled? true
       :fn
       (if-not (exists? js/console)
         (fn [data] nil)
@@ -183,5 +164,5 @@
 
 ;;;; Deprecated
 
-(deprecated
+(enc/deprecated
   #?(:cljs (def console-?appender "DEPRECATED" console-appender)))

@@ -54,11 +54,7 @@
        :or   {path     "./timbre-rotor.log"
               max-size (* 1024 1024)
               backlog  5}}]]
-  {:enabled?   true
-   :async?     false
-   :min-level  nil
-   :rate-limit nil
-   :output-fn  :inherit
+  {:enabled? true
    :fn
    (let [lock (Object.)]
      (fn [data]

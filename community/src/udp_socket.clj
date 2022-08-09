@@ -7,11 +7,7 @@
   at the datagram socket designated by `host` and `port`.
   Due to the limitations of UDP, truncates output to 512 bytes."
   [{:keys [host port]}]
-  {:enabled?   true
-   :async?     false
-   :min-level  nil
-   :rate-limit nil
-   :output-fn :inherit
+  {:enabled? true
    :fn
    (fn [data]
      (let [{:keys [output_]} data

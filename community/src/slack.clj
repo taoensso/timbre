@@ -20,9 +20,7 @@
               :token token}]
     {:enabled?   true
      :async?     true
-     :min-level  nil
      :rate-limit [[1 (enc/ms :secs 1)]]
-     :output-fn :inherit
      :fn
      (fn [data]
        (let [{:keys [output_]} data]

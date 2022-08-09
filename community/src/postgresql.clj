@@ -75,9 +75,5 @@
                             \"&password=<db_password>\")})"
 
   [db-config]
-  {:enabled?   true
-   :async?     false
-   :min-level  nil
-   :rate-limit nil
-   :output-fn  :inherit
+  {:enabled? true
    :fn (fn [data] (log-message db-config data))})

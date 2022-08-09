@@ -12,7 +12,6 @@
    :async?     true
    :min-level  :error ; New Relic API only supports error-level logging
    :rate-limit [[100 60000]] ; Matches New Relic's own cap
-   :output-fn  :inherit
    :fn
    (fn [data]
      (let [{:keys [output_ ?err level]} data

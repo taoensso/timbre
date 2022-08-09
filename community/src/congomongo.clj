@@ -46,9 +46,9 @@
   [config]
   (let [{:keys [collection entry-fn]
          :or   {entry-fn default-entry-fn}} config]
+
     {:enabled?   true
      :async?     true
      :min-level  :warn
      :rate-limit [[1 1000]] ; 1/sec
-     :output-fn  :inherit
      :fn (fn [data] (log-message config collection entry-fn data))}))

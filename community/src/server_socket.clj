@@ -43,11 +43,7 @@
          :or   {listener-addr :all
                 port 9000}} socket-config]
 
-    {:enabled?   true
-     :async?     false
-     :min-level  nil
-     :rate-limit nil
-     :output-fn  :inherit
+    {:enabled? true
      :fn
      (fn [data]
        (let [{:keys [output_]} data]

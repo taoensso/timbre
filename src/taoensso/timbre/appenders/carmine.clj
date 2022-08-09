@@ -70,7 +70,6 @@
    :async?     false
    :min-level  nil
    :rate-limit nil
-   :output-fn  :inherit
    :fn
    (fn [data]
      (let [{:keys [level instant hash_]} data

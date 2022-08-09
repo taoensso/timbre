@@ -37,10 +37,9 @@
 
   [irc-config]
   (let [conn (atom nil)]
-    {:enabled?   true
-     :async?     true
-     :min-level  :info
-     :rate-limit nil
+    {:enabled?  true
+     :async?    true
+     :min-level :info
 
      :output-fn
      (fn [data]

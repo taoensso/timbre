@@ -67,11 +67,7 @@
   ([gelf-server port         ] (gelf-appender gelf-server port :udp))
   ([gelf-server port protocol]
    (let [tranport (make-gelf-transport gelf-server port protocol)]
-     {:enabled?       true
-      :async?         false
-      :min-level      nil
-      :rate-limit     nil
-      :output-fn      :inherit
+     {:enabled? true
       :gelf-transport tranport
       :fn
       (fn [data]

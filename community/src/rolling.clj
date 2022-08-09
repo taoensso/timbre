@@ -53,11 +53,7 @@
        :or   {path    "./timbre-rolling.log"
               pattern :daily}}]]
 
-  {:enabled?   true
-   :async?     false
-   :min-level  nil
-   :rate-limit nil
-   :output-fn  :inherit
+  {:enabled? true
    :fn
    (let [lock (Object.)]
      (fn [data]

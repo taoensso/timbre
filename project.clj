@@ -63,10 +63,11 @@
       :exclusions [com.taoensso/timbre]]
      [com.draines/postal        "2.0.5"]]}}
 
+  :test-paths ["test" "src"]
+
   :cljsbuild
   {:test-commands
-   {"node"    ["node" :node-runner "target/main.js"]
-    "phantom" ["phantomjs" :runner "target/main.js"]}
+   {"node" ["node" :node-runner "target/main.js"]}
 
    :builds
    [{:id :main

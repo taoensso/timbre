@@ -71,9 +71,6 @@
     :or   {entry-fn default-entry-fn}
     :as   config}]
 
-  {:enabled?   true
-   :async?     true
-   :min-level  nil
-   :rate-limit nil
-   :output-fn  :inherit
+  {:enabled? true
+   :async?   true
    :fn (fn [data] (send-entry! config entry-fn data))})

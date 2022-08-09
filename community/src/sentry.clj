@@ -39,11 +39,9 @@
              (filter (comp not nil? second))
              (into {}))]
 
-    {:enabled?   true
-     :async?     true
-     :min-level  :warn ; Reasonable default given how Sentry works
-     :rate-limit nil
-     :output-fn  :inherit
+    {:enabled?  true
+     :async?    true
+     :min-level :warn ; Reasonable default given how Sentry works
      :fn
      (fn [data]
        (let [{:keys [instant level output_ ?err msg_ ?ns-str context]} data
@@ -53,7 +51,7 @@
              (cond-> context
                (and ?ex-data (not (contains? context :ex-data)))
                (assoc :ex-data
-                 (enc/get-substr (str ?ex-data) 0 4096)))
+                 (enc/get-substr-by-idx (str ?ex-data) 0 4096)))
 
              event
              (as-> base-event event

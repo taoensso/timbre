@@ -43,5 +43,5 @@
    (alter-var-root #'clojure.tools.logging/*logger-factory*
      (fn [_]
        (LoggerFactory.
-         (enc/memoize_
+         (enc/fmemoize
            (fn [logger-ns] (Logger. (str logger-ns) timbre-config))))))))

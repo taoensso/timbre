@@ -80,10 +80,8 @@
   (let [{:keys [ident syslog-options facility]
          :or {facility :log-user}} config
         facility (facility-map facility)]
-    {:enabled?   true
-     :async?     true
-     :min-level  nil
-     :output-fn  :inherit
+    {:enabled? true
+     :async?   true
      :fn (fn [data] (log-message ident syslog-options facility data))}))
 
 (comment
