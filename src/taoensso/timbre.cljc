@@ -700,6 +700,13 @@
 
 (defn- fline [and-form] (:line (meta and-form)))
 
+
+;; Try enable reproducible builds by ensuring that `log!` macro expansion
+;; produces deterministic callsite-ids, Ref. #354
+#?(:cljs (def ^:private deterministic-rand rand) ; Dummy, non-deterministic
+   :clj  (let [rand ^java.util.Random (java.util.Random. 715873)]
+           (defn- deterministic-rand [] (.nextDouble rand))))
+
 (defmacro log! ; Public wrapper around `-log!`
   "Core low-level log macro. Useful for tooling/library authors, etc.
 
@@ -735,7 +742,7 @@
             ;; `slf4j-timbre`, etc.):
             callsite-id
             (hash [level msg-type args ; Unevaluated args (arg forms)
-                   ?ns-str ?file ?line (rand)])
+                   ?ns-str ?file ?line (deterministic-rand)])
 
             vargs-form
             (if (symbol? args)
