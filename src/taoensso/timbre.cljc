@@ -928,11 +928,11 @@
   ([err     ] (stacktrace err nil))
   ([err opts]
    #?(:cljs
-      ;; TODO Better alternatives?
-      (str
-        err ; Stringified error incl. (.-message err)
-        (when-let [s (.-stack err)]
-          (str enc/system-newline s)))
+      (str (.-stack err) ; includes `ex-message`
+           (when-let [d (ex-data err)]
+             (str enc/system-newline "ex-data" enc/system-newline "    " (pr-str d)))
+           (when-let [c (ex-cause err)]
+             (str enc/system-newline "caused by - " (stacktrace c opts))))
 
       :clj
       (let [stacktrace-fonts ; {:stacktrace-fonts nil->{}}
