@@ -108,22 +108,103 @@
   (set-config! default-config)
   (infof "Hello %s" "world :-)"))
 
+#?(:clj
+   (defn load-config
+     "Imlementation detail, use only for debugging, etc.
+     Returns Timbre config loaded from JVM property, Env var, or
+     resource file.
+
+     See `*config*` docstring for more info."
+     ([edn source]
+      (let [clj
+            (try
+              (enc/read-edn edn)
+              (catch Throwable t
+                (throw
+                  (ex-info "[Timbre config] Error reading config EDN"
+                    {:edn edn :source source} t))))
+
+            config
+            (if (symbol? clj)
+              (if-let [var
+                       (or
+                         (resolve clj)
+                         (when-let [ns (namespace clj)]
+                           (require ns)
+                           (resolve clj)))]
+                @var
+                (throw
+                  (ex-info "[Timbre config] Failed to resolve config symbol"
+                    {:edn edn :symbol symbol :source source})))
+              clj)]
+
+        (if (map? config)
+          (if  (get config :load/overwrite?) ; Undocumented
+            (dissoc config :load/overwrite?) ; Without merge
+            (enc/nested-merge default-config config))
+
+          (throw
+            (ex-info "[Timbre config] Unexpected config value type"
+              {:value config :type (type config) :source source})))))
+
+     ([]
+      (when-let [[edn source]
+                 (or
+                   (let [prop-name "taoensso.timbre.config.edn"]
+                     (when-let [edn (System/getProperty prop-name)]
+                       [edn {:jvm-property prop-name}]))
+
+                   (let [env-name "TAOENSSO_TIMBRE_CONFIG_EDN"]
+                     (when-let [edn (System/getenv env-name)]
+                       [edn {:env-var env-name}]))
+
+                   (let [res-name
+                         (or
+                           (enc/get-sys-val ; Configurable resource name, undocumented
+                             "taoensso.timbre.config-resource"
+                             "TAOENSSO_TIMBRE_CONFIG_RESOURCE")
+
+                           "taoensso.timbre.config.edn")]
+
+                     (when-let [edn (enc/slurp-resource res-name)]
+                       [edn {:resource res-name}])))]
+
+        (println (str "Loading Timbre config from: " source))
+        (load-config edn source)))))
+
 (enc/defonce ^:dynamic *config*
-  "This map controls all Timbre behaviour including:
-    - When to log (via level and namespace filtering)
+  "This config map controls all Timbre behaviour including:
+    - When to log (via min-level and namespace filtering)
     - How  to log (which appenders to use)
     - What to log (config to control how log data sent to
                    appenders will be formatted to output string)
 
-  See `default-config` for default value (and example config).
+  Initial config value will be (in descending order of preference):
 
-  Modify this config with `binding`, `alter-var-root`, or with utils:
-          `set-config!`,        `with-config`,
-        `merge-config!`, `with-merged-config`,
-       `set-min-level!`,     `with-min-level`,
-    `set-min-ns-level!`.
+    1. `taoensso.timbre.config.edn`   JVM property  (read as EDN)
+    2. `TAOENSSO_TIMBRE_CONFIG_EDN`   Env var       (read as EDN)
+    3. `./taoensso.timbre.config.edn` resource file (read as EDN)
+    4. Value of `default-config`
 
-  MAIN OPTIONS
+  For all EDN cases (1-3): the EDN can represent either a Clojure map
+  to merge into `default-config`, or a qualified symbol that'll
+  resolve to a Clojure map to merge into `default-config`.
+
+  See `default-config` for more info on the base/default config.
+
+  You can modify the config value with standard `alter-var-root`,
+  or `binding`.
+
+  For convenience, there's also some dedicated helper utils:
+
+    - `set-config!`, `merge-config!`        ; Mutate *config*
+    - `set-min-level!`, `set-min-ns-level!` ; Mutate *config* :min-level
+
+    - `with-config`, `with-merged-config`   ; Bind *config*
+    - `with-min-level`                      ; Bind *config* :min-level
+
+
+  MAIN CONFIG OPTIONS
 
     :min-level
       Logging will occur only if a logging call's level is >= this
@@ -137,13 +218,15 @@
         :fatal  = level 5 ; Error type
         :report = level 6 ; High general-purpose (non-error) type
 
-      It's also possible to set the min-level based on the namespace
-      by providing a vector that maps `ns-pattern`s to min-levels, e.g.:
+      It's also possible to set a namespace-specific min-level by
+      providing a vector that maps `ns-pattern`s to min-levels, e.g.:
       `[[#{\"taoensso.*\"} :error] ... [#{\"*\"} :debug]]`.
 
       Example `ns-pattern`s:
         #{}, \"*\", \"foo.bar\", \"foo.bar.*\", #{\"foo\" \"bar.*\"},
         {:allow #{\"foo\" \"bar.*\"} :deny #{\"foo.*.bar.*\"}}.
+
+      See also `set-min-ns-level!` for a helper tool.
 
     :ns-filter
       Logging will occur only if a logging call's namespace is permitted
@@ -229,13 +312,16 @@
   COMPILE-TIME LEVEL/NS ELISION
     To control :min-level and :ns-filter at compile-time, use:
 
-      - `taoensso.timbre.min-level.edn`  JVM property (read as edn)
-      - `taoensso.timbre.ns-pattern.edn` JVM property (read as edn)
+      - `taoensso.timbre.min-level.edn`  JVM property (read as EDN)
+      - `taoensso.timbre.ns-pattern.edn` JVM property (read as EDN)
 
-      - `TAOENSSO_TIMBRE_MIN_LEVEL_EDN`  env var      (read as edn)
-      - `TAOENSSO_TIMBRE_NS_PATTERN_EDN` env var      (read as edn)"
+      - `TAOENSSO_TIMBRE_MIN_LEVEL_EDN`  env var      (read as EDN)
+      - `TAOENSSO_TIMBRE_NS_PATTERN_EDN` env var      (read as EDN)
 
-  default-config)
+    Note that compile-time options will OVERRIDE options in `*config*`."
+
+  #?(:clj  (or (load-config) default-config)
+     :cljs                   default-config))
 
 (defmacro with-config        [config & body] `(binding [*config*                            ~config ] ~@body))
 (defmacro with-merged-config [config & body] `(binding [*config* (enc/nested-merge *config* ~config)] ~@body))
