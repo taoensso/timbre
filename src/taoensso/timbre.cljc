@@ -328,9 +328,9 @@
 (comment
   (get-min-level :report [["foo" :info]] *ns*)
   (let [ns *ns*]
-    (enc/qb 1e6 ; [128.1 191.52]
-      (get-min-level :report :info     ns)
-      (get-min-level :report [["*" 0]] ns))))
+    (enc/qb 1e6 ; [53.48 99.33]
+      (get-min-level :report       :info   ns)
+      (get-min-level :report [["*" :info]] ns))))
 
 (let [;; Legacy API unfortunately treated empty colls as allow-all
       leglist (fn [x] (when x (if (#{[] #{}} x) nil x)))]
@@ -350,9 +350,9 @@
   (defn #?(:clj may-log? :cljs ^:boolean may-log?)
     "Implementation detail.
     Returns true iff level and ns are runtime unfiltered."
-    ([                  level                ] (may-log? :report level nil     nil))
-    ([                  level ?ns-str        ] (may-log? :report level ?ns-str nil))
-    ([                  level ?ns-str ?config] (may-log? :report level ?ns-str nil))
+    ([                  level                ] (may-log? :trace level nil     nil))
+    ([                  level ?ns-str        ] (may-log? :trace level ?ns-str nil))
+    ([                  level ?ns-str ?config] (may-log? :trace level ?ns-str ?config))
     ([default-min-level level ?ns-str ?config]
      (let [config (or ?config *config*) ; NB may also be appender map
            min-level
@@ -375,7 +375,7 @@
            true)
          false)))))
 
-(comment (qb 1e5 (may-log? :info))) ; 122.3
+(comment (qb 1e6 (may-log? :info))) ; 120.4
 
 ;;;; Compile-time filtering
 
