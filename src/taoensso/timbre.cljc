@@ -1052,9 +1052,6 @@
    `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
         (when (< (rand) ~probability) ~@body)))
 
-(defn      set-level! [level] (swap-config! (fn [m] (assoc m :min-level level))))
-(defmacro with-level  [level & body] `(binding [*config* (assoc *config* :min-level ~level)] ~@body))
-
 ;;;; Deprecated
 
 (enc/deprecated
@@ -1071,4 +1068,8 @@
     ([                 ] `(log-env :debug))
     ([       level     ] `(log-env ~level "&env"))
     ([       level name] `(log-env *config* ~level ~name))
-    ([config level name] `(log* ~config ~level ~name "=>" (get-env)))))
+    ([config level name] `(log* ~config ~level ~name "=>" (get-env))))
+
+  (defn      set-level! "DEPRECATED, prefer `set-min-level!`" [level] (swap-config! (fn [m] (assoc m :min-level level))))
+  (defmacro with-level  "DEPRECATED, prefer `with-min-level`" [level & body]
+    `(binding [*config* (assoc *config* :min-level ~level)] ~@body)))
