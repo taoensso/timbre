@@ -118,9 +118,10 @@
   See `default-config` for default value (and example config).
 
   Modify this config with `binding`, `alter-var-root`, or with utils:
-       `set-level!`,         `with-level`,
-      `set-config!`,        `with-config`,
-    `merge-config!`, `with-merged-config`.
+          `set-config!`,        `with-config`,
+        `merge-config!`, `with-merged-config`,
+       `set-min-level!`,     `with-min-level`,
+    `set-min-ns-level!`.
 
   MAIN OPTIONS
 
@@ -239,18 +240,18 @@
 (defmacro with-config        [config & body] `(binding [*config*                            ~config ] ~@body))
 (defmacro with-merged-config [config & body] `(binding [*config* (enc/nested-merge *config* ~config)] ~@body))
 
-(declare swap-config!)
-(defn     set-config! [m] (swap-config! (fn [_old] m)))
-(defn   merge-config! [m] (swap-config! (fn [ old] (enc/nested-merge old m))))
-(defn    swap-config! [f & args]
-  #?(:cljs (set!                   *config* (apply f *config* args))
-     :clj  (apply alter-var-root #'*config* f args)))
+(defn swap-config! [f & args]
+  #?(:clj  (apply alter-var-root #'*config* f args)
+     :cljs (set!                   *config* (apply f *config* args))))
 
-(defn      set-level! [level] (swap-config! (fn [m] (assoc m :min-level level))))
-(defmacro with-level  [level & body]
-  `(binding [*config* (assoc *config* :min-level ~level)] ~@body))
+(defn   set-config! [config] (swap-config! (fn [_old] config)))
+(defn merge-config! [config] (swap-config! (fn [ old] (enc/nested-merge old config))))
 
-(comment (set-level! :info) *config*)
+(declare valid-level)
+(defn      set-min-level [config min-level] (assoc config :min-level (valid-level min-level)))
+(defn      set-min-level!       [min-level] (swap-config! (fn [old] (set-min-level old min-level))))
+(defmacro with-min-level [min-level & body]
+  `(binding [*config* (set-min-level *config* ~min-level)] ~@body))
 
 ;;;; Level filtering
 ;; Terminology note: we loosely distinguish between call/form and min levels,
@@ -427,6 +428,77 @@
          (or ; Namespace okay
            (not (string? ns-str-form)) ; Not a compile-time ns-str const
            (may-log-ns? compile-time-ns-filter ns-str-form))))))
+
+;;;; Namespace min-level utils
+
+(defn set-ns-min-level
+  "Returns given Timbre `config` with its `:min-level` modified so that
+  the given namespace has the specified minimum logging level.
+
+  When no namespace is provided, `*ns*` will be used.
+  When `?min-level` is nil, any minimum level specifications for the
+  *exact* given namespace will be removed.
+
+  See `*config*` docstring for more about `:min-level`.
+  See also `set-min-level!` for a util to directly modify `*config*`."
+
+  ([config    ?min-level] (set-ns-min-level config *ns* ?min-level))
+  ([config ns ?min-level]
+   (let [ns (str ns)
+         min-level* ; [[<ns-pattern> <min-level>] ...]
+         (let [x (get config :min-level)]
+           (if (vector? x)
+             x
+             [["*" (valid-level x)]])) ; :info -> [["*" :info]]
+
+         min-level*
+         (reduce ; Remove any pre-existing [<ns> _] or [#{<ns>} _] entries
+           (fn [acc [ns-pattern _pattern-min-level :as entry]]
+             (if-let [exact-match? (or (= ns-pattern ns) (= ns-pattern #{ns}))]
+               (do   acc)       ; Remove entry
+               (conj acc entry) ; Retain entry
+               ))
+
+           (if-let [new-min-level ?min-level]
+             [[ns (valid-level new-min-level)]] ; Insert new entry at head
+             [])
+
+           min-level*)
+
+         min-level*
+         (if-let [simplified ; [["*" :info]] -> :info
+                  (when (= (count min-level*) 1)
+                    (let [[[ns-pattern level]] min-level*]
+                      (when (= ns-pattern "*") level)))]
+           simplified
+           (not-empty min-level*))]
+
+     (assoc config :min-level min-level*))))
+
+(deftest _set-ns-min-level
+  [(is (= (set-ns-min-level {:min-level :info         } "a" :trace) {:min-level [["a" :trace] ["*" :info]]}))
+   (is (= (set-ns-min-level {:min-level [["a" :debug]]} "a" :trace) {:min-level [["a" :trace]]}))
+   (is (= (set-ns-min-level {:min-level [["a" :debug]]} "a" nil)    {:min-level nil}))
+
+   (is (= (set-ns-min-level {:min-level [["a.b" :trace] ["a.c" :debug] ["a.*" :info] ["a.c" :error]]}
+            "a.c" :report)
+
+         {:min-level [["a.c" :report] ["a.b" :trace] ["a.*" :info]]}))
+
+   (is (= (->
+            (set-ns-min-level {:min-level :info} "foo" :debug)
+            (set-ns-min-level "foo" nil))
+         {:min-level :info}))])
+
+(defn set-ns-min-level!
+  "Like `set-ns-min-level` but directly modifies `*config*`.
+
+  Can conveniently set the minimum log level for the current ns:
+    (set-ns-min-level! :info) => Sets min-level for current *ns*
+
+  See `set-ns-min-level` for details."
+  ([   ?min-level] (set-ns-min-level! *ns* ?min-level))
+  ([ns ?min-level] (swap-config! (fn [config] (set-ns-min-level config ns ?min-level)))))
 
 ;;;; Utils
 
@@ -764,9 +836,9 @@
 ;;;; Benchmarking
 
 (comment
-  (set-level! :debug)
+  (set-min-level! :debug)
   (may-log? :trace)
-  (with-level :trace (log? :trace))
+  (with-min-level :trace (log? :trace))
   (qb 1e4
     (may-log? :trace)
     (may-log? :trace "foo")
@@ -980,6 +1052,9 @@
    `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
         (when (< (rand) ~probability) ~@body)))
 
+(defn      set-level! [level] (swap-config! (fn [m] (assoc m :min-level level))))
+(defmacro with-level  [level & body] `(binding [*config* (assoc *config* :min-level ~level)] ~@body))
+
 ;;;; Deprecated
 
 (enc/deprecated
@@ -989,7 +1064,7 @@
   (def example-config "DEPRECATED, prefer `default-config`" default-config)
   (defn logging-enabled? [level compile-time-ns] (may-log? level (str compile-time-ns)))
   (defn str-println      [& xs] (str-join xs))
-  (defmacro with-log-level      [level  & body] `(with-level  ~level  ~@body))
+  (defmacro with-log-level      [level  & body] `(with-min-level ~level ~@body))
   (defmacro with-logging-config [config & body] `(with-config ~config ~@body))
   (defmacro logp [& args] `(log ~@args))
   (defmacro log-env
