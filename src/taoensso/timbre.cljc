@@ -35,31 +35,7 @@
       :locale   :jvm-default #_(java.util.Locale. "en")
       :timezone :utc         #_(java.util.TimeZone/getTimeZone "Europe/Amsterdam")}))
 
-(declare stacktrace)
-(defn default-output-fn
-  "Default (fn [data]) -> string output fn.
-    Use`(partial default-output-fn <opts-map>)` to modify default opts."
-  ([     data] (default-output-fn nil data))
-  ([opts data] ; For partials
-   (let [{:keys [no-stacktrace? stacktrace-fonts]} opts
-         {:keys [level ?err #_vargs msg_ ?ns-str ?file hostname_
-                 timestamp_ ?line]} data]
-     (str
-       (when-let [ts (force timestamp_)] (str ts " "))
-       #?(:clj (force hostname_))  #?(:clj " ")
-       (str/upper-case (name level))  " "
-       "[" (or ?ns-str ?file "?") ":" (or ?line "?") "] - "
-       (force msg_)
-       (when-not no-stacktrace?
-         (when-let [err ?err]
-           (str enc/system-newline (stacktrace err opts))))))))
-
-;;; Alias core appenders here for user convenience
-(declare default-err default-out)
-#?(:clj  (enc/defalias         core-appenders/println-appender))
-#?(:clj  (enc/defalias         core-appenders/spit-appender))
-#?(:cljs (def println-appender core-appenders/println-appender))
-#?(:cljs (def console-appender core-appenders/console-appender))
+(declare default-output-fn)
 
 (def default-config
   "Default/example Timbre `*config*` value:
@@ -1063,6 +1039,108 @@
                          logf tracef debugf infof warnf errorf fatalf reportf
                          spy)])))
 
+;;;; Default fns
+
+(declare default-output-error-fn)
+
+(defn default-output-fn
+  "Default (fn [data]) -> string, used to produce final formatted
+  output_ string from final log data.
+
+  Options (included as `:output-opts` in data sent to fns below):
+
+    :error-fn ; When both `error-fn` and (:?err data) are non-nil,
+              ; (error-fn data) will be called to generate output
+              ; (e.g. a stacktrace) for the error.
+              ;
+              ; Default value: `default-output-err-fn`.
+              ; Use `nil` value to suppress error output."
+
+  ([base-output-opts data] ; Back compatibility (before :output-opts)
+   (let [data
+         (if (empty? base-output-opts)
+           data
+           (assoc data :output-opts
+             (conj
+               base-output-opts ; Opts from partial
+               (get data :output-opts) ; Opts from data override
+               )))]
+
+     (default-output-fn data)))
+
+  ([data]
+   (let [{:keys [level ?err #_vargs msg_ ?ns-str ?file hostname_
+                 timestamp_ ?line]} data]
+     (str
+       (when-let [ts (force timestamp_)] (str ts " "))
+       #?(:clj (force hostname_))  #?(:clj " ")
+       (str/upper-case (name level))  " "
+       "[" (or ?ns-str ?file "?") ":" (or ?line "?") "] - "
+       (force msg_)
+
+       (when-let [err ?err]
+         (let [output-opts (get data :output-opts)]
+           (when-let [ef (get output-opts :error-fn default-output-error-fn)]
+             (when-not   (get output-opts :no-stacktrace?) ; Back compatibility
+               (str enc/system-newline
+                 (ef data))))))))))
+
+#?(:clj
+   (def ^:private default-stacktrace-fonts
+     (or
+       (enc/read-sys-val
+         "taoensso.timbre.default-stacktrace-fonts.edn"
+         "TAOENSSO_TIMBRE_DEFAULT_STACKTRACE_FONTS_EDN") ; Undocumented
+
+       (enc/read-sys-val "TIMBRE_DEFAULT_STACKTRACE_FONTS") ; Legacy
+       nil)))
+
+(defn default-output-error-fn
+  "Default (fn [data]) -> string, used by `default-output-fn` to
+  generate output for `:?err` value in log data.
+
+  For Clj:
+     Uses `io.aviso/pretty` to return an attractive stacktrace.
+     Options:
+       :stacktrace-fonts ; See `io.aviso.exception/*fonts*`
+
+  For Cljs:
+     Returns simple stacktrace string."
+
+  [{:keys [?err output-opts] :as data}]
+  (let [err (have ?err)]
+
+    #?(:cljs
+       (let [nl enc/system-newline]
+         (str
+           (.-stack err) ; Includes `ex-message`
+           (when-let [d (ex-data  err)]
+             (str nl "ex-data" enc/system-newline "    " (pr-str d)))
+
+           (when-let [c (ex-cause err)]
+             (str nl "caused by - "
+               (default-output-error-fn
+                 (assoc data :?err err))))))
+
+       :clj
+       (let [stacktrace-fonts ; nil->{}
+             (if-let [e (find output-opts :stacktrace-fonts)]
+               (let [st-fonts (val e)]
+                 (if (nil? st-fonts)
+                   {}
+                   st-fonts))
+               default-stacktrace-fonts)]
+
+         (if-let [fonts stacktrace-fonts]
+           (binding [aviso-ex/*fonts* fonts]
+             (do (aviso-ex/format-exception err)))
+           (do   (aviso-ex/format-exception err)))))))
+
+(comment
+  (default-output-error-fn
+    {:?err (Exception. "Boo")
+     :output-opts {:stacktrace-fonts {}}}))
+
 ;;;; Misc public utils
 
 #?(:clj
@@ -1110,39 +1188,6 @@
 
 (comment (get-hostname))
 
-#?(:clj
-   (def ^:private default-stacktrace-fonts
-     (or
-       (enc/read-sys-val "taoensso.timbre.default-stacktrace-fonts.edn" "TAOENSSO_TIMBRE_DEFAULT_STACKTRACE_FONTS_EDN")
-       (enc/read-sys-val "TIMBRE_DEFAULT_STACKTRACE_FONTS") ; Legacy
-       nil)))
-
-(defn stacktrace
-  ([err     ] (stacktrace err nil))
-  ([err opts]
-   #?(:cljs
-      (let [nl enc/system-newline]
-       (str
-         (.-stack err) ; Includes `ex-message`
-         (when-let [d (ex-data  err)] (str nl "ex-data" enc/system-newline "    " (pr-str d)))
-         (when-let [c (ex-cause err)] (str nl "caused by - " (stacktrace c opts)))))
-
-      :clj
-      (let [stacktrace-fonts ; {:stacktrace-fonts nil->{}}
-            (if-let [e (find opts :stacktrace-fonts)]
-              (let [st-fonts (val e)]
-                (if (nil? st-fonts)
-                  {}
-                  st-fonts))
-              default-stacktrace-fonts)]
-
-        (if-let [fonts stacktrace-fonts]
-          (binding [aviso-ex/*fonts* fonts]
-            (do (aviso-ex/format-exception err)))
-          (do   (aviso-ex/format-exception err)))))))
-
-(comment (stacktrace (Exception. "Boo") {:stacktrace-fonts {}}))
-
 (defmacro sometimes "Handy for sampled logging, etc."
   [probability & body]
    `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
@@ -1168,4 +1213,9 @@
 
   (defn      set-level! "DEPRECATED, prefer `set-min-level!`" [level] (swap-config! (fn [m] (assoc m :min-level level))))
   (defmacro with-level  "DEPRECATED, prefer `with-min-level`" [level & body]
-    `(binding [*config* (assoc *config* :min-level ~level)] ~@body)))
+    `(binding [*config* (assoc *config* :min-level ~level)] ~@body))
+
+  (defn stacktrace
+    "DEPRECATED, use `default-output-error-fn` instead"
+    ([err     ] (stacktrace err nil))
+    ([err opts] (default-output-error-fn {:?err err :output-opts opts}))))
