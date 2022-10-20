@@ -675,6 +675,8 @@
 
 (comment (get-timestamp default-timestamp-opts (enc/now-udt)))
 
+(declare default-output-msg-fn)
+
 (defn -log! "Core low-level log fn. Implementation detail!"
 
   ;; Back compatible arities for convenience of AOT tools, Ref.
@@ -704,6 +706,7 @@
               :error-level? (#{:error :fatal} level)
               :?err     ?err
               :?err_    (delay ?err) ; Deprecated
+              :msg-type msg-type     ; Undocumented
               :?msg-fmt ?msg-fmt     ; Undocumented
               :?meta    ?meta
               :vargs    vargs
@@ -724,23 +727,7 @@
                data (assoc data :vargs_ (delay vargs)) ; Deprecated
                data
                (enc/assoc-nx data
-                 :msg_
-                 (delay
-                   (case msg-type
-                     nil ""
-                     :p  (str-join vargs)
-                     :f  #_(enc/format* (have string? ?msg-fmt) vargs)
-                     (do
-                       (when-not (string? ?msg-fmt)
-                         (throw
-                           (ex-info "Timbre format-style logging call without a format pattern (string)"
-                             #_data
-                             {:level    level
-                              :location (str (or ?ns-str ?file "?") ":"
-                                             (or ?line         "?"))})))
-
-                       (enc/format* ?msg-fmt vargs))))
-
+                 :msg_ (delay (default-output-msg-fn data))
                  :hash_ ; Identify unique logging "calls" for rate limiting, etc.
                  (delay
                    (hash
@@ -1048,12 +1035,19 @@
 
   Options (included as `:output-opts` in data sent to fns below):
 
-    :error-fn ; When both `error-fn` and (:?err data) are non-nil,
+    :error-fn ; When present and (:?err data) present,
               ; (error-fn data) will be called to generate output
               ; (e.g. a stacktrace) for the error.
               ;
               ; Default value: `default-output-err-fn`.
-              ; Use `nil` value to suppress error output."
+              ; Use `nil` value to exclude error output.
+
+    :msg-fn   ; When present, (msg-fn data) will be called to
+              ; generate a message from `vargs` (vector of raw
+              ; logging arguments).
+              ;
+              ; Default value: `default-output-msg-fn`.
+              ; Use `nil` value to exclude message output."
 
   ([base-output-opts data] ; Back compatibility (before :output-opts)
    (let [data
@@ -1069,20 +1063,39 @@
 
   ([data]
    (let [{:keys [level ?err #_vargs msg_ ?ns-str ?file hostname_
-                 timestamp_ ?line]} data]
+                 timestamp_ ?line output-opts]}
+         data]
+
      (str
        (when-let [ts (force timestamp_)] (str ts " "))
        #?(:clj (force hostname_))  #?(:clj " ")
        (str/upper-case (name level))  " "
        "[" (or ?ns-str ?file "?") ":" (or ?line "?") "] - "
-       (force msg_)
+
+       (when-let [msg-fn (get output-opts :msg-fn default-output-msg-fn)]
+         (msg-fn data))
 
        (when-let [err ?err]
-         (let [output-opts (get data :output-opts)]
-           (when-let [ef (get output-opts :error-fn default-output-error-fn)]
-             (when-not   (get output-opts :no-stacktrace?) ; Back compatibility
-               (str enc/system-newline
-                 (ef data))))))))))
+         (when-let [ef (get output-opts :error-fn default-output-error-fn)]
+           (when-not   (get output-opts :no-stacktrace?) ; Back compatibility
+             (str enc/system-newline
+               (ef data)))))))))
+
+(defn default-output-msg-fn
+  "(fn [data]) -> string, used by `default-output-fn` to generate output
+  for `:vargs` value (vector of raw logging arguments) in log data."
+  [{:keys [msg-type ?msg-fmt vargs] :as data}]
+  (case msg-type
+    nil ""
+    :p  (str-join vargs)
+    :f
+    (if (string?   ?msg-fmt)
+      (enc/format* ?msg-fmt vargs)
+      (throw
+        (ex-info "Timbre format-style logging call without a format pattern string"
+          {:?msg-fmt ?msg-fmt :type (type ?msg-fmt) :vargs vargs})))))
+
+(comment (default-output-msg-fn {:msg-type :p :vargs ["a" "b"]}))
 
 #?(:clj
    (def ^:private default-stacktrace-fonts
