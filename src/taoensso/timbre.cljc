@@ -676,6 +676,24 @@
 
 (declare default-output-msg-fn)
 
+(defn- protected-fn [error-msg f]
+  (fn [data]
+    (enc/catching (f data) t
+      (let [{:keys [level ?ns-str ?file ?line]} data]
+        (throw
+          (ex-info error-msg
+            {:level level
+             :data  data
+             :location
+             (str
+               (or ?ns-str ?file "?") ":"
+               (or ?line         "?"))
+
+             :output-fn f}
+            t))))))
+
+(comment ((protected-fn "Whoops" (fn [data] (/ 1 0))) {}))
+
 (defn -log! "Core low-level log fn. Implementation detail!"
 
   ;; Back compatible arities for convenience of AOT tools, Ref.
@@ -726,7 +744,9 @@
                data (assoc data :vargs_ (delay vargs)) ; Deprecated
                data
                (enc/assoc-nx data
-                 :msg_ (delay (default-output-msg-fn data)) ; Deprecated
+                 :msg_ (delay ((protected-fn "Timbre error when calling (msg-fn <data>)"
+                                 default-output-msg-fn) data)) ; Deprecated
+
                  :hash_ ; Identify unique logging "calls" for rate limiting, etc.
                  (delay
                    (hash
@@ -757,13 +777,14 @@
                get-output-fn
                (let [base-fn (enc/fmemoize (get config :output-fn default-output-fn))]
                  (fn [?appender-fn] ; Return output-fn
-                   (if (or
-                         (nil? ?appender-fn)
-                         (enc/kw-identical? ?appender-fn :inherit) ; Back compatibility
-                         )
+                   (protected-fn "Timbre error when calling (output-fn <data>)"
+                     (if (or
+                           (nil? ?appender-fn)
+                           (enc/kw-identical? ?appender-fn :inherit) ; Back compatibility
+                           )
 
-                     base-fn
-                     ?appender-fn)))
+                       base-fn
+                       ?appender-fn))))
 
                base-output-opts (get config :output-opts)]
 
