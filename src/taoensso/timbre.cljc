@@ -1187,6 +1187,40 @@
     {:?err (Exception. "Boo")
      :output-opts {:stacktrace-fonts {}}}))
 
+;;;; Appender shutdown
+
+(defn shutdown-appenders!
+  "Alpha, subject to change.
+
+  Iterates through all appenders in config (enabled or not), and
+  calls (:shutdown-fn appender) whenever that fn exists.
+
+  This signals to these appenders that they should immediately
+  close/release any resources that they may have open/acquired,
+  and permanently noop on future logging requests.
+
+  Returns the set of appender-ids that had a shutdown-fn called.
+
+  This fn is called automatically on JVM shutdown, but can also
+  be called manually."
+
+  ([      ] (shutdown-appenders! *config*))
+  ([config]
+   (reduce-kv
+     (fn [acc appender-id appender]
+       (if-let [sfn (:shutdown-fn appender)]
+         (do (sfn) (conj acc appender-id))
+         acc))
+     #{}
+     (:appenders config))))
+
+(comment (shutdown-appenders! {:appenders {:a {:shutdown-fn (fn [])} :b {}}}))
+
+#?(:clj
+   (defonce ^:private shutdown-hook
+     (.addShutdownHook (Runtime/getRuntime)
+       (Thread. ^Runnable shutdown-appenders!))))
+
 ;;;; Misc public utils
 
 #?(:clj
