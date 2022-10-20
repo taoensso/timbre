@@ -565,21 +565,6 @@
 
 ;;;; Utils
 
-(defn- str-join [xs]
-  (enc/str-join " "
-    (map
-      (fn [x]
-        (let [x (enc/nil->str x)] ; Undefined, nil -> "nil"
-          (cond
-            (record?          x) (pr-str x)
-            ;; (enc/lazy-seq? x) (pr-str x) ; Dubious?
-            :else x))))
-    xs))
-
-(comment
-  (defrecord MyRec [x])
-  (str-join ["foo" (MyRec. "foo")]))
-
 #?(:clj
    (enc/defonce ^:private get-agent
      (enc/fmemoize (fn [appender-id] (agent nil :error-mode :continue)))))
@@ -1101,21 +1086,50 @@
              (str enc/system-newline
                (ef data)))))))))
 
+(defn- default-arg->str-fn [x]
+  (enc/cond
+    (nil?    x) "nil"
+    (string? x) x
+    :else
+    #?(:clj (with-out-str (pr x))
+       :cljs          (pr-str x))))
+
+(defn- legacy-arg->str-fn [x]
+  (enc/cond
+    (nil?    x) "nil"
+    (record? x) (pr-str x)
+    :else               x))
+
+(defn- str-join
+  ([            xs] (str-join default-arg->str-fn       xs))
+  ([arg->str-fn xs] (enc/str-join " " (map arg->str-fn) xs)))
+
+(comment
+  (defrecord MyRec [x])
+  (str-join ["foo" (MyRec. "foo")]))
+
 (defn default-output-msg-fn
   "(fn [data]) -> string, used by `default-output-fn` to generate output
   for `:vargs` value (vector of raw logging arguments) in log data."
-  [{:keys [msg-type ?msg-fmt vargs] :as data}]
-  (case msg-type
-    nil ""
-    :p  (str-join vargs)
-    :f
-    (if (string?   ?msg-fmt)
-      (enc/format* ?msg-fmt vargs)
-      (throw
-        (ex-info "Timbre format-style logging call without a format pattern string"
-          {:?msg-fmt ?msg-fmt :type (type ?msg-fmt) :vargs vargs})))))
+  [{:keys [msg-type ?msg-fmt vargs output-opts] :as data}]
+  (let [{:keys [arg->str-fn] ; Undocumented
+         :or   {arg->str-fn default-arg->str-fn}}
+        output-opts]
 
-(comment (default-output-msg-fn {:msg-type :p :vargs ["a" "b"]}))
+    (case msg-type
+      nil ""
+      :p  (str-join arg->str-fn vargs)
+      :f
+      (if (string?   ?msg-fmt)
+        (enc/format* ?msg-fmt vargs) ; Don't use arg->str-fn, would prevent custom formatting
+        (throw
+          (ex-info "Timbre format-style logging call without a format pattern string"
+            {:?msg-fmt ?msg-fmt :type (type ?msg-fmt) :vargs vargs}))))))
+
+(comment
+  (default-output-msg-fn
+    {:msg-type :p :vargs ["a" "b"]
+     :output-opts {:arg->str-fn (fn [_] "x")}}))
 
 #?(:clj
    (def ^:private default-stacktrace-fonts
