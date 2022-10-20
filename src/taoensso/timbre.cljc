@@ -246,6 +246,7 @@
 
     :timestamp-opts ; Config map, see `default-timestamp-opts`
     :output-fn      ; (fn [data]) -> string output_, see `default-output-fn`
+    :output-opts    ; Optional map added to data sent to output-fn
 
     :appenders ; {<appender-id> <appender-map>}
 
@@ -277,8 +278,10 @@
                          ;   (timbre/infof ^:meta {:id \"my-limiter-call-id\"} ...)
                          ;
 
-        :output-fn       ; Optional override for inherited (fn [data]) -> string output_
-        :timestamp-opts  ; Optional override for inherited config map
+        :timestamp-opts  ; Optional appender-specific override for top-level option
+        :output-fn       ; Optional appender-specific override for top-level option
+        :output-opts     ; Optional appender-specific override for top-level option
+
         :fn              ; (fn [data]) -> side-effects, with keys described below
 
   LOG DATA
@@ -799,7 +802,9 @@
                          )
 
                      base-fn
-                     ?appender-fn)))]
+                     ?appender-fn)))
+
+               base-output-opts (get config :output-opts)]
 
            (reduce-kv
              (fn [_ id appender]
@@ -815,16 +820,21 @@
                    (when rate-limit-okay?
                      (let [{:keys [async?] apfn :fn} appender
 
-                           timestamp_ (get-timestamp-delay (get appender :timestamp-opts))
-                           output-fn  (get-output-fn       (get appender :output-fn))
+                           timestamp_  (get-timestamp-delay (get appender :timestamp-opts))
+                           output-fn   (get-output-fn       (get appender :output-fn))
+                           output-opts (or (get appender :output-opts) base-output-opts)
                            output_
                            (delay
-                             (output-fn (assoc data :timestamp_ timestamp_)))
+                             (output-fn
+                               (assoc data
+                                 :timestamp_  timestamp_
+                                 :output-opts output-opts)))
 
                            data
                            (conj data
                              {:appender-id id
                               :appender    appender
+                              :output-opts output-opts
                               :output-fn   output-fn
                               :output_     output_
                               :timestamp_  timestamp_})
