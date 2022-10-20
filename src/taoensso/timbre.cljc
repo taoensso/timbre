@@ -278,7 +278,6 @@
       :?meta           ; First-arg map when it has ^:meta metadata, used as a
                          way of passing advanced per-call options to appenders
       :vargs           ; Vector of raw args provided to logging call
-      :msg_            ; Forceable - args as a string
       :timestamp_      ; Forceable - string
       :hostname_       ; Forceable - string (clj only)
       :output-fn       ; (fn [data]) -> final output for use by appenders
@@ -727,7 +726,7 @@
                data (assoc data :vargs_ (delay vargs)) ; Deprecated
                data
                (enc/assoc-nx data
-                 :msg_ (delay (default-output-msg-fn data))
+                 :msg_ (delay (default-output-msg-fn data)) ; Deprecated
                  :hash_ ; Identify unique logging "calls" for rate limiting, etc.
                  (delay
                    (hash
