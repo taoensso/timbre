@@ -20,10 +20,9 @@
   "Docstring to explain any special opts to influence appender construction,
   etc. Returns the appender map."
 
-  ;; []
-  [opts] ; Please always accept an opts map, even if initially unused
+  [{:as appender-opts :keys []}] ; Always take an opts map, even if unused
 
-  (let [{:keys []} opts] ; Destructure any special appender constructor opts
+  (let []
 
     ;; We'll return a new appender (just a map),
     ;; see `timbre/example-config` for info on all available keys:
@@ -33,49 +32,30 @@
      ;; :min-level :info ; Optional minimum logging level
 
      ;; Provide any default rate limits?
-     ;; :rate-limit [[5   (enc/ms :mins  1)] ; 5 calls/min
+     ;; :rate-limit [[5   (enc/ms :mins  1)] ;   5 calls/min
      ;;              [100 (enc/ms :hours 1)] ; 100 calls/hour
      ;;              ]
 
-     ;; :output-fn ; A custom (fn [data]) -> string output_
+     ;; :output-fn ; A custom (fn [data]) -> final output appropriate
+     ;;            ; for use by this appender (e.g. string, map, etc.).
+     ;;            ;
+     ;;            ; The fn may use (:output-opts data) for configurable
+     ;;            ; behaviour.
 
-     ;; The actual appender (fn [data]) -> possible side effects
-     :fn
+     :fn ; The actual appender (fn [data]) -> possible side effects
      (fn [data]
        (let [{:keys
               [instant level output_
                ;; ... lots more stuff, see `timbre/example-config`
                ]} data
 
-             ;; You'll often want an output string with ns, timestamp, vargs,
-             ;; etc. A (fn [data]) -> string formatter is provided under the
-             ;; :output-fn data key, defined as:
-             ;; `(or (:output-fn <this appender's map>)
-             ;;      (:output-fn <user's config map)
-             ;;      timbre/default-output-fn)`
-             ;;
-             ;; This gives users a standardized way to control appender
-             ;; ouput formatting for all participating appenders. See
-             ;; `taoensso.timbre/default-output-fn` source for details.
-             ;;
-             ;; In general, appenders should try use one of the following for
-             ;; their output string if they can:
-             ;; 1. (force (:output_ data))  ; 1st choice, allows output to be
-             ;;                             ; cached + shared between
-             ;;                             ; participating appenders
-             ;; 2. ((:output-fn data) data) ; 2nd choice, if you need to
-             ;;                             ; modify the `data` arg provided
-             ;;                             ; to the output-fn
-             ;; 3. Create your own adhoc output from stuff in `data`. This
-             ;; may be necessary if your appender is writing to a db, etc.
-             ;; and requires some unique non-string output format.
-             ;; See `timbre/default-output-fn` for ideas.
+             ;; Final output, in a format appropriate for this
+             ;; appender (string, map, etc.).
+             output (force output_)]
 
-             output-str (force output_)]
-
-         ;; This is where we produce our logging side effects.
+         ;; This is where we produce our logging side effects using `output`.
          ;; In this case we'll just call `println`:
-         (println output-str)))}))
+         (println (str output))))}))
 
 (comment
   ;; Create an example appender with default options:

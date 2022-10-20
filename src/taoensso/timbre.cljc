@@ -46,7 +46,7 @@
      :middleware [] ; (fns [data]) -> ?data, applied left->right
 
      :timestamp-opts default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
-     :output-fn      default-output-fn ; (fn [data]) -> string output_
+     :output-fn default-output-fn ; (fn [data]) -> final output for use by appenders
 
      :appenders
      #?(:clj
@@ -67,7 +67,7 @@
    :middleware [] ; (fns [data]) -> ?data, applied left->right
 
    :timestamp-opts default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
-   :output-fn      default-output-fn ; (fn [data]) -> string output_
+   :output-fn      default-output-fn ; (fn [data]) -> final output
 
    :appenders
    #?(:clj
@@ -151,9 +151,9 @@
 (enc/defonce ^:dynamic *config*
   "This config map controls all Timbre behaviour including:
     - When to log (via min-level and namespace filtering)
-    - How  to log (which appenders to use)
-    - What to log (config to control how log data sent to
-                   appenders will be formatted to output string)
+    - How  to log (which appenders to use, etc.)
+    - What to log (how log data will be transformed to final
+                   output for use by appenders)
 
   Initial config value will be (in descending order of preference):
 
@@ -221,7 +221,8 @@
       Useful for layering advanced functionality. Similar to Ring middleware.
 
     :timestamp-opts ; Config map, see `default-timestamp-opts`
-    :output-fn      ; (fn [data]) -> string output_, see `default-output-fn`
+    :output-fn      ; (fn [data]) -> final output for use by appenders,
+                    ; see `default-output-fn` for example
     :output-opts    ; Optional map added to data sent to output-fn
 
     :appenders ; {<appender-id> <appender-map>}
@@ -263,11 +264,13 @@
   LOG DATA
     A single map with keys:
       :config          ; Entire active config map
+      :context         ; `*context*` value at log time (see `with-context`)
       :appender-id     ; Id of appender currently dispatching
       :appender        ; Entire map of appender currently dispatching
       :instant         ; Platform date (java.util.Date or js/Date)
       :level           ; Call's level keyword (e.g. :info) (>= active min-level)
       :error-level?    ; Is level e/o #{:error :fatal}?
+      :spying?         ; Is call occuring via the `spy` macro?
       :?ns-str         ; String,  or nil
       :?file           ; String,  or nil
       :?line           ; Integer, or nil ; Waiting on CLJ-865
@@ -275,15 +278,11 @@
       :?meta           ; First-arg map when it has ^:meta metadata, used as a
                          way of passing advanced per-call options to appenders
       :vargs           ; Vector of raw args provided to logging call
-      :output_         ; Forceable - final formatted output string created
-                       ; by calling (output-fn <this-data-map>)
       :msg_            ; Forceable - args as a string
       :timestamp_      ; Forceable - string
       :hostname_       ; Forceable - string (clj only)
-      :output-fn       ; (fn [data]) -> final formatted string output_
-                       ; (see `default-output-fn` for details)
-      :context         ; `*context*` value at log time (see `with-context`)
-      :spying?         ; Is call occuring via the `spy` macro?
+      :output-fn       ; (fn [data]) -> final output for use by appenders
+      :output_         ; Forceable result of calling (output-fn <this-data-map>)
 
       **NB** - any keys not specifically documented here should be
       considered private / subject to change without notice.
@@ -1044,8 +1043,8 @@
 (declare default-output-error-fn)
 
 (defn default-output-fn
-  "Default (fn [data]) -> string, used to produce final formatted
-  output_ string from final log data.
+  "Default (fn [data]) -> final output string, used to produce
+  final formatted output_ string from final log data.
 
   Options (included as `:output-opts` in data sent to fns below):
 
