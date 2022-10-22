@@ -93,7 +93,7 @@
 (comment
   (spit-appender)
   (let [f (:fn (spit-appender))]
-    (enc/qb 1000 (f {:output_ "boo"}))))
+    (enc/qb 1e3 (f {:output_ "boo"}))))
 
 ;;;; js/console appender (cljs only)
 

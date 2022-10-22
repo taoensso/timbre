@@ -16,7 +16,7 @@
           (.substring 0 11)
           (Long/parseLong 16)))
 
-(comment (enc/qb 10000 (sha48 "I'm gonna get hashed!")))
+(comment (enc/qb 1e4 (sha48 "I'm gonna get hashed!")))
 
 (defn default-keyfn [level] (str "timbre:carmine:" (name level)))
 (def  default-nentries-by-level
@@ -66,10 +66,7 @@
   (have? string?  (keyfn             :info))
   (have? integer? (nentries-by-level :info))
 
-  {:enabled?   true
-   :async?     false
-   :min-level  nil
-   :rate-limit nil
+  {:enabled? true
    :fn
    (fn [data]
      (let [{:keys [level instant hash_]} data

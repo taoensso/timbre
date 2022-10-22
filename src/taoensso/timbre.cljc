@@ -4,7 +4,7 @@
 
   (:require
    [clojure.string  :as str]
-   [clojure.test    :as test :refer [deftest is]]
+   [clojure.test    :as test :refer [deftest testing is]]
    [taoensso.encore :as enc  :refer [have have?]]
    [taoensso.timbre.appenders.core :as core-appenders]
 
@@ -59,7 +59,7 @@
     "Implementation detail."
     [x y] (>= ^long (valid-level->int x) ^long (valid-level->int y))))
 
-(comment (qb 1e6 (level>= :info :trace))) ; 89.77
+(comment (enc/qb 1e6 (level>= :info :trace))) ; 50.0
 
 ;;;; Namespace filtering
 ;; Terminology note: we distinguish loosely between `ns-filter` (which may be a
@@ -90,7 +90,7 @@
           specs)))))
 
 (comment
-  (enc/qb 1e6 ; [145.78 275.69]
+  (enc/qb 1e6 ; [75.68 171.17 102.96]
     (may-log-ns? "*" "taoensso.timbre")
     (ns->?min-level [[#{"taoensso.*" "foo.bar"} :info] ["*" :debug]] "foo.bar")
     (ns->?min-level [["ns.1" :info] ["ns.2" :debug]] "ns.2")))
@@ -156,7 +156,7 @@
            true)
          false)))))
 
-(comment (qb 1e6 (may-log? :info))) ; 120.4
+(comment (enc/qb 1e6 (may-log? :info))) ; 120.4
 
 ;;;; Compile-time filtering
 
@@ -260,7 +260,7 @@
 
      (assoc config :min-level min-level*))))
 
-(deftest _set-ns-min-level
+(deftest ^:private _set-ns-min-level
   [(is (= (set-ns-min-level {:min-level :info         } "a" :trace) {:min-level [["a" :trace] ["*" :info]]}))
    (is (= (set-ns-min-level {:min-level [["a" :debug]]} "a" :trace) {:min-level [["a" :trace]]}))
    (is (= (set-ns-min-level {:min-level [["a" :debug]]} "a" nil)    {:min-level nil}))
@@ -290,16 +290,12 @@
 (defmacro get-env [] `(enc/get-env))
 (comment ((fn foo [x y] (get-env)) 5 10))
 
-#?(:clj
-   (enc/defonce ^:private get-agent
-     (enc/fmemoize (fn [appender-id] (agent nil :error-mode :continue)))))
+#?(:clj (defonce ^:private get-agent        (enc/fmemoize (fn [appender-id      ] (agent nil :error-mode :continue)))))
+(do     (defonce ^:private get-rate-limiter (enc/fmemoize (fn [appender-id specs] (enc/limiter specs)))))
 
-(comment (get-agent :my-appender))
-
-(defonce ^:private get-rate-limiter
-  (enc/fmemoize (fn [appender-id specs] (enc/limiter specs))))
-
-(comment (def rf (get-rate-limiter :my-appender [[10 5000]])))
+(comment
+  (get-agent :my-appender)
+  (def rf (get-rate-limiter :my-appender [[10 5000]])))
 
 (defn- get-timestamp [timestamp-opts instant]
   #?(:clj
@@ -581,14 +577,14 @@
 
 (comment
   (let [ex (Exception. "ex")]
-    (qb 10000
+    (enc/qb 1e4
       (parse-vargs :auto :f ["fmt" :a :b :c])
       (parse-vargs :auto :p [ex    :a :b :c])
       (parse-vargs :auto :p [^:meta {:foo :bar} :a :b :c])
       (parse-vargs :auto :p [       {:foo :bar} :a :b :c])
       (parse-vargs :auto :p [ex])
       (parse-vargs :auto :p [^:meta {:err ex}   :a :b :c])))
-  ;; [2.79 2.51 6.13 1.65 1.94 6.2]
+  ;; [1.49 1.34 2.99 0.83 0.89 2.98]
   (infof                                 "Hi %s" "steve")
   (infof ^:meta {:hash :bar}             "Hi %s" "steve")
   (infof ^:meta {:err (Exception. "ex")} "Hi %s" "steve"))
@@ -835,21 +831,21 @@
   (set-min-level! :debug)
   (may-log? :trace)
   (with-min-level :trace (log? :trace))
-  (qb 1e4
+  (enc/qb 1e4
     (may-log? :trace)
     (may-log? :trace "foo")
     (tracef "foo")
     (when false "foo"))
-  ;; [1.38 1.42 2.08 0.26]
+  ;; [0.64 0.66 1.52 0.26]
 
   (defmacro with-sole-appender [appender & body]
     `(with-config (assoc *config* :appenders {:appender ~appender}) ~@body))
 
   (with-sole-appender {:enabled? true :fn (fn [data] nil)}
-    (qb 1e4 (info "foo"))) ; ~74.58 ; Time to delays ready
+    (enc/qb 1e4 (info "foo"))) ; ~54.86 ; Time to delays ready
 
   (with-sole-appender {:enabled? true :fn (fn [data] (force (:output_ data)))}
-    (qb 1e4 (info "foo"))) ; ~136.68 ; Time to output ready
+    (enc/qb 1e4 (info "foo"))) ; ~157.95 ; Time to output ready
   )
 
 ;;;; Common public API
