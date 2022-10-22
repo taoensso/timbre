@@ -19,289 +19,9 @@
 
 (comment (test/run-tests))
 
-;;;; Config
+;;;; Dynamic config
 
-;;; Alias core appenders here for user convenience
-#?(:clj  (enc/defalias         core-appenders/println-appender))
-#?(:clj  (enc/defalias         core-appenders/spit-appender))
-#?(:cljs (def println-appender core-appenders/println-appender))
-#?(:cljs (def console-appender core-appenders/console-appender))
-
-(def default-timestamp-opts
-  "Controls (:timestamp_ data)"
-  #?(:cljs {:pattern  :iso8601 #_"yy-MM-dd HH:mm:ss"}
-     :clj
-     {:pattern  :iso8601     #_"yyyy-MM-dd'T'HH:mm:ss.SSSX" #_"yy-MM-dd HH:mm:ss"
-      :locale   :jvm-default #_(java.util.Locale. "en")
-      :timezone :utc         #_(java.util.TimeZone/getTimeZone "Europe/Amsterdam")}))
-
-(declare default-output-fn)
-
-(def default-config
-  "Default/example Timbre `*config*` value:
-
-    {:min-level :debug #_[[\"taoensso.*\" :error] [\"*\" :debug]]
-     :ns-filter #{\"*\"} #_{:deny #{\"taoensso.*\"} :allow #{\"*\"}}
-
-     :middleware [] ; (fns [data]) -> ?data, applied left->right
-
-     :timestamp-opts default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
-     :output-fn default-output-fn ; (fn [data]) -> final output for use by appenders
-
-     :appenders
-     #?(:clj
-        {:println (println-appender {:stream :auto})
-         ;; :spit (spit-appender    {:fname \"./timbre-spit.log\"})
-         }
-
-        :cljs
-        (if (exists? js/window)
-          {:console (console-appender {})}
-          {:println (println-appender {})}))}
-
-    See `*config*` for more info."
-
-  {:min-level :debug #_[["taoensso.*" :error] ["*" :debug]]
-   :ns-filter #{"*"} #_{:deny #{"taoensso.*"} :allow #{"*"}}
-
-   :middleware [] ; (fns [data]) -> ?data, applied left->right
-
-   :timestamp-opts default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
-   :output-fn      default-output-fn ; (fn [data]) -> final output
-
-   :appenders
-   #?(:clj
-      {:println (println-appender {:stream :auto})
-       ;; :spit (spit-appender    {:fname "./timbre-spit.log"})
-       }
-
-      :cljs
-      (if (exists? js/window)
-        {:console (console-appender {})}
-        {:println (println-appender {})}))})
-
-(comment
-  (set-config! default-config)
-  (infof "Hello %s" "world :-)"))
-
-#?(:clj
-   (defn load-config
-     "Imlementation detail, use only for debugging, etc.
-     Returns Timbre config loaded from JVM property, Env var, or
-     resource file.
-
-     See `*config*` docstring for more info."
-     ([edn source]
-      (let [clj
-            (try
-              (enc/read-edn edn)
-              (catch Throwable t
-                (throw
-                  (ex-info "[Timbre config] Error reading config EDN"
-                    {:edn edn :source source} t))))
-
-            config
-            (if (symbol? clj)
-              (if-let [var
-                       (or
-                         (resolve clj)
-                         (when-let [ns (namespace clj)]
-                           (require ns)
-                           (resolve clj)))]
-                @var
-                (throw
-                  (ex-info "[Timbre config] Failed to resolve config symbol"
-                    {:edn edn :symbol symbol :source source})))
-              clj)]
-
-        (if (map? config)
-          (if  (get config :load/overwrite?) ; Undocumented
-            (dissoc config :load/overwrite?) ; Without merge
-            (enc/nested-merge default-config config))
-
-          (throw
-            (ex-info "[Timbre config] Unexpected config value type"
-              {:value config :type (type config) :source source})))))
-
-     ([]
-      (when-let [[edn source]
-                 (or
-                   (let [prop-name "taoensso.timbre.config.edn"]
-                     (when-let [edn (System/getProperty prop-name)]
-                       [edn {:jvm-property prop-name}]))
-
-                   (let [env-name "TAOENSSO_TIMBRE_CONFIG_EDN"]
-                     (when-let [edn (System/getenv env-name)]
-                       [edn {:env-var env-name}]))
-
-                   (let [res-name
-                         (or
-                           (enc/get-sys-val ; Configurable resource name, undocumented
-                             "taoensso.timbre.config-resource"
-                             "TAOENSSO_TIMBRE_CONFIG_RESOURCE")
-
-                           "taoensso.timbre.config.edn")]
-
-                     (when-let [edn (enc/slurp-resource res-name)]
-                       [edn {:resource res-name}])))]
-
-        (println (str "Loading Timbre config from: " source))
-        (load-config edn source)))))
-
-(enc/defonce ^:dynamic *config*
-  "This config map controls all Timbre behaviour including:
-    - When to log (via min-level and namespace filtering)
-    - How  to log (which appenders to use, etc.)
-    - What to log (how log data will be transformed to final
-                   output for use by appenders)
-
-  Initial config value will be (in descending order of preference):
-
-    1. `taoensso.timbre.config.edn`   JVM property  (read as EDN)
-    2. `TAOENSSO_TIMBRE_CONFIG_EDN`   Env var       (read as EDN)
-    3. `./taoensso.timbre.config.edn` resource file (read as EDN)
-    4. Value of `default-config`
-
-  For all EDN cases (1-3): the EDN can represent either a Clojure map
-  to merge into `default-config`, or a qualified symbol that'll
-  resolve to a Clojure map to merge into `default-config`.
-
-  See `default-config` for more info on the base/default config.
-
-  You can modify the config value with standard `alter-var-root`,
-  or `binding`.
-
-  For convenience, there's also some dedicated helper utils:
-
-    - `set-config!`, `merge-config!`        ; Mutate *config*
-    - `set-min-level!`, `set-min-ns-level!` ; Mutate *config* :min-level
-
-    - `with-config`, `with-merged-config`   ; Bind *config*
-    - `with-min-level`                      ; Bind *config* :min-level
-
-
-  MAIN CONFIG OPTIONS
-
-    :min-level
-      Logging will occur only if a logging call's level is >= this
-      min-level. Possible values, in order:
-
-        :trace  = level 0
-        :debug  = level 1 ; Default min-level
-        :info   = level 2
-        :warn   = level 3
-        :error  = level 4 ; Error type
-        :fatal  = level 5 ; Error type
-        :report = level 6 ; High general-purpose (non-error) type
-
-      It's also possible to set a namespace-specific min-level by
-      providing a vector that maps `ns-pattern`s to min-levels, e.g.:
-      `[[#{\"taoensso.*\"} :error] ... [#{\"*\"} :debug]]`.
-
-      Example `ns-pattern`s:
-        #{}, \"*\", \"foo.bar\", \"foo.bar.*\", #{\"foo\" \"bar.*\"},
-        {:allow #{\"foo\" \"bar.*\"} :deny #{\"foo.*.bar.*\"}}.
-
-      See also `set-min-ns-level!` for a helper tool.
-
-    :ns-filter
-      Logging will occur only if a logging call's namespace is permitted
-      by this ns-filter. Possible values:
-
-        - Arbitrary (fn may-log-ns? [ns]) predicate fn.
-        - An `ns-pattern` (see :min-level docs above).
-
-      Useful for turning off logging in noisy libraries, etc.
-
-    :middleware
-      Vector of simple (fn [data]) -> ?new-data fns (applied left->right)
-      that transform the data map dispatched to appender fns. If any middleware
-      returns nil, NO dispatch will occur (i.e. the event will be filtered).
-
-      Useful for layering advanced functionality. Similar to Ring middleware.
-
-    :timestamp-opts ; Config map, see `default-timestamp-opts`
-    :output-fn      ; (fn [data]) -> final output for use by appenders,
-                    ; see `default-output-fn` for example
-    :output-opts    ; Optional map added to data sent to output-fn
-
-    :appenders ; {<appender-id> <appender-map>}
-
-      Where each appender-map has keys:
-        :enabled?        ; Must be truthy to log
-        :min-level       ; Optional *additional* appender-specific min-level
-        :ns-filter       ; Optional *additional* appender-specific ns-filter
-
-        :async?          ; Dispatch using agent? Useful for slow appenders (clj only)
-
-        :rate-limit      ; [[<ncalls-limit> <window-msecs>] ...], or nil
-                         ; Appender will noop a call after exceeding given number
-                         ; of the \"same\" calls within given rolling window/s.
-                         ;
-                         ; Example:
-                         ;   [[100  (encore/ms :mins  1)]
-                         ;    [1000 (encore/ms :hours 1)]] will noop a call after:
-                         ;
-                         ;   - >100  \"same\" calls in 1 rolling minute, or
-                         ;   - >1000 \"same\" calls in 1 rolling hour
-                         ;
-                         ; \"Same\" calls are identified by default as the
-                         ; combined hash of:
-                         ;   - Callsite (i.e. each individual Timbre macro form)
-                         ;   - Logging level
-                         ;   - All arguments provided for logging
-                         ;
-                         ; You can manually override call identification:
-                         ;   (timbre/infof ^:meta {:id \"my-limiter-call-id\"} ...)
-                         ;
-
-        :timestamp-opts  ; Optional appender-specific override for top-level option
-        :output-fn       ; Optional appender-specific override for top-level option
-        :output-opts     ; Optional appender-specific override for top-level option
-
-        :fn              ; (fn [data]) -> side-effects, with keys described below
-
-  LOG DATA
-    A single map with keys:
-      :config          ; Entire active config map
-      :context         ; `*context*` value at log time (see `with-context`)
-      :appender-id     ; Id of appender currently dispatching
-      :appender        ; Entire map of appender currently dispatching
-      :instant         ; Platform date (java.util.Date or js/Date)
-      :level           ; Call's level keyword (e.g. :info) (>= active min-level)
-      :error-level?    ; Is level e/o #{:error :fatal}?
-      :spying?         ; Is call occuring via the `spy` macro?
-      :?ns-str         ; String,  or nil
-      :?file           ; String,  or nil
-      :?line           ; Integer, or nil ; Waiting on CLJ-865
-      :?err            ; First-arg platform error, or nil
-      :?meta           ; First-arg map when it has ^:meta metadata, used as a
-                         way of passing advanced per-call options to appenders
-      :vargs           ; Vector of raw args provided to logging call
-      :timestamp_      ; Forceable - string
-      :hostname_       ; Forceable - string (clj only)
-      :output-fn       ; (fn [data]) -> final output for use by appenders
-      :output_         ; Forceable result of calling (output-fn <this-data-map>)
-
-      **NB** - any keys not specifically documented here should be
-      considered private / subject to change without notice.
-
-  COMPILE-TIME LEVEL/NS ELISION
-    To control :min-level and :ns-filter at compile-time, use:
-
-      - `taoensso.timbre.min-level.edn`  JVM property (read as EDN)
-      - `taoensso.timbre.ns-pattern.edn` JVM property (read as EDN)
-
-      - `TAOENSSO_TIMBRE_MIN_LEVEL_EDN`  env var      (read as EDN)
-      - `TAOENSSO_TIMBRE_NS_PATTERN_EDN` env var      (read as EDN)
-
-    Note that compile-time options will OVERRIDE options in `*config*`."
-
-  #?(:clj  (or (load-config) default-config)
-     :cljs                   default-config))
-
-(defmacro with-config        [config & body] `(binding [*config*                            ~config ] ~@body))
-(defmacro with-merged-config [config & body] `(binding [*config* (enc/nested-merge *config* ~config)] ~@body))
+(declare ^:dynamic *config*)
 
 (defn swap-config! [f & args]
   #?(:clj  (apply alter-var-root #'*config* f args)
@@ -310,11 +30,8 @@
 (defn   set-config! [config] (swap-config! (fn [_old] config)))
 (defn merge-config! [config] (swap-config! (fn [ old] (enc/nested-merge old config))))
 
-(declare valid-level)
-(defn      set-min-level [config min-level] (assoc config :min-level (valid-level min-level)))
-(defn      set-min-level!       [min-level] (swap-config! (fn [old] (set-min-level old min-level))))
-(defmacro with-min-level [min-level & body]
-  `(binding [*config* (set-min-level *config* ~min-level)] ~@body))
+(defmacro with-config        [config & body] `(binding [*config*                            ~config ] ~@body))
+(defmacro with-merged-config [config & body] `(binding [*config* (enc/nested-merge *config* ~config)] ~@body))
 
 ;;;; Level filtering
 ;; Terminology note: we loosely distinguish between call/form and min levels,
@@ -494,6 +211,11 @@
 
 ;;;; Namespace min-level utils
 
+(defn      set-min-level [config min-level] (assoc config :min-level (valid-level min-level)))
+(defn      set-min-level!       [min-level] (swap-config! (fn [old] (set-min-level old min-level))))
+(defmacro with-min-level [min-level & body]
+  `(binding [*config* (set-min-level *config* ~min-level)] ~@body))
+
 (defn set-ns-min-level
   "Returns given Timbre `config` with its `:min-level` modified so that
   the given namespace has the specified minimum logging level.
@@ -565,6 +287,9 @@
 
 ;;;; Utils
 
+(defmacro get-env [] `(enc/get-env))
+(comment ((fn foo [x y] (get-env)) 5 10))
+
 #?(:clj
    (enc/defonce ^:private get-agent
      (enc/fmemoize (fn [appender-id] (agent nil :error-mode :continue)))))
@@ -576,7 +301,235 @@
 
 (comment (def rf (get-rate-limiter :my-appender [[10 5000]])))
 
-;;;; Internal logging core
+(defn- get-timestamp [timestamp-opts instant]
+  #?(:clj
+     (let [{:keys [pattern locale timezone]} timestamp-opts]
+       ;; iso8601 example: 2020-09-14T08:31:17.040Z (UTC)
+       (.format ^java.text.SimpleDateFormat
+         (enc/simple-date-format* pattern locale timezone)
+         instant))
+
+     :cljs
+     (let [{:keys [pattern]} timestamp-opts]
+       (if (enc/kw-identical? pattern :iso8601)
+         (.toISOString (js/Date. instant)) ; e.g. 2020-09-14T08:29:49.711Z (UTC)
+         ;; Pattern can also be be `goog.i18n.DateTimeFormat.Format`, etc.
+         (.format
+           (goog.i18n.DateTimeFormat. pattern)
+           instant)))))
+
+(comment (get-timestamp default-timestamp-opts (enc/now-udt)))
+
+#?(:clj
+   (do ; Hostname stuff
+     (defn get-?hostname "Returns live local hostname, or nil." []
+       (try (.getHostName (java.net.InetAddress/getLocalHost))
+            (catch java.net.UnknownHostException _ nil)))
+
+     (let [unknown "UnknownHost"]
+       (def get-hostname "Returns cached hostname string."
+         (enc/memoize (enc/ms :mins 1)
+           (fn []
+             (try
+               (let [p (promise)]
+                 ;; Android doesn't like hostname calls on the main thread.
+                 ;; Using `future` would start the Clojure agent threadpool though,
+                 ;; which can slow down application shutdown w/o a `(shutdown-agents)`
+                 ;; call.
+                 (.start (Thread. (fn [] (deliver p (get-?hostname)))))
+                 (or (deref p 5000 nil) unknown))
+               (catch Exception _ unknown))))))))
+
+(comment (get-hostname))
+
+#?(:clj
+   (defn ansi-color [color]
+     (str "\u001b["
+       (case color
+         :reset  "0"  :black  "30" :red   "31"
+         :green  "32" :yellow "33" :blue  "34"
+         :purple "35" :cyan   "36" :white "37"
+         "0")
+       "m")))
+
+#?(:clj
+   (let [ansi-reset (ansi-color :reset)]
+     (defn color-str
+       ([color           ] (str (ansi-color color)                      ansi-reset)) ; Back compatibility
+       ([color x         ] (str (ansi-color color) x                    ansi-reset))
+       ([color x y       ] (str (ansi-color color) x y                  ansi-reset))
+       ([color x y & more] (str (ansi-color color) x y (apply str more) ansi-reset)))))
+
+#?(:clj (def default-out (java.io.OutputStreamWriter. System/out)))
+#?(:clj (def default-err (java.io.PrintWriter.        System/err)))
+(defmacro with-default-outs [& body]
+  `(binding [*out* default-out, *err* default-err] ~@body))
+
+(defmacro sometimes "Handy for sampled logging, etc."
+  [probability & body]
+   `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
+        (when (< (rand) ~probability) ~@body)))
+
+;;;; Default fns
+
+(declare
+  default-output-msg-fn
+  default-output-error-fn)
+
+(defn default-output-fn
+  "Default (fn [data]) -> final output string, used to produce
+  final formatted output_ string from final log data.
+
+  Options (included as `:output-opts` in data sent to fns below):
+
+    :error-fn ; When present and (:?err data) present,
+              ; (error-fn data) will be called to generate output
+              ; (e.g. a stacktrace) for the error.
+              ;
+              ; Default value: `default-output-err-fn`.
+              ; Use `nil` value to exclude error output.
+
+    :msg-fn   ; When present, (msg-fn data) will be called to
+              ; generate a message from `vargs` (vector of raw
+              ; logging arguments).
+              ;
+              ; Default value: `default-output-msg-fn`.
+              ; Use `nil` value to exclude message output."
+
+  ([base-output-opts data] ; Back compatibility (before :output-opts)
+   (let [data
+         (if (empty? base-output-opts)
+           data
+           (assoc data :output-opts
+             (conj
+               base-output-opts ; Opts from partial
+               (get data :output-opts) ; Opts from data override
+               )))]
+
+     (default-output-fn data)))
+
+  ([data]
+   (let [{:keys [level ?err #_vargs msg_ ?ns-str ?file hostname_
+                 timestamp_ ?line output-opts]}
+         data]
+
+     (str
+       (when-let [ts (force timestamp_)] (str ts " "))
+       #?(:clj (force hostname_))  #?(:clj " ")
+       (str/upper-case (name level))  " "
+       "[" (or ?ns-str ?file "?") ":" (or ?line "?") "] - "
+
+       (when-let [msg-fn (get output-opts :msg-fn default-output-msg-fn)]
+         (msg-fn data))
+
+       (when-let [err ?err]
+         (when-let [ef (get output-opts :error-fn default-output-error-fn)]
+           (when-not   (get output-opts :no-stacktrace?) ; Back compatibility
+             (str enc/system-newline
+               (ef data)))))))))
+
+(defn- default-arg->str-fn [x]
+  (enc/cond
+    (nil?    x) "nil"
+    (string? x) x
+    :else
+    #?(:clj (with-out-str (pr x))
+       :cljs          (pr-str x))))
+
+(defn- legacy-arg->str-fn [x]
+  (enc/cond
+    (nil?    x) "nil"
+    (record? x) (pr-str x)
+    :else               x))
+
+(defn- str-join
+  ([            xs] (str-join default-arg->str-fn       xs))
+  ([arg->str-fn xs] (enc/str-join " " (map arg->str-fn) xs)))
+
+(comment
+  (defrecord MyRec [x])
+  (str-join ["foo" (MyRec. "foo")]))
+
+(defn default-output-msg-fn
+  "(fn [data]) -> string, used by `default-output-fn` to generate output
+  for `:vargs` value (vector of raw logging arguments) in log data."
+  [{:keys [msg-type ?msg-fmt vargs output-opts] :as data}]
+  (let [{:keys [arg->str-fn] ; Undocumented
+         :or   {arg->str-fn default-arg->str-fn}}
+        output-opts]
+
+    (case msg-type
+      nil ""
+      :p  (str-join arg->str-fn vargs)
+      :f
+      (if (string?   ?msg-fmt)
+        (enc/format* ?msg-fmt vargs) ; Don't use arg->str-fn, would prevent custom formatting
+        (throw
+          (ex-info "Timbre format-style logging call without a format pattern string"
+            {:?msg-fmt ?msg-fmt :type (type ?msg-fmt) :vargs vargs}))))))
+
+(comment
+  (default-output-msg-fn
+    {:msg-type :p :vargs ["a" "b"]
+     :output-opts {:arg->str-fn (fn [_] "x")}}))
+
+#?(:clj
+   (def ^:private default-stacktrace-fonts
+     (or
+       (enc/read-sys-val
+         "taoensso.timbre.default-stacktrace-fonts.edn"
+         "TAOENSSO_TIMBRE_DEFAULT_STACKTRACE_FONTS_EDN") ; Undocumented
+
+       (enc/read-sys-val "TIMBRE_DEFAULT_STACKTRACE_FONTS") ; Legacy
+       nil)))
+
+(defn default-output-error-fn
+  "Default (fn [data]) -> string, used by `default-output-fn` to
+  generate output for `:?err` value in log data.
+
+  For Clj:
+     Uses `io.aviso/pretty` to return an attractive stacktrace.
+     Options:
+       :stacktrace-fonts ; See `io.aviso.exception/*fonts*`
+
+  For Cljs:
+     Returns simple stacktrace string."
+
+  [{:keys [?err output-opts] :as data}]
+  (let [err (have ?err)]
+
+    #?(:cljs
+       (let [nl enc/system-newline]
+         (str
+           (.-stack err) ; Includes `ex-message`
+           (when-let [d (ex-data  err)]
+             (str nl "ex-data" enc/system-newline "    " (pr-str d)))
+
+           (when-let [c (ex-cause err)]
+             (str nl "caused by - "
+               (default-output-error-fn
+                 (assoc data :?err err))))))
+
+       :clj
+       (let [stacktrace-fonts ; nil->{}
+             (if-let [e (find output-opts :stacktrace-fonts)]
+               (let [st-fonts (val e)]
+                 (if (nil? st-fonts)
+                   {}
+                   st-fonts))
+               default-stacktrace-fonts)]
+
+         (if-let [fonts stacktrace-fonts]
+           (binding [aviso-ex/*fonts* fonts]
+             (do (aviso-ex/format-exception err)))
+           (do   (aviso-ex/format-exception err)))))))
+
+(comment
+  (default-output-error-fn
+    {:?err (Exception. "Boo")
+     :output-opts {:stacktrace-fonts {}}}))
+
+;;;; Context
 
 (def ^:dynamic *context* "General-purpose dynamic logging context" nil)
 (defmacro  with-context
@@ -598,6 +551,8 @@
      ~@body))
 
 (comment (with-context+ {:foo1 :bar1} (with-context+ {:foo2 :bar2} *context*)))
+
+;;;; Logging core
 
 (defn- parse-vargs
   "vargs -> [?err ?meta ?msg-fmt api-vargs]"
@@ -638,29 +593,6 @@
   (infof ^:meta {:hash :bar}             "Hi %s" "steve")
   (infof ^:meta {:err (Exception. "ex")} "Hi %s" "steve"))
 
-(declare get-hostname)
-
-(defn- get-timestamp [timestamp-opts instant]
-  #?(:clj
-     (let [{:keys [pattern locale timezone]} timestamp-opts]
-       ;; iso8601 example: 2020-09-14T08:31:17.040Z (UTC)
-       (.format ^java.text.SimpleDateFormat
-         (enc/simple-date-format* pattern locale timezone)
-         instant))
-
-     :cljs
-     (let [{:keys [pattern]} timestamp-opts]
-       (if (enc/kw-identical? pattern :iso8601)
-         (.toISOString (js/Date. instant)) ; e.g. 2020-09-14T08:29:49.711Z (UTC)
-         ;; Pattern can also be be `goog.i18n.DateTimeFormat.Format`, etc.
-         (.format
-           (goog.i18n.DateTimeFormat. pattern)
-           instant)))))
-
-(comment (get-timestamp default-timestamp-opts (enc/now-udt)))
-
-(declare default-output-msg-fn)
-
 (defn- protected-fn [error-msg f]
   (fn [data]
     (enc/catching (f data) t
@@ -678,6 +610,8 @@
             t))))))
 
 (comment ((protected-fn "Whoops" (fn [data] (/ 1 0))) {}))
+
+(declare default-timestamp-opts)
 
 (defn -log! "Core low-level log fn. Implementation detail!"
 
@@ -835,7 +769,6 @@
 
 (defn- fline [and-form] (:line (meta and-form)))
 
-
 ;; Try enable reproducible builds by ensuring that `log!` macro expansion
 ;; produces deterministic callsite-ids, Ref. #354
 #?(:cljs (def ^:private deterministic-rand rand) ; Dummy, non-deterministic
@@ -919,8 +852,8 @@
     (qb 1e4 (info "foo"))) ; ~136.68 ; Time to output ready
   )
 
-;;;; Main public API-level stuff
-;; TODO Have a bunch of cruft here trying to work around CLJ-865 to some extent
+;;;; Common public API
+;; TODO Much of the impln. here could be simpler with CLJ-865 resolved
 
 ;;; Log using print-style args
 (defmacro log*  [config level & args] `(log! ~level  :p ~args ~{:?line (fline &form) :config config}))
@@ -949,6 +882,8 @@
   (infof (Exception.) "hello %s" "world")
   (infof (Exception.)))
 
+;;;;
+
 (defmacro -log-errors [?line & body]
   `(enc/catching (do ~@body) e#
      (do
@@ -968,25 +903,10 @@
 (defmacro log-and-rethrow-errors [& body] `(-log-and-rethrow-errors ~(fline &form) ~@body))
 (defmacro logged-future          [& body] `(-logged-future          ~(fline &form) ~@body))
 
-#?(:clj
-   (defn handle-uncaught-jvm-exceptions!
-     "Sets JVM-global DefaultUncaughtExceptionHandler."
-     [& [handler]]
-     (let [handler
-           (or handler
-             (fn [throwable ^Thread thread]
-               (errorf throwable "Uncaught exception on thread: %s"
-                 (.getName thread))))]
-
-       (Thread/setDefaultUncaughtExceptionHandler
-         (reify Thread$UncaughtExceptionHandler
-           (uncaughtException [this thread throwable] (handler throwable thread)))))))
-
 (comment
   (log-errors             (/ 0))
   (log-and-rethrow-errors (/ 0))
-  (logged-future          (/ 0))
-  (handle-uncaught-jvm-exceptions!))
+  (logged-future          (/ 0)))
 
 (defmacro -spy [?line config level name expr]
   `(-log-and-rethrow-errors ~?line
@@ -1007,10 +927,7 @@
   ([       level name expr] `(-spy ~(fline &form) *config* ~level  ~name ~expr))
   ([config level name expr] `(-spy ~(fline &form) ~config  ~level  ~name ~expr)))
 
-(defmacro get-env [] `(enc/get-env))
-
 (comment
-  ((fn foo [x y] (get-env)) 5 10)
   (with-config
     (assoc example-config :appenders
       {:default {:enabled? true :fn (fn [m] (println #_(keys m) (:spying? m)))}})
@@ -1018,174 +935,35 @@
     (spy  "foo")))
 
 #?(:clj
+   (defn handle-uncaught-jvm-exceptions!
+     "Sets JVM-global DefaultUncaughtExceptionHandler."
+     [& [handler]]
+     (let [handler
+           (or handler
+             (fn [throwable ^Thread thread]
+               (error throwable "Uncaught exception on thread:"
+                 (.getName thread))))]
+
+       (Thread/setDefaultUncaughtExceptionHandler
+         (reify Thread$UncaughtExceptionHandler
+           (uncaughtException [this thread throwable] (handler throwable thread)))))))
+
+(comment (handle-uncaught-jvm-exceptions!))
+
+;;;; Ns imports
+
+#?(:clj
    (defn refer-timbre
      "Shorthand for:
      (require '[taoensso.timbre :as timbre
-                :refer (log  trace  debug  info  warn  error  fatal  report
+                :refer [log  trace  debug  info  warn  error  fatal  report
                         logf tracef debugf infof warnf errorf fatalf reportf
-                        spy)])"
+                        spy]])"
      []
      (require '[taoensso.timbre :as timbre
-                :refer (log  trace  debug  info  warn  error  fatal  report
-                         logf tracef debugf infof warnf errorf fatalf reportf
-                         spy)])))
-
-;;;; Default fns
-
-(declare default-output-error-fn)
-
-(defn default-output-fn
-  "Default (fn [data]) -> final output string, used to produce
-  final formatted output_ string from final log data.
-
-  Options (included as `:output-opts` in data sent to fns below):
-
-    :error-fn ; When present and (:?err data) present,
-              ; (error-fn data) will be called to generate output
-              ; (e.g. a stacktrace) for the error.
-              ;
-              ; Default value: `default-output-err-fn`.
-              ; Use `nil` value to exclude error output.
-
-    :msg-fn   ; When present, (msg-fn data) will be called to
-              ; generate a message from `vargs` (vector of raw
-              ; logging arguments).
-              ;
-              ; Default value: `default-output-msg-fn`.
-              ; Use `nil` value to exclude message output."
-
-  ([base-output-opts data] ; Back compatibility (before :output-opts)
-   (let [data
-         (if (empty? base-output-opts)
-           data
-           (assoc data :output-opts
-             (conj
-               base-output-opts ; Opts from partial
-               (get data :output-opts) ; Opts from data override
-               )))]
-
-     (default-output-fn data)))
-
-  ([data]
-   (let [{:keys [level ?err #_vargs msg_ ?ns-str ?file hostname_
-                 timestamp_ ?line output-opts]}
-         data]
-
-     (str
-       (when-let [ts (force timestamp_)] (str ts " "))
-       #?(:clj (force hostname_))  #?(:clj " ")
-       (str/upper-case (name level))  " "
-       "[" (or ?ns-str ?file "?") ":" (or ?line "?") "] - "
-
-       (when-let [msg-fn (get output-opts :msg-fn default-output-msg-fn)]
-         (msg-fn data))
-
-       (when-let [err ?err]
-         (when-let [ef (get output-opts :error-fn default-output-error-fn)]
-           (when-not   (get output-opts :no-stacktrace?) ; Back compatibility
-             (str enc/system-newline
-               (ef data)))))))))
-
-(defn- default-arg->str-fn [x]
-  (enc/cond
-    (nil?    x) "nil"
-    (string? x) x
-    :else
-    #?(:clj (with-out-str (pr x))
-       :cljs          (pr-str x))))
-
-(defn- legacy-arg->str-fn [x]
-  (enc/cond
-    (nil?    x) "nil"
-    (record? x) (pr-str x)
-    :else               x))
-
-(defn- str-join
-  ([            xs] (str-join default-arg->str-fn       xs))
-  ([arg->str-fn xs] (enc/str-join " " (map arg->str-fn) xs)))
-
-(comment
-  (defrecord MyRec [x])
-  (str-join ["foo" (MyRec. "foo")]))
-
-(defn default-output-msg-fn
-  "(fn [data]) -> string, used by `default-output-fn` to generate output
-  for `:vargs` value (vector of raw logging arguments) in log data."
-  [{:keys [msg-type ?msg-fmt vargs output-opts] :as data}]
-  (let [{:keys [arg->str-fn] ; Undocumented
-         :or   {arg->str-fn default-arg->str-fn}}
-        output-opts]
-
-    (case msg-type
-      nil ""
-      :p  (str-join arg->str-fn vargs)
-      :f
-      (if (string?   ?msg-fmt)
-        (enc/format* ?msg-fmt vargs) ; Don't use arg->str-fn, would prevent custom formatting
-        (throw
-          (ex-info "Timbre format-style logging call without a format pattern string"
-            {:?msg-fmt ?msg-fmt :type (type ?msg-fmt) :vargs vargs}))))))
-
-(comment
-  (default-output-msg-fn
-    {:msg-type :p :vargs ["a" "b"]
-     :output-opts {:arg->str-fn (fn [_] "x")}}))
-
-#?(:clj
-   (def ^:private default-stacktrace-fonts
-     (or
-       (enc/read-sys-val
-         "taoensso.timbre.default-stacktrace-fonts.edn"
-         "TAOENSSO_TIMBRE_DEFAULT_STACKTRACE_FONTS_EDN") ; Undocumented
-
-       (enc/read-sys-val "TIMBRE_DEFAULT_STACKTRACE_FONTS") ; Legacy
-       nil)))
-
-(defn default-output-error-fn
-  "Default (fn [data]) -> string, used by `default-output-fn` to
-  generate output for `:?err` value in log data.
-
-  For Clj:
-     Uses `io.aviso/pretty` to return an attractive stacktrace.
-     Options:
-       :stacktrace-fonts ; See `io.aviso.exception/*fonts*`
-
-  For Cljs:
-     Returns simple stacktrace string."
-
-  [{:keys [?err output-opts] :as data}]
-  (let [err (have ?err)]
-
-    #?(:cljs
-       (let [nl enc/system-newline]
-         (str
-           (.-stack err) ; Includes `ex-message`
-           (when-let [d (ex-data  err)]
-             (str nl "ex-data" enc/system-newline "    " (pr-str d)))
-
-           (when-let [c (ex-cause err)]
-             (str nl "caused by - "
-               (default-output-error-fn
-                 (assoc data :?err err))))))
-
-       :clj
-       (let [stacktrace-fonts ; nil->{}
-             (if-let [e (find output-opts :stacktrace-fonts)]
-               (let [st-fonts (val e)]
-                 (if (nil? st-fonts)
-                   {}
-                   st-fonts))
-               default-stacktrace-fonts)]
-
-         (if-let [fonts stacktrace-fonts]
-           (binding [aviso-ex/*fonts* fonts]
-             (do (aviso-ex/format-exception err)))
-           (do   (aviso-ex/format-exception err)))))))
-
-(comment
-  (default-output-error-fn
-    {:?err (Exception. "Boo")
-     :output-opts {:stacktrace-fonts {}}}))
+                :refer [log  trace  debug  info  warn  error  fatal  report
+                        logf tracef debugf infof warnf errorf fatalf reportf
+                        spy]])))
 
 ;;;; Appender shutdown
 
@@ -1221,57 +999,283 @@
      (.addShutdownHook (Runtime/getRuntime)
        (Thread. ^Runnable shutdown-appenders!))))
 
-;;;; Misc public utils
+;;;; Config
+
+;;; Alias core appenders here for user convenience
+#?(:clj  (enc/defalias         core-appenders/println-appender))
+#?(:clj  (enc/defalias         core-appenders/spit-appender))
+#?(:cljs (def println-appender core-appenders/println-appender))
+#?(:cljs (def console-appender core-appenders/console-appender))
+
+(def default-timestamp-opts
+  "Controls (:timestamp_ data)"
+  #?(:cljs {:pattern  :iso8601 #_"yy-MM-dd HH:mm:ss"}
+     :clj
+     {:pattern  :iso8601     #_"yyyy-MM-dd'T'HH:mm:ss.SSSX" #_"yy-MM-dd HH:mm:ss"
+      :locale   :jvm-default #_(java.util.Locale. "en")
+      :timezone :utc         #_(java.util.TimeZone/getTimeZone "Europe/Amsterdam")}))
+
+(def default-config
+  "Default/example Timbre `*config*` value:
+
+    {:min-level :debug #_[[\"taoensso.*\" :error] [\"*\" :debug]]
+     :ns-filter #{\"*\"} #_{:deny #{\"taoensso.*\"} :allow #{\"*\"}}
+
+     :middleware [] ; (fns [data]) -> ?data, applied left->right
+
+     :timestamp-opts default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
+     :output-fn default-output-fn ; (fn [data]) -> final output for use by appenders
+
+     :appenders
+     #?(:clj
+        {:println (println-appender {:stream :auto})
+         ;; :spit (spit-appender    {:fname \"./timbre-spit.log\"})
+         }
+
+        :cljs
+        (if (exists? js/window)
+          {:console (console-appender {})}
+          {:println (println-appender {})}))}
+
+    See `*config*` for more info."
+
+  {:min-level :debug #_[["taoensso.*" :error] ["*" :debug]]
+   :ns-filter #{"*"} #_{:deny #{"taoensso.*"} :allow #{"*"}}
+
+   :middleware [] ; (fns [data]) -> ?data, applied left->right
+
+   :timestamp-opts default-timestamp-opts ; {:pattern _ :locale _ :timezone _}
+   :output-fn      default-output-fn ; (fn [data]) -> final output
+
+   :appenders
+   #?(:clj
+      {:println (println-appender {:stream :auto})
+       ;; :spit (spit-appender    {:fname "./timbre-spit.log"})
+       }
+
+      :cljs
+      (if (exists? js/window)
+        {:console (console-appender {})}
+        {:println (println-appender {})}))})
+
+(comment
+  (set-config! default-config)
+  (infof "Hello %s" "world :-)"))
 
 #?(:clj
-   (defn ansi-color [color]
-     (str "\u001b["
-       (case color
-         :reset  "0"  :black  "30" :red   "31"
-         :green  "32" :yellow "33" :blue  "34"
-         :purple "35" :cyan   "36" :white "37"
-         "0")
-       "m")))
+   (defn load-config
+     "Imlementation detail, use only for debugging, etc.
+     Returns Timbre config loaded from JVM property, Env var, or
+     resource file.
 
-#?(:clj
-   (let [ansi-reset (ansi-color :reset)]
-     (defn color-str
-       ([color           ] (str (ansi-color color)                      ansi-reset)) ; Back compatibility
-       ([color x         ] (str (ansi-color color) x                    ansi-reset))
-       ([color x y       ] (str (ansi-color color) x y                  ansi-reset))
-       ([color x y & more] (str (ansi-color color) x y (apply str more) ansi-reset)))))
+     See `*config*` docstring for more info."
+     ([edn source]
+      (let [clj
+            (try
+              (enc/read-edn edn)
+              (catch Throwable t
+                (throw
+                  (ex-info "[Timbre config] Error reading config EDN"
+                    {:edn edn :source source} t))))
 
-#?(:clj (def default-out (java.io.OutputStreamWriter. System/out)))
-#?(:clj (def default-err (java.io.PrintWriter.        System/err)))
-(defmacro with-default-outs [& body]
-  `(binding [*out* default-out, *err* default-err] ~@body))
+            config
+            (if (symbol? clj)
+              (if-let [var
+                       (or
+                         (resolve clj)
+                         (when-let [ns (namespace clj)]
+                           (require ns)
+                           (resolve clj)))]
+                @var
+                (throw
+                  (ex-info "[Timbre config] Failed to resolve config symbol"
+                    {:edn edn :symbol symbol :source source})))
+              clj)]
 
-#?(:clj
-   (do ; Hostname stuff
-     (defn get-?hostname "Returns live local hostname, or nil." []
-       (try (.getHostName (java.net.InetAddress/getLocalHost))
-            (catch java.net.UnknownHostException _ nil)))
+        (if (map? config)
+          (if  (get config :load/overwrite?) ; Undocumented
+            (dissoc config :load/overwrite?) ; Without merge
+            (enc/nested-merge default-config config))
 
-     (let [unknown "UnknownHost"]
-       (def get-hostname "Returns cached hostname string."
-         (enc/memoize (enc/ms :mins 1)
-           (fn []
-             (try
-               (let [p (promise)]
-                 ;; Android doesn't like hostname calls on the main thread.
-                 ;; Using `future` would start the Clojure agent threadpool though,
-                 ;; which can slow down application shutdown w/o a `(shutdown-agents)`
-                 ;; call.
-                 (.start (Thread. (fn [] (deliver p (get-?hostname)))))
-                 (or (deref p 5000 nil) unknown))
-               (catch Exception _ unknown))))))))
+          (throw
+            (ex-info "[Timbre config] Unexpected config value type"
+              {:value config :type (type config) :source source})))))
 
-(comment (get-hostname))
+     ([]
+      (when-let [[edn source]
+                 (or
+                   (let [prop-name "taoensso.timbre.config.edn"]
+                     (when-let [edn (System/getProperty prop-name)]
+                       [edn {:jvm-property prop-name}]))
 
-(defmacro sometimes "Handy for sampled logging, etc."
-  [probability & body]
-   `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
-        (when (< (rand) ~probability) ~@body)))
+                   (let [env-name "TAOENSSO_TIMBRE_CONFIG_EDN"]
+                     (when-let [edn (System/getenv env-name)]
+                       [edn {:env-var env-name}]))
+
+                   (let [res-name
+                         (or
+                           (enc/get-sys-val ; Configurable resource name, undocumented
+                             "taoensso.timbre.config-resource"
+                             "TAOENSSO_TIMBRE_CONFIG_RESOURCE")
+
+                           "taoensso.timbre.config.edn")]
+
+                     (when-let [edn (enc/slurp-resource res-name)]
+                       [edn {:resource res-name}])))]
+
+        (println (str "Loading Timbre config from: " source))
+        (load-config edn source)))))
+
+(enc/defonce ^:dynamic *config*
+  "This config map controls all Timbre behaviour including:
+    - When to log (via min-level and namespace filtering)
+    - How  to log (which appenders to use, etc.)
+    - What to log (how log data will be transformed to final
+                   output for use by appenders)
+
+  Initial config value will be (in descending order of preference):
+
+    1. `taoensso.timbre.config.edn`   JVM property  (read as EDN)
+    2. `TAOENSSO_TIMBRE_CONFIG_EDN`   Env var       (read as EDN)
+    3. `./taoensso.timbre.config.edn` resource file (read as EDN)
+    4. Value of `default-config`
+
+  For all EDN cases (1-3): the EDN can represent either a Clojure map
+  to merge into `default-config`, or a qualified symbol that'll
+  resolve to a Clojure map to merge into `default-config`.
+
+  See `default-config` for more info on the base/default config.
+
+  You can modify the config value with standard `alter-var-root`,
+  or `binding`.
+
+  For convenience, there's also some dedicated helper utils:
+
+    - `set-config!`, `merge-config!`        ; Mutate *config*
+    - `set-min-level!`, `set-min-ns-level!` ; Mutate *config* :min-level
+    - `with-config`, `with-merged-config`   ; Bind *config*
+    - `with-min-level`                      ; Bind *config* :min-level
+
+
+  MAIN CONFIG OPTIONS
+
+    :min-level
+      Logging will occur only if a logging call's level is >= this
+      min-level. Possible values, in order:
+
+        :trace  = level 0
+        :debug  = level 1 ; Default min-level
+        :info   = level 2
+        :warn   = level 3
+        :error  = level 4 ; Error type
+        :fatal  = level 5 ; Error type
+        :report = level 6 ; High general-purpose (non-error) type
+
+      It's also possible to set a namespace-specific min-level by
+      providing a vector that maps `ns-pattern`s to min-levels, e.g.:
+      `[[#{\"taoensso.*\"} :error] ... [#{\"*\"} :debug]]`.
+
+      Example `ns-pattern`s:
+        #{}, \"*\", \"foo.bar\", \"foo.bar.*\", #{\"foo\" \"bar.*\"},
+        {:allow #{\"foo\" \"bar.*\"} :deny #{\"foo.*.bar.*\"}}.
+
+      See also `set-min-ns-level!` for a helper tool.
+
+    :ns-filter
+      Logging will occur only if a logging call's namespace is permitted
+      by this ns-filter. Possible values:
+
+        - Arbitrary (fn may-log-ns? [ns]) predicate fn.
+        - An `ns-pattern` (see :min-level docs above).
+
+      Useful for turning off logging in noisy libraries, etc.
+
+    :middleware
+      Vector of simple (fn [data]) -> ?new-data fns (applied left->right)
+      that transform the data map dispatched to appender fns. If any middleware
+      returns nil, NO dispatch will occur (i.e. the event will be filtered).
+
+      Useful for layering advanced functionality. Similar to Ring middleware.
+
+    :timestamp-opts ; Config map, see `default-timestamp-opts`
+    :output-fn      ; (fn [data]) -> final output for use by appenders,
+                    ; see `default-output-fn` for example
+    :output-opts    ; Optional map added to data sent to output-fn
+
+    :appenders ; {<appender-id> <appender-map>}
+
+      Where each appender-map has keys:
+        :enabled?        ; Must be truthy to log
+        :min-level       ; Optional *additional* appender-specific min-level
+        :ns-filter       ; Optional *additional* appender-specific ns-filter
+
+        :async?          ; Dispatch using agent? Useful for slow appenders (clj only)
+
+        :rate-limit      ; [[<ncalls-limit> <window-msecs>] ...], or nil
+                         ; Appender will noop a call after exceeding given number
+                         ; of the \"same\" calls within given rolling window/s.
+                         ;
+                         ; Example:
+                         ;   [[100  (encore/ms :mins  1)]
+                         ;    [1000 (encore/ms :hours 1)]] will noop a call after:
+                         ;
+                         ;   - >100  \"same\" calls in 1 rolling minute, or
+                         ;   - >1000 \"same\" calls in 1 rolling hour
+                         ;
+                         ; \"Same\" calls are identified by default as the
+                         ; combined hash of:
+                         ;   - Callsite (i.e. each individual Timbre macro form)
+                         ;   - Logging level
+                         ;   - All arguments provided for logging
+                         ;
+                         ; You can manually override call identification:
+                         ;   (timbre/infof ^:meta {:id \"my-limiter-call-id\"} ...)
+                         ;
+
+        :timestamp-opts  ; Optional appender-specific override for top-level option
+        :output-fn       ; Optional appender-specific override for top-level option
+        :output-opts     ; Optional appender-specific override for top-level option
+
+        :fn              ; (fn [data]) -> side-effects, with keys described below
+
+  LOG DATA
+    A single map with keys:
+      :config          ; Entire active config map
+      :context         ; `*context*` value at log time (see `with-context`)
+      :appender-id     ; Id of appender currently dispatching
+      :appender        ; Entire map of appender currently dispatching
+      :instant         ; Platform date (java.util.Date or js/Date)
+      :level           ; Call's level keyword (e.g. :info) (>= active min-level)
+      :error-level?    ; Is level e/o #{:error :fatal}?
+      :spying?         ; Is call occuring via the `spy` macro?
+      :?ns-str         ; String,  or nil
+      :?file           ; String,  or nil
+      :?line           ; Integer, or nil ; Waiting on CLJ-865
+      :?err            ; First-arg platform error, or nil
+      :?meta           ; First-arg map when it has ^:meta metadata, used as a
+                         way of passing advanced per-call options to appenders
+      :vargs           ; Vector of raw args provided to logging call
+      :timestamp_      ; Forceable - string
+      :hostname_       ; Forceable - string (clj only)
+      :output-fn       ; (fn [data]) -> final output for use by appenders
+      :output_         ; Forceable result of calling (output-fn <this-data-map>)
+
+      **NB** - any keys not specifically documented here should be
+      considered private / subject to change without notice.
+
+  COMPILE-TIME LEVEL/NS ELISION
+    To control :min-level and :ns-filter at compile-time, use:
+
+      - `taoensso.timbre.min-level.edn`  JVM property (read as EDN)
+      - `taoensso.timbre.ns-pattern.edn` JVM property (read as EDN)
+
+      - `TAOENSSO_TIMBRE_MIN_LEVEL_EDN`  env var      (read as EDN)
+      - `TAOENSSO_TIMBRE_NS_PATTERN_EDN` env var      (read as EDN)
+
+    Note that compile-time options will OVERRIDE options in `*config*`."
+
+  #?(:clj  (or (load-config) default-config)
+     :cljs                   default-config))
 
 ;;;; Deprecated
 
