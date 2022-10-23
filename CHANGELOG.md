@@ -1,5 +1,39 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v6.0.0 / 2022 Oct 28
+
+```clojure
+[com.taoensso/timbre "6.0.0"]
+```
+
+> This is a **major feature release**. Changes may be BREAKING for some users, see relevant commits referenced below for details.  
+> Please test before use in production and report any problems, thanks!  
+> See [here](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
+
+### Changes since `v5.2.1`
+
+- 1c9fbb4f [mod] [BREAKING] [#322 #353] Reorganise community appenders
+- 12457d9e [mod] [BREAKING] Default (nil) :min-level changed from `:report` -> `:trace`
+- 65c3b473 [mod] [DEPRECATED] `:msg_` is now undocumented
+- 98deeb73 [mod] [DEPRECATE] `set-level!` -> `set-min-level!`, `with-level` -> `with-min-level`
+- 597c7a06 [mod] [#356] Call `pr-str` on non-string arguments
+- 844943eb [mod] [#355 #339] Improve formatting of errors in Cljs (@aiba @DerGuteMoritz)
+- 18bf001e [nop] Update core dependencies
+- e5851f77 [nop] Update community dependencies
+- [nop] Misc refactoring, incl. documentation improvements
+
+### New since `v5.2.1`
+
+- 2823c471 [new] [#332] Add ability to load initial Timbre config from edn system value or resource
+- 9085a416 [new] [#328] Add new utils: `set-min-level!`, `set-ns-min-level!`, etc.
+- 841a064a [new] [#356] Add `:msg-fn` option to `default-output-fn`
+- 39a5e5a0 [new] [#317] Add `:output-error-fn` option to `default-output-fn`
+- 6af3eda0 [new] [#217] Add alpha `shutdown-appenders!` util and hook
+- 1024373b [new] [#354] Make `callsite-id` in `log!` macro deterministic for Clojure (@DerGuteMoritz)
+- baaf1387 [new] Add `:output-opts` support to top-level and appender config
+- 8d1b3a6e [new] Wrap output and msg fns for better error messages
+
+
 ## v5.2.1 / 2022 Mar 22
 
 ```clojure
