@@ -22,4 +22,4 @@ jobs:
 
     - name: Run tests for Java 14
       run: |
-        lein test
+        lein test-all
