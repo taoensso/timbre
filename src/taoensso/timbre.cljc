@@ -4,8 +4,7 @@
 
   (:require
    [clojure.string  :as str]
-   [clojure.test    :as test :refer [deftest testing is]]
-   [taoensso.encore :as enc  :refer [have have?]]
+   [taoensso.encore :as enc :refer [have have?]]
    [taoensso.timbre.appenders.core :as core-appenders]
 
    #?(:clj  [io.aviso.exception :as aviso-ex])
@@ -260,20 +259,7 @@
 
      (assoc config :min-level min-level*))))
 
-(deftest ^:private _set-ns-min-level
-  [(is (= (set-ns-min-level {:min-level :info         } "a" :trace) {:min-level [["a" :trace] ["*" :info]]}))
-   (is (= (set-ns-min-level {:min-level [["a" :debug]]} "a" :trace) {:min-level [["a" :trace]]}))
-   (is (= (set-ns-min-level {:min-level [["a" :debug]]} "a" nil)    {:min-level nil}))
-
-   (is (= (set-ns-min-level {:min-level [["a.b" :trace] ["a.c" :debug] ["a.*" :info] ["a.c" :error]]}
-            "a.c" :report)
-
-         {:min-level [["a.c" :report] ["a.b" :trace] ["a.*" :info]]}))
-
-   (is (= (->
-            (set-ns-min-level {:min-level :info} "foo" :debug)
-            (set-ns-min-level "foo" nil))
-         {:min-level :info}))])
+(comment :see-tests)
 
 (defn set-ns-min-level!
   "Like `set-ns-min-level` but directly modifies `*config*`.
