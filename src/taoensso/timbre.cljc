@@ -382,7 +382,7 @@
               ; (error-fn data) will be called to generate output
               ; (e.g. a stacktrace) for the error.
               ;
-              ; Default value: `default-output-err-fn`.
+              ; Default value: `default-output-error-fn`.
               ; Use `nil` value to exclude error output.
 
     :msg-fn   ; When present, (msg-fn data) will be called to
@@ -498,13 +498,13 @@
        (let [nl enc/system-newline]
          (str
            (.-stack err) ; Includes `ex-message`
-           (when-let [d (ex-data  err)]
-             (str nl "ex-data" enc/system-newline "    " (pr-str d)))
+           (when-let [d (ex-data err)]
+             (str nl "ex-data:" nl "    " (pr-str d)))
 
            (when-let [c (ex-cause err)]
-             (str nl "caused by - "
+             (str nl nl "Caused by:" nl
                (default-output-error-fn
-                 (assoc data :?err err))))))
+                 (assoc data :?err c))))))
 
        :clj
        (let [stacktrace-fonts ; nil->{}
