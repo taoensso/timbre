@@ -115,6 +115,29 @@
       (is (map?      (:?meta (log-data "ns" :report {} {} [^:meta {:a :A} "foo"]))) "First-arg ^:meta {} -> :?meta")
       (is (= ["foo"] (:vargs (log-data "ns" :report {} {} [^:meta {:a :A} "foo"]))) "First-arg ^:meta {} dropped from vargs")])])
 
+(deftest output
+  [(is (= "o1" @(:output_ (log-data "ns" :report {:output-fn (fn [data] "o1")} {} ["a1"]))))
+   (is (= "o2" @(:output_ (log-data "ns" :report
+                            {:output-fn (fn [data] "o1")} ; Config
+                            {:output-fn (fn [data] "o2")} ; Appender
+                            ["a1"])))
+
+     "Appender :output-fn overrides top-level :output-fn")
+
+   (is (= @(:output_ (log-data "ns" :report {:output-fn :output-opts :output-opts {:k :v1}}
+                       {} ["a1"]))
+         {:k :v1})
+
+     "Log data includes :output-opts")
+
+   (is (= @(:output_ (log-data "ns" :report
+                       {:output-fn :output-opts :output-opts {:k :v1}} ; Config
+                       {                        :output-opts {:k :v2}} ; Appender
+                       ["a1"]))
+         {:k :v2})
+
+     "Appender :output-opts overrides top-level :output-opts")])
+
 ;;;;
 
 #?(:cljs (test/run-tests))
