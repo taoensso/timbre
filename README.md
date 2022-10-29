@@ -208,7 +208,7 @@ See also `car-appender/query-entries`.
 
 ### Community appenders
 
-A number of community appenders are included out-the-box [here](https://github.com/ptaoussanis/timbre/tree/master/community/src). These include appenders for Android, Logstash, Slack, Sentry, NodeJS, Syslog, PostgreSQL, etc.
+A number of community appenders are included out-the-box [here](https://github.com/ptaoussanis/timbre/tree/master/src/taoensso/timbre/appenders/community). These include appenders for Android, Logstash, Slack, Sentry, NodeJS, Syslog, PostgreSQL, etc.
 
 Thanks goes to the respective authors!  
 **Please see the relevant namespace docstring for details**.

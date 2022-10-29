@@ -32,12 +32,10 @@
    :c1.9     {:dependencies [[org.clojure/clojure "1.9.0"]]}
 
    :depr     {:jvm-opts ["-Dtaoensso.elide-deprecated=true"]}
-   :dev      [:c1.11 :test :server-jvm #_:depr #_:community] ; TODO :depr
+   :dev      [:c1.11 :test :server-jvm #_:depr :community #_:extra] ; TODO :depr
 
    :community
-   {:source-paths [       "src"                  "community/src"]
-    :test-paths   ["test" "src" "community/test" "community/src"]
-    :dependencies
+   {:dependencies
     [[irclj                   "0.5.0-alpha4"]
      [org.graylog2/gelfclient "1.5.1"
       :exclusions [com.fasterxml.jackson.core/jackson-core]]
@@ -54,6 +52,10 @@
      [org.zeromq/cljzmq       "0.1.4"]
      [cljs-node-io            "1.1.2"] ; Node spit appender
      ]}
+
+   :extra
+   {:source-paths [         "src"                "extra/src"]
+    :test-paths   ["test" #_"src" "extra/test" #_"extra/src"]}
 
    :test
    {:dependencies
@@ -84,7 +86,9 @@
 
   :aliases
   {"start-dev"  ["with-profile" "+dev" "repl" ":headless"]
-   "deploy-lib" ["do" ["build-once"] ["deploy" "clojars"] ["install"]]
+   ;; "deploy-lib" ["do" ["build-once"] ["deploy" "clojars"] ["install"]]
+   "deploy-lib" ["with-profile" "+extra"
+                 "do" ["build-once"] ["deploy" "clojars"] ["install"]]
    "build-once" ["do" ["clean"] "cljsbuild" "once"]
 
    "test-cljs"  ["with-profile" "+test" "cljsbuild" "test"]
