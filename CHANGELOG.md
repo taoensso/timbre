@@ -1,5 +1,16 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v6.0.1 / 2022 Oct 29
+
+```clojure
+[com.taoensso/timbre "6.0.1"]
+```
+
+### Fixes since `v6.0.0`
+
+- [fix] [#359] Restore missing community appenders to the Timbre jar
+
+
 ## v6.0.0 / 2022 Oct 28
 
 ```clojure
