@@ -1190,6 +1190,9 @@
         :ns-filter       ; Optional *additional* appender-specific ns-filter
 
         :async?          ; Dispatch using agent? Useful for slow appenders (clj only)
+                         ; Tip: consider calling (shutdown-agents) as part of your
+                         ; application shutdown if you have this enabled for any
+                         ; appenders.
 
         :rate-limit      ; [[<ncalls-limit> <window-msecs>] ...], or nil
                          ; Appender will noop a call after exceeding given number
