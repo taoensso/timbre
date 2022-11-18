@@ -749,12 +749,9 @@
 
 (defn- fline [and-form] (:line (meta and-form)))
 
-;; Try enable reproducible builds by ensuring that `log!` macro expansion
-;; produces deterministic callsite-ids, Ref. #354
-#?(:cljs (def ^:private deterministic-rand rand) ; Dummy, non-deterministic
-   :clj  (let [;; Must be delayed for GraalVM compatibility, Ref. #360
-               rand_ (delay (java.util.Random. 715873))]
-           (defn- deterministic-rand [] (.nextDouble ^java.util.Random @rand_))))
+(enc/defonce ^:private callsite-counter
+  "Simple counter, used to uniquely identify each log macro expansion."
+  (enc/counter))
 
 (defmacro log! ; Public wrapper around `-log!`
   "Core low-level log macro. Useful for tooling/library authors, etc.
@@ -786,12 +783,9 @@
 
             ?file (when (not= ?file "NO_SOURCE_PATH") ?file)
 
-            ;; Identifies this particular macro expansion; note that this'll
-            ;; be fixed for any fns wrapping `log!` (notably `tools.logging`,
-            ;; `slf4j-timbre`, etc.):
-            callsite-id
-            (hash [level msg-type args ; Unevaluated args (arg forms)
-                   ?ns-str ?file ?line (deterministic-rand)])
+            ;; Note that this'll be const for any fns wrapping `log!`
+            ;; (notably `tools.logging`, `slf4j-timbre`, etc.)
+            callsite-id (callsite-counter)
 
             vargs-form
             (if (symbol? args)
