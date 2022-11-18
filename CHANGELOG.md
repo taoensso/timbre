@@ -1,5 +1,16 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v6.0.2 / 2022 Nov 18
+
+```clojure
+[com.taoensso/timbre "6.0.2"]
+```
+
+### Fixes since `v6.0.1`
+
+- [fix] [#360] Fix broken compatibility with GraalVM (@borkdude)
+
+
 ## v6.0.1 / 2022 Oct 29
 
 ```clojure
