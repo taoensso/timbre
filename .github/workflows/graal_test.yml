@@ -1,0 +1,50 @@
+name: graal-test
+
+on: [push, pull_request]
+
+jobs:
+
+  clojure:
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # It is important to install java before installing clojure tools which needs java
+      # exclusions: babashka, clj-kondo and cljstyle
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          version: 'latest'
+          java-version: '17'
+          components: 'native-image'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@10.0
+        with:
+          lein: 2.9.1                  # Leiningen
+          bb: latest                   # Babashka
+
+      # Optional step:
+      - name: Cache clojure dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+            ~/.deps.clj
+          # List all files containing dependencies:
+          key: cljdeps-${{ hashFiles('deps.edn') }}
+          # key: cljdeps-${{ hashFiles('deps.edn', 'bb.edn') }}
+          # key: cljdeps-${{ hashFiles('project.clj') }}
+          # key: cljdeps-${{ hashFiles('build.boot') }}
+          restore-keys: cljdeps-
+
+      - name: Execute graal-test
+        run: bb test:graal
