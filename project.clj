@@ -64,7 +64,14 @@
      [com.taoensso/nippy        "3.2.0"]
      [com.taoensso/carmine      "3.1.0"
       :exclusions [com.taoensso/timbre]]
-     [com.draines/postal        "2.0.5"]]}}
+     [com.draines/postal        "2.0.5"]]}
+
+   :graal-test
+   {:dependencies [[org.clojure/clojure "1.11.1"]
+                   [com.github.clj-easy/graal-build-time "0.1.4"]]
+    :main taoensso.timbre.graal-test
+    :aot [taoensso.timbre.graal-test]
+    :uberjar-name "graal-test.jar"}}
 
   :test-paths ["test" #_"src"]
 
