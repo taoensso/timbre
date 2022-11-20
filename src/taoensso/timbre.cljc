@@ -27,8 +27,8 @@
 (defn   set-config! [config] (swap-config! (fn [_old] config)))
 (defn merge-config! [config] (swap-config! (fn [ old] (enc/nested-merge old config))))
 
-(defmacro with-config        [config & body] `(binding [*config*                            ~config ] ~@body))
-(defmacro with-merged-config [config & body] `(binding [*config* (enc/nested-merge *config* ~config)] ~@body))
+#?(:clj (defmacro with-config        [config & body] `(binding [*config*                            ~config ] ~@body)))
+#?(:clj (defmacro with-merged-config [config & body] `(binding [*config* (enc/nested-merge *config* ~config)] ~@body)))
 
 ;;;; Level filtering
 ;; Terminology note: we loosely distinguish between call/form and min levels,
@@ -208,10 +208,11 @@
 
 ;;;; Namespace min-level utils
 
-(defn      set-min-level [config min-level] (assoc config :min-level (valid-level min-level)))
-(defn      set-min-level!       [min-level] (swap-config! (fn [old] (set-min-level old min-level))))
-(defmacro with-min-level [min-level & body]
-  `(binding [*config* (set-min-level *config* ~min-level)] ~@body))
+(defn set-min-level [config min-level] (assoc config :min-level (valid-level min-level)))
+(defn set-min-level!       [min-level] (swap-config! (fn [old] (set-min-level old min-level))))
+#?(:clj
+   (defmacro with-min-level [min-level & body]
+     `(binding [*config* (set-min-level *config* ~min-level)] ~@body)))
 
 (defn set-ns-min-level
   "Returns given Timbre `config` with its `:min-level` modified so that
@@ -271,7 +272,7 @@
 
 ;;;; Utils
 
-(defmacro get-env [] `(enc/get-env))
+#?(:clj (defmacro get-env [] `(enc/get-env)))
 (comment ((fn foo [x y] (get-env)) 5 10))
 
 #?(:clj (defonce ^:private get-agent        (enc/fmemoize (fn [appender-id      ] (agent nil :error-mode :continue)))))
@@ -342,13 +343,15 @@
 
 #?(:clj (def default-out (java.io.OutputStreamWriter. System/out)))
 #?(:clj (def default-err (java.io.PrintWriter.        System/err)))
-(defmacro with-default-outs [& body]
-  `(binding [*out* default-out, *err* default-err] ~@body))
+#?(:clj
+   (defmacro with-default-outs [& body]
+     `(binding [*out* default-out, *err* default-err] ~@body)))
 
-(defmacro sometimes "Handy for sampled logging, etc."
-  [probability & body]
-   `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
-        (when (< (rand) ~probability) ~@body)))
+#?(:clj
+   (defmacro sometimes "Handy for sampled logging, etc."
+     [probability & body]
+     `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
+          (when (< (rand) ~probability) ~@body))))
 
 ;;;; Default fns
 
@@ -512,23 +515,26 @@
 ;;;; Context
 
 (def ^:dynamic *context* "General-purpose dynamic logging context" nil)
-(defmacro  with-context
-  "Executes body so that given arbitrary data will be passed (as `:context`)
-  to appenders for any enclosed logging calls.
 
-  (with-context
-    {:user-name \"Stu\"} ; Will be incl. in data dispatched to appenders
-    (info \"User request\"))
+#?(:clj
+   (defmacro with-context
+     "Executes body so that given arbitrary data will be passed (as `:context`)
+     to appenders for any enclosed logging calls.
 
-  See also `with-context+`."
+     (with-context
+       {:user-name \"Stu\"} ; Will be incl. in data dispatched to appenders
+       (info \"User request\"))
 
-  [context & body] `(binding [*context* ~context] ~@body))
+     See also `with-context+`."
 
-(defmacro with-context+
-  "Like `with-context`, but merges given context into current context."
-  [context & body]
-  `(binding [*context* (conj (or *context* {}) ~context)]
-     ~@body))
+     [context & body] `(binding [*context* ~context] ~@body)))
+
+#?(:clj
+   (defmacro with-context+
+     "Like `with-context`, but merges given context into current context."
+     [context & body]
+     `(binding [*context* (conj (or *context* {}) ~context)]
+        ~@body)))
 
 (comment (with-context+ {:foo1 :bar1} (with-context+ {:foo2 :bar2} *context*)))
 
@@ -753,47 +759,48 @@
   "Simple counter, used to uniquely identify each log macro expansion."
   (enc/counter))
 
-(defmacro log! ; Public wrapper around `-log!`
-  "Core low-level log macro. Useful for tooling/library authors, etc.
+#?(:clj
+   (defmacro log! ; Public wrapper around `-log!`
+     "Core low-level log macro. Useful for tooling/library authors, etc.
 
-    * `level`    - must eval to a valid logging level
-    * `msg-type` - must eval to e/o #{:p :f nil}
-    * `args`     - arguments for logging call
-    * `opts`     - ks e/o #{:config :?err :?ns-str :?file :?line :?base-data :spying?}
+       * `level`    - must eval to a valid logging level
+       * `msg-type` - must eval to e/o #{:p :f nil}
+       * `args`     - arguments for logging call
+       * `opts`     - ks e/o #{:config :?err :?ns-str :?file :?line :?base-data :spying?}
 
-  Supports compile-time elision when compile-time const vals
-  provided for `level` and/or `?ns-str`.
+     Supports compile-time elision when compile-time const vals
+     provided for `level` and/or `?ns-str`.
 
-  Logging wrapper examples:
+     Logging wrapper examples:
 
-    (defn     log-wrapper-fn    [& args]  (timbre/log! :info :p  args))
-    (defmacro log-wrapper-macro [& args] `(timbre/log! :info :p ~args))"
+       (defn     log-wrapper-fn    [& args]  (timbre/log! :info :p  args))
+       (defmacro log-wrapper-macro [& args] `(timbre/log! :info :p ~args))"
 
-  [level msg-type args & [opts]]
-  (have [:or nil? sequential? symbol?] args)
-  (let [{:keys [?ns-str] :or {?ns-str (str *ns*)}} opts]
-    ;; level, ns may/not be compile-time consts:
-    (when-not #?(:clj (-elide? level ?ns-str) :cljs false)
-      (let [{:keys [config ?err ?file ?line ?base-data spying?]
-             :or   {config 'taoensso.timbre/*config*
-                    ?err   :auto ; => Extract as err-type v0
-                    ?file  #?(:clj *file* :cljs nil)
-                    ;; NB waiting on CLJ-865:
-                    ?line (fline &form)}} opts
+     [level msg-type args & [opts]]
+     (have [:or nil? sequential? symbol?] args)
+     (let [{:keys [?ns-str] :or {?ns-str (str *ns*)}} opts]
+       ;; level, ns may/not be compile-time consts:
+       (when-not #?(:clj (-elide? level ?ns-str) :cljs false)
+         (let [{:keys [config ?err ?file ?line ?base-data spying?]
+                :or   {config 'taoensso.timbre/*config*
+                       ?err   :auto ; => Extract as err-type v0
+                       ?file  #?(:clj *file* :cljs nil)
+                       ;; NB waiting on CLJ-865:
+                       ?line (fline &form)}} opts
 
-            ?file (when (not= ?file "NO_SOURCE_PATH") ?file)
+               ?file (when (not= ?file "NO_SOURCE_PATH") ?file)
 
-            ;; Note that this'll be const for any fns wrapping `log!`
-            ;; (notably `tools.logging`, `slf4j-timbre`, etc.)
-            callsite-id (callsite-counter)
+               ;; Note that this'll be const for any fns wrapping `log!`
+               ;; (notably `tools.logging`, `slf4j-timbre`, etc.)
+               callsite-id (callsite-counter)
 
-            vargs-form
-            (if (symbol? args)
-              `(enc/ensure-vec ~args)
-              `[               ~@args])]
+               vargs-form
+               (if (symbol? args)
+                 `(enc/ensure-vec ~args)
+                 `[               ~@args])]
 
-        `(-log! ~config ~level ~?ns-str ~?file ~?line ~msg-type ~?err
-           (delay ~vargs-form) ~?base-data ~callsite-id ~spying?)))))
+           `(-log! ~config ~level ~?ns-str ~?file ~?line ~msg-type ~?err
+              (delay ~vargs-form) ~?base-data ~callsite-id ~spying?))))))
 
 (comment
   (do           (log! :info :p ["foo"]))
@@ -828,29 +835,31 @@
   )
 
 ;;;; Common public API
-;; TODO Much of the impln. here could be simpler with CLJ-865 resolved
+;; Impln. here could be simpler with CLJ-865 resolved
 
-;;; Log using print-style args
-(defmacro log*  [config level & args] `(log! ~level  :p ~args ~{:?line (fline &form) :config config}))
-(defmacro log          [level & args] `(log! ~level  :p ~args ~{:?line (fline &form)}))
-(defmacro trace              [& args] `(log! :trace  :p ~args ~{:?line (fline &form)}))
-(defmacro debug              [& args] `(log! :debug  :p ~args ~{:?line (fline &form)}))
-(defmacro info               [& args] `(log! :info   :p ~args ~{:?line (fline &form)}))
-(defmacro warn               [& args] `(log! :warn   :p ~args ~{:?line (fline &form)}))
-(defmacro error              [& args] `(log! :error  :p ~args ~{:?line (fline &form)}))
-(defmacro fatal              [& args] `(log! :fatal  :p ~args ~{:?line (fline &form)}))
-(defmacro report             [& args] `(log! :report :p ~args ~{:?line (fline &form)}))
+#?(:clj
+   (do
+     ;;; Log using print-style args
+     (defmacro log*  [config level & args] `(log! ~level  :p ~args ~{:?line (fline &form) :config config}))
+     (defmacro log          [level & args] `(log! ~level  :p ~args ~{:?line (fline &form)}))
+     (defmacro trace              [& args] `(log! :trace  :p ~args ~{:?line (fline &form)}))
+     (defmacro debug              [& args] `(log! :debug  :p ~args ~{:?line (fline &form)}))
+     (defmacro info               [& args] `(log! :info   :p ~args ~{:?line (fline &form)}))
+     (defmacro warn               [& args] `(log! :warn   :p ~args ~{:?line (fline &form)}))
+     (defmacro error              [& args] `(log! :error  :p ~args ~{:?line (fline &form)}))
+     (defmacro fatal              [& args] `(log! :fatal  :p ~args ~{:?line (fline &form)}))
+     (defmacro report             [& args] `(log! :report :p ~args ~{:?line (fline &form)}))
 
-;;; Log using format-style args
-(defmacro logf* [config level & args] `(log! ~level  :f ~args ~{:?line (fline &form) :config config}))
-(defmacro logf         [level & args] `(log! ~level  :f ~args ~{:?line (fline &form)}))
-(defmacro tracef             [& args] `(log! :trace  :f ~args ~{:?line (fline &form)}))
-(defmacro debugf             [& args] `(log! :debug  :f ~args ~{:?line (fline &form)}))
-(defmacro infof              [& args] `(log! :info   :f ~args ~{:?line (fline &form)}))
-(defmacro warnf              [& args] `(log! :warn   :f ~args ~{:?line (fline &form)}))
-(defmacro errorf             [& args] `(log! :error  :f ~args ~{:?line (fline &form)}))
-(defmacro fatalf             [& args] `(log! :fatal  :f ~args ~{:?line (fline &form)}))
-(defmacro reportf            [& args] `(log! :report :f ~args ~{:?line (fline &form)}))
+     ;;; Log using format-style args
+     (defmacro logf* [config level & args] `(log! ~level  :f ~args ~{:?line (fline &form) :config config}))
+     (defmacro logf         [level & args] `(log! ~level  :f ~args ~{:?line (fline &form)}))
+     (defmacro tracef             [& args] `(log! :trace  :f ~args ~{:?line (fline &form)}))
+     (defmacro debugf             [& args] `(log! :debug  :f ~args ~{:?line (fline &form)}))
+     (defmacro infof              [& args] `(log! :info   :f ~args ~{:?line (fline &form)}))
+     (defmacro warnf              [& args] `(log! :warn   :f ~args ~{:?line (fline &form)}))
+     (defmacro errorf             [& args] `(log! :error  :f ~args ~{:?line (fline &form)}))
+     (defmacro fatalf             [& args] `(log! :fatal  :f ~args ~{:?line (fline &form)}))
+     (defmacro reportf            [& args] `(log! :report :f ~args ~{:?line (fline &form)}))))
 
 (comment
   (infof "hello %s" "world")
@@ -859,48 +868,54 @@
 
 ;;;;
 
-(defmacro -log-errors [?line & body]
-  `(enc/catching (do ~@body) e#
-     (do
-       #_(error e#) ; CLJ-865
-       (log! :error :p [e#] ~{:?line ?line}))))
+#?(:clj
+   (defmacro -log-errors [?line & body]
+     `(enc/catching (do ~@body) e#
+        (do
+          #_(error e#) ; CLJ-865
+          (log! :error :p [e#] ~{:?line ?line})))))
 
-(defmacro -log-and-rethrow-errors [?line & body]
-  `(enc/catching (do ~@body) e#
-     (do
-       #_(error e#) ; CLJ-865
-       (log! :error :p [e#] ~{:?line ?line})
-       (throw e#))))
+#?(:clj
+   (defmacro -log-and-rethrow-errors [?line & body]
+     `(enc/catching (do ~@body) e#
+        (do
+          #_(error e#) ; CLJ-865
+          (log! :error :p [e#] ~{:?line ?line})
+          (throw e#)))))
 
-(defmacro -logged-future [?line & body] `(future (-log-errors ~?line ~@body)))
+#?(:clj
+   (do
+     (defmacro -logged-future [?line & body] `(future (-log-errors ~?line ~@body)))
 
-(defmacro log-errors             [& body] `(-log-errors             ~(fline &form) ~@body))
-(defmacro log-and-rethrow-errors [& body] `(-log-and-rethrow-errors ~(fline &form) ~@body))
-(defmacro logged-future          [& body] `(-logged-future          ~(fline &form) ~@body))
+     (defmacro log-errors             [& body] `(-log-errors             ~(fline &form) ~@body))
+     (defmacro log-and-rethrow-errors [& body] `(-log-and-rethrow-errors ~(fline &form) ~@body))
+     (defmacro logged-future          [& body] `(-logged-future          ~(fline &form) ~@body))))
 
 (comment
   (log-errors             (/ 0))
   (log-and-rethrow-errors (/ 0))
   (logged-future          (/ 0)))
 
-(defmacro -spy [?line config level name expr]
-  `(-log-and-rethrow-errors ~?line
-     (let [result# ~expr]
-       ;; Subject to elision:
-       ;; (log* ~config ~level ~name "=>" result#) ; CLJ-865
-       (log! ~level :p [~name "=>" result#]
-         ~{:?line ?line :config config :spying? true})
+#?(:clj
+   (defmacro -spy [?line config level name expr]
+     `(-log-and-rethrow-errors ~?line
+        (let [result# ~expr]
+          ;; Subject to elision:
+          ;; (log* ~config ~level ~name "=>" result#) ; CLJ-865
+          (log! ~level :p [~name "=>" result#]
+            ~{:?line ?line :config config :spying? true})
 
-       ;; NOT subject to elision:
-       result#)))
+          ;; NOT subject to elision:
+          result#))))
 
-(defmacro spy
-  "Evaluates named expression and logs its result. Always returns the result.
-  Defaults to :debug logging level and unevaluated expression as name."
-  ([                  expr] `(-spy ~(fline &form) *config* :debug '~expr ~expr))
-  ([       level      expr] `(-spy ~(fline &form) *config* ~level '~expr ~expr))
-  ([       level name expr] `(-spy ~(fline &form) *config* ~level  ~name ~expr))
-  ([config level name expr] `(-spy ~(fline &form) ~config  ~level  ~name ~expr)))
+#?(:clj
+   (defmacro spy
+     "Evaluates named expression and logs its result. Always returns the result.
+     Defaults to :debug logging level and unevaluated expression as name."
+     ([                  expr] `(-spy ~(fline &form) *config* :debug '~expr ~expr))
+     ([       level      expr] `(-spy ~(fline &form) *config* ~level '~expr ~expr))
+     ([       level name expr] `(-spy ~(fline &form) *config* ~level  ~name ~expr))
+     ([config level name expr] `(-spy ~(fline &form) ~config  ~level  ~name ~expr))))
 
 (comment
   (with-config
@@ -1264,18 +1279,20 @@
   (def example-config "DEPRECATED, prefer `default-config`" default-config)
   (defn logging-enabled? [level compile-time-ns] (may-log? level (str compile-time-ns)))
   (defn str-println      [& xs] (str-join xs))
-  (defmacro with-log-level      [level  & body] `(with-min-level ~level ~@body))
-  (defmacro with-logging-config [config & body] `(with-config ~config ~@body))
-  (defmacro logp [& args] `(log ~@args))
-  (defmacro log-env
-    ([                 ] `(log-env :debug))
-    ([       level     ] `(log-env ~level "&env"))
-    ([       level name] `(log-env *config* ~level ~name))
-    ([config level name] `(log* ~config ~level ~name "=>" (get-env))))
+  #?(:clj (defmacro with-log-level      [level  & body] `(with-min-level ~level ~@body)))
+  #?(:clj (defmacro with-logging-config [config & body] `(with-config ~config ~@body)))
+  #?(:clj (defmacro logp [& args] `(log ~@args)))
+  #?(:clj
+     (defmacro log-env
+       ([                 ] `(log-env :debug))
+       ([       level     ] `(log-env ~level "&env"))
+       ([       level name] `(log-env *config* ~level ~name))
+       ([config level name] `(log* ~config ~level ~name "=>" (get-env)))))
 
-  (defn      set-level! "DEPRECATED, prefer `set-min-level!`" [level] (swap-config! (fn [m] (assoc m :min-level level))))
-  (defmacro with-level  "DEPRECATED, prefer `with-min-level`" [level & body]
-    `(binding [*config* (assoc *config* :min-level ~level)] ~@body))
+  (defn set-level! "DEPRECATED, prefer `set-min-level!`" [level] (swap-config! (fn [m] (assoc m :min-level level))))
+  #?(:clj
+     (defmacro with-level  "DEPRECATED, prefer `with-min-level`" [level & body]
+       `(binding [*config* (assoc *config* :min-level ~level)] ~@body)))
 
   (defn stacktrace
     "DEPRECATED, use `default-output-error-fn` instead"
