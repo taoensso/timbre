@@ -14,7 +14,9 @@
 
 (enc/assert-min-encore-version [3 43 0])
 
-(comment (test/run-tests))
+(comment
+  (remove-ns 'taoensso.timbre)
+  (test/run-tests))
 
 ;;;; Dynamic config
 
@@ -1052,70 +1054,6 @@
   (set-config! default-config)
   (infof "Hello %s" "world :-)"))
 
-#?(:clj
-   (defn load-config
-     "Imlementation detail, use only for debugging, etc.
-     Returns Timbre config loaded from JVM property, Env var, or
-     resource file.
-
-     See `*config*` docstring for more info."
-     ([edn source]
-      (let [clj
-            (try
-              (enc/read-edn edn)
-              (catch Throwable t
-                (throw
-                  (ex-info "[Timbre config] Error reading config EDN"
-                    {:edn edn :source source} t))))
-
-            config
-            (if (symbol? clj)
-              (if-let [var
-                       (or
-                         (resolve clj)
-                         (when-let [ns (namespace clj)]
-                           (require ns)
-                           (resolve clj)))]
-                @var
-                (throw
-                  (ex-info "[Timbre config] Failed to resolve config symbol"
-                    {:edn edn :symbol symbol :source source})))
-              clj)]
-
-        (if (map? config)
-          (if  (get config :load/overwrite?) ; Undocumented
-            (dissoc config :load/overwrite?) ; Without merge
-            (enc/nested-merge default-config config))
-
-          (throw
-            (ex-info "[Timbre config] Unexpected config value type"
-              {:value config :type (type config) :source source})))))
-
-     ([]
-      (when-let [[edn source]
-                 (or
-                   (let [prop-name "taoensso.timbre.config.edn"]
-                     (when-let [edn (System/getProperty prop-name)]
-                       [edn {:jvm-property prop-name}]))
-
-                   (let [env-name "TAOENSSO_TIMBRE_CONFIG_EDN"]
-                     (when-let [edn (System/getenv env-name)]
-                       [edn {:env-var env-name}]))
-
-                   (let [res-name
-                         (or
-                           (enc/get-sys-val ; Configurable resource name, undocumented
-                             "taoensso.timbre.config-resource"
-                             "TAOENSSO_TIMBRE_CONFIG_RESOURCE")
-
-                           "taoensso.timbre.config.edn")]
-
-                     (when-let [edn (enc/slurp-resource res-name)]
-                       [edn {:resource res-name}])))]
-
-        (println (str "Loading Timbre config from: " source))
-        (load-config edn source)))))
-
 (enc/defonce ^:dynamic *config*
   "This config map controls all Timbre behaviour including:
     - When to log (via min-level and namespace filtering)
@@ -1267,8 +1205,17 @@
 
     Note that compile-time options will OVERRIDE options in `*config*`."
 
-  #?(:clj  (or (load-config) default-config)
-     :cljs                   default-config))
+  #?(:cljs default-config
+     :clj
+     (let [{:keys [config source]}
+           (enc/load-edn-config
+             {:default default-config
+              :prop    "taoensso.timbre.config.edn"
+              :res     "taoensso.timbre.config.edn"
+              :res-env "taoensso.timbre.config-resource"})]
+
+       (println (str "Loading initial Timbre config from: " source))
+       config)))
 
 ;;;; Deprecated
 
