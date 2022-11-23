@@ -13,7 +13,7 @@
    *unchecked-math*     false #_:warn-on-boxed}
 
   :dependencies
-  [[com.taoensso/encore "3.31.0"]
+  [[com.taoensso/encore "3.39.0"]
    [io.aviso/pretty     "1.3"]]
 
   :plugins

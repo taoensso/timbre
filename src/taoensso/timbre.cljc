@@ -12,7 +12,7 @@
 
   #?(:cljs (:require-macros [taoensso.timbre])))
 
-(enc/assert-min-encore-version [3 31 0])
+(enc/assert-min-encore-version [3 39 0])
 
 (comment (test/run-tests))
 
