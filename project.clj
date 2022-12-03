@@ -62,7 +62,7 @@
     [[org.clojure/test.check    "1.1.1"]
      [org.clojure/tools.logging "1.2.4"]
      [com.taoensso/nippy        "3.2.0"]
-     [com.taoensso/carmine      "3.1.0"
+     [com.taoensso/carmine      "3.2.0"
       :exclusions [com.taoensso/timbre]]
      [com.draines/postal        "2.0.5"]]}
 
