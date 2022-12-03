@@ -13,7 +13,7 @@
    *unchecked-math*     false #_:warn-on-boxed}
 
   :dependencies
-  [[com.taoensso/encore "3.43.0"]
+  [[com.taoensso/encore "3.49.0"]
    [io.aviso/pretty     "1.3"]]
 
   :plugins
@@ -45,9 +45,9 @@
      [cheshire                "5.11.0"]
      [ymilky/franzy           "0.0.1"]
      [com.newrelic.agent.java/newrelic-agent "3.30.0"]
-     [net.java.dev.jna/jna    "5.12.1"]
-     [raven-clj               "1.6.0"]
-     [congomongo              "2.5.1"]
+     [net.java.dev.jna/jna    "5.13.0"]
+     [raven-clj               "1.7.0"]
+     [congomongo              "2.6.0"]
      [server-socket           "1.0.0"]
      [org.zeromq/cljzmq       "0.1.4"]
      [cljs-node-io            "1.1.2"] ; Node spit appender
@@ -62,7 +62,7 @@
     [[org.clojure/test.check    "1.1.1"]
      [org.clojure/tools.logging "1.2.4"]
      [com.taoensso/nippy        "3.2.0"]
-     [com.taoensso/carmine      "3.1.0"
+     [com.taoensso/carmine      "3.2.0"
       :exclusions [com.taoensso/timbre]]
      [com.draines/postal        "2.0.5"]]}
 
