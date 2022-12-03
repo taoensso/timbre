@@ -52,7 +52,12 @@
                         (.level log-level)
                         (.timestamp (.getTime instant)))]
     (cond-> msg-builder
-      ?err    (.fullMessage (timbre/stacktrace ?err {:stacktrace-fonts {}}))
+      ?err
+      (.fullMessage
+        (timbre/default-output-error-fn
+          {:?err ?err
+           :output-opts {:stacktrace-fonts {}}}))
+
       context (.additionalField "context" context)
       ?ns-str (.additionalField "namespace" ?ns-str)
       ?file   (.additionalField "file" ?file)
