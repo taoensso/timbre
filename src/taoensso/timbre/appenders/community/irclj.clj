@@ -48,7 +48,7 @@
            (-> level name (str/upper-case))
            (or (force msg_) "")
            (if-let [err ?err]
-             (str "\n" (timbre/stacktrace err))
+             (str "\n" (timbre/default-output-error-fn {:?err err}))
              ""))))
 
      :fn
