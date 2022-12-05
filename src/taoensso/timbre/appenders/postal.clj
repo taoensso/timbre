@@ -60,8 +60,7 @@ sdf"))
    :min-level  :warn ; Elevated
    :rate-limit [[5  (enc/ms :mins  2)]
                 [50 (enc/ms :hours 24)]]
-   :output-fn  (partial timbre/default-output-fn
-                 {:stacktrace-fonts {}})
+   :output-opts {:stacktrace-fonts {}}
    :fn
    (fn [data]
      (let [{:keys [output_]} data
