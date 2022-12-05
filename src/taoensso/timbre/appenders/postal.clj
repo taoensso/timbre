@@ -15,9 +15,7 @@
     - Simplify whitespace
     - Never exceed `max-subject-len` characters."
 
-  [{:keys [max-len]
-    :or   {max-len 150}}
-   output-str]
+  [{:keys [max-len]} output-str]
 
   (let [s (->
             (re-find #"\A.*" output-str) ; 1st line
@@ -26,7 +24,7 @@
 
     (if (and max-len (> (count s) ^long max-len))
       (str (enc/get-substr-by-len s 0 (- ^long max-len 3)) "...")
-      s)))
+      (do                         s))))
 
 (comment
   (default-subject-fn {:max-len 8} "sdfghsjhfdg shj
@@ -35,6 +33,16 @@ sfsdf
 sfsdf
 sdf"))
 
+(defn default-body-fn
+  "Given an `output-str`, returns an appropriate Postal email body."
+  [{:keys [max-len]} output-str]
+  (let [s output-str]
+    [{:type "text/plain; charset=utf-8"
+      :content
+      (if max-len
+        (enc/get-substr-by-len s 0 max-len)
+        (do                    s))}]))
+
 (defn postal-appender
   "Returns a Postal email appender.
   (postal-appender
@@ -42,13 +50,10 @@ sdf"))
     {:from \"Bob's logger <me@draines.com>\" :to \"foo@example.com\"})"
 
   [postal-config &
-   [{:keys [subject-len subject-fn body-fn]
+   [{:keys [subject-len body-len subject-fn body-fn]
      :or   {subject-len 150
-            subject-fn  (partial default-subject-fn {:max-len subject-len})
-            body-fn
-            (fn [output-str]
-              [{:type "text/plain; charset=utf-8"
-                :content output-str}])}}]]
+            subject-fn  (partial default-subject-fn {:max-len (enc/as-?int subject-len)})
+            body-fn     (partial default-body-fn    {:max-len (enc/as-?int    body-len)})}}]]
 
   {:enabled?   true
    :async?     true  ; Slow!
