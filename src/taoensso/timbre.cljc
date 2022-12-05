@@ -743,7 +743,7 @@
                          #?(:cljs (apfn data)
                             :clj
                             (if async?
-                              (send-off (get-agent id) (fn [_] (apfn data)))
+                              (send-off (get-agent id) (fn [_] (apfn data) nil))
                               (apfn data)))))))))
              nil
              (get config :appenders))))))
