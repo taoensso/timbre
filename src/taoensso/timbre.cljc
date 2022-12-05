@@ -629,9 +629,8 @@
               #?(:clj :hostname_) #?(:clj (delay (get-hostname)))
               :error-level? (#{:error :fatal} level)
               :?err     ?err
-              :?err_    (delay ?err) ; Deprecated
-              :msg-type msg-type     ; Undocumented
-              :?msg-fmt ?msg-fmt     ; Undocumented
+              :msg-type msg-type ; Undocumented
+              :?msg-fmt ?msg-fmt ; Undocumented
               :?meta    ?meta
               :vargs    vargs
               :spying?  spying?})
@@ -648,7 +647,6 @@
 
        (when-let [data ?data] ; Not filtered by middleware
          (let [{:keys [vargs]} data
-               data (assoc data :vargs_ (delay vargs)) ; Deprecated
                data
                (enc/assoc-nx data
                  :msg_ (delay ((protected-fn "Timbre error when calling (msg-fn <data>)"
