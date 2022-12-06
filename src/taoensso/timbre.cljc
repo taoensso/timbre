@@ -627,7 +627,7 @@
               :?file   ?file
               :?line   ?line
               #?(:clj :hostname_) #?(:clj (delay (get-hostname)))
-              :error-level? (#{:error :fatal} level)
+              :error-level? (contains? #{:error :fatal} level)
               :?err     ?err
               :msg-type msg-type ; Undocumented
               :?msg-fmt ?msg-fmt ; Undocumented
