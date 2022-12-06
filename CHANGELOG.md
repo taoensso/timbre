@@ -1,5 +1,16 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v6.0.3 / 2022 Dec 6
+
+```clojure
+[com.taoensso/timbre "6.0.3"]
+```
+
+### Fixes since `v6.0.2`
+
+- [fix] [#364] Update bundled Encore dependency to fix compilation issue with shadow-cljs
+
+
 ## v6.0.2 / 2022 Nov 18
 
 ```clojure
