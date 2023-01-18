@@ -1,3 +1,10 @@
+# clojure-lsp
+.lsp/.cache
+
+# clj-kondo
+.clj-kondo
+.clj-kondo/.cache
+
 pom.xml*
 .lein*
 .nrepl-port

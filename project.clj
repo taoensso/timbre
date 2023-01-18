@@ -51,10 +51,11 @@
      [server-socket           "1.0.0"]
      [org.zeromq/cljzmq       "0.1.4"]
      [cljs-node-io            "1.1.2"] ; Node spit appender
+     [tick                    "0.5.0"] ;; rolling-interval-appender
      ]}
 
    :extra
-   {:source-paths [         "src"                "extra/src"]
+   {:source-paths ["src"                "extra/src"]
     :test-paths   ["test" #_"src" "extra/test" #_"extra/src"]}
 
    :test
