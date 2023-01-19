@@ -122,7 +122,7 @@
     * :path      - logfile path, e/o \"logs/timbre-interval.log\"
     * :interval  - period of interval, e/o #{:daily :weekly :monthly}
     * :backlog!  - number of historical files to keep
-    * :min-level - min log level, default level `:info`
+    * :opts      - appender opt. map, default {:min-level :info :enabled? true}
 
   IMPORTANT: if `backlog!` is a number greater than ZERO, then ONLY that number
   of historical versions are kept, deleting the oldest one when a new file is
@@ -142,38 +142,40 @@
       :weekly  - \"logs/20180108.app.log\" (First day of week - Monday)
       :daily   - \"logs/20180114.app.log\"
   "
-  [& [{:keys [path interval backlog! min-level]
+  [& [{:keys [path interval backlog! opts]
        :or   {path    "logs/timbre-rolling.log"
               interval :daily
               backlog! 0
-              min-level :info}}]]
-  {:enabled? true
-   :min-level min-level
-   :fn (let [lock (Object.)
-             f (io/file path)
-             dir (or (.getParent f) ".") ;; default running dir
-             basename (.getName f)]
-         (tap> [f dir basename])
-         (fn self [data]
-           (let [{:keys [instant output_]} data
-                 output-str (force output_)
-                 beggining-date (beginning-interval-date instant interval)
-                 date-prefix (filename-prefix beggining-date)
-                 fname (format "%s/%s.%s" dir date-prefix basename)]
-             (when-let [log (io/file fname)]
-               (try
-                 (locking lock
-                   (write-to-file data fname output-str self) ;; log it
-                   (when (> (or backlog! 0) 0) ;;clean up if needed
-                     (delete-to-backlog-limit!
-                      (matching-files dir basename) ;; log files
-                      (earliest-backlog-date instant interval backlog!))))
-                 (catch java.io.IOException _))))))})
+              opts {:enabled? true
+                    :min-level :info}}}]]
+  (merge
+   {:fn (let [lock (Object.)
+              f (io/file path)
+              dir (or (.getParent f) ".") ;; default running dir
+              basename (.getName f)]
+          (tap> [f dir basename])
+          (fn self [data]
+            (let [{:keys [instant output_]} data
+                  output-str (force output_)
+                  beggining-date (beginning-interval-date instant interval)
+                  date-prefix (filename-prefix beggining-date)
+                  fname (format "%s/%s.%s" dir date-prefix basename)]
+              (when-let [log (io/file fname)]
+                (try
+                  (locking lock
+                    (write-to-file data fname output-str self) ;; log it
+                    (when (> (or backlog! 0) 0) ;;clean up if needed
+                      (delete-to-backlog-limit!
+                       (matching-files dir basename) ;; log files
+                       (earliest-backlog-date instant interval backlog!))))
+                  (catch java.io.IOException _))))))}
+   opts))
 
 (comment
   (rolling-interval-appender)
   ;; used to generate a slew of properly dated/formatted files for testing
-  (defn- generate-log-files-for-interval [path date interval num-of-logs backlog!]
+  (defn- generate-log-files-for-interval [path date interval
+                                          num-of-logs backlog!]
     (let [f (io/file path)
           dir (or (.getParent f) ".")
           basename "app.log"
