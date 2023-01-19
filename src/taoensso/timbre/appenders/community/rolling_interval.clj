@@ -122,6 +122,7 @@
     * :path      - logfile path, e/o \"logs/timbre-interval.log\"
     * :interval  - period of interval, e/o #{:daily :weekly :monthly}
     * :backlog!  - number of historical files to keep
+    * :min-level - min log level, default level `:info`
 
   IMPORTANT: if `backlog!` is a number greater than ZERO, then ONLY that number
   of historical versions are kept, deleting the oldest one when a new file is
@@ -141,12 +142,13 @@
       :weekly  - \"logs/20180108.app.log\" (First day of week - Monday)
       :daily   - \"logs/20180114.app.log\"
   "
-  [& [{:keys [path interval backlog!]
+  [& [{:keys [path interval backlog! min-level]
        :or   {path    "logs/timbre-rolling.log"
               interval :daily
-              backlog! 0}}]]
-
+              backlog! 0
+              min-level :info}}]]
   {:enabled? true
+   :min-level min-level
    :fn (let [lock (Object.)
              f (io/file path)
              dir (or (.getParent f) ".") ;; default running dir
