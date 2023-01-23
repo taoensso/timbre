@@ -146,10 +146,11 @@
        :or   {path    "logs/timbre-rolling.log"
               interval :daily
               backlog! 0
-              opts {:enabled? true
-                    :min-level :info}}}]]
+              opts {}}}]]
   (merge
-   {:fn (let [lock (Object.)
+   {:enabled? true
+    :min-level :info
+    :fn (let [lock (Object.)
               f (io/file path)
               dir (or (.getParent f) ".") ;; default running dir
               basename (.getName f)]
