@@ -207,12 +207,15 @@ See also `car-appender/query-entries`.
 
 ### Community appenders
 
-A number of community appenders are included out-the-box [here](https://github.com/ptaoussanis/timbre/tree/master/src/taoensso/timbre/appenders/community). These include appenders for Android, Logstash, Slack, Sentry, NodeJS, Syslog, PostgreSQL, etc.
+A number of [community appenders][] are included with Timbre.
 
-Thanks goes to the respective authors!  
-**Please see the relevant namespace docstring for details**.
+Thanks to the relevant authors! Please see **appender namespace docstrings** for details.
 
-GitHub PRs for new appenders and for appender maintenance very welcome!
+GitHub PRs very welcome for:
+
+  - Maintenance of any existing [community appenders][] (thank you!!).
+  - Additional **dependency-free** appenders. (See [example template](https://github.com/ptaoussanis/timbre/blob/master/src/taoensso/timbre/appenders/example.clj)).
+  - Additional links to **externally-hosted** appenders in the table below.
 
 ## More community tools, appenders, etc.
 
@@ -239,7 +242,7 @@ Otherwise, you can reach me at [Taoensso.com][]. Happy hacking!
 ## License
 
 Distributed under the [EPL v1.0][] \(same as Clojure).  
-Copyright &copy; 2015-2022 [Peter Taoussanis][Taoensso.com].
+Copyright &copy; 2015-2023 [Peter Taoussanis][Taoensso.com].
 
 <!--- Standard links -->
 [Taoensso.com]: https://www.taoensso.com
@@ -265,3 +268,4 @@ Copyright &copy; 2015-2022 [Peter Taoussanis][Taoensso.com].
 [ClojureWerkz]: http://clojurewerkz.org/
 [config API]: http://ptaoussanis.github.io/timbre/taoensso.timbre.html#var-*config*
 [default config]: http://ptaoussanis.github.io/timbre/taoensso.timbre.html#var-default-config
+[community appenders]: https://github.com/ptaoussanis/timbre/tree/master/src/taoensso/timbre/appenders/community
