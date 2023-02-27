@@ -227,9 +227,9 @@
   See `*config*` docstring for more about `:min-level`.
   See also `set-min-level!` for a util to directly modify `*config*`."
 
-  ([config    ?min-level] (set-ns-min-level config *ns* ?min-level))
-  ([config ns ?min-level]
-   (let [ns (str ns)
+  #?(:clj ([config    ?min-level] (set-ns-min-level config *ns* ?min-level))) ; No *ns* at Cljs runtime
+  (        [config ns ?min-level]
+   (let [ns (str (have ns))
          min-level* ; [[<ns-pattern> <min-level>] ...]
          (let [x (get config :min-level)]
            (if (vector? x)
@@ -262,15 +262,17 @@
 
 (comment :see-tests)
 
-(defn set-ns-min-level!
+(defmacro set-ns-min-level!
   "Like `set-ns-min-level` but directly modifies `*config*`.
 
   Can conveniently set the minimum log level for the current ns:
     (set-ns-min-level! :info) => Sets min-level for current *ns*
 
   See `set-ns-min-level` for details."
-  ([   ?min-level] (set-ns-min-level! *ns* ?min-level))
-  ([ns ?min-level] (swap-config! (fn [config] (set-ns-min-level config ns ?min-level)))))
+
+  ;; Macro to support compile-time Cljs *ns*
+  ([   ?min-level] `(set-ns-min-level! ~(str *ns*) ~?min-level))
+  ([ns ?min-level] `(swap-config! (fn [config#] (set-ns-min-level config# ~(str ns) ~?min-level)))))
 
 ;;;; Utils
 
