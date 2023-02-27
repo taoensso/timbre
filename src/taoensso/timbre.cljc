@@ -1221,27 +1221,29 @@
 
 (enc/deprecated
   #?(:cljs (def console-?appender core-appenders/console-appender))
-  (def ordered-levels [:trace :debug :info :warn :error :fatal :report])
-  (def log? may-log?)
-  (def example-config "DEPRECATED, prefer `default-config`" default-config)
-  (defn logging-enabled? [level compile-time-ns] (may-log? level (str compile-time-ns)))
-  (defn str-println      [& xs] (str-join xs))
-  #?(:clj (defmacro with-log-level      [level  & body] `(with-min-level ~level ~@body)))
-  #?(:clj (defmacro with-logging-config [config & body] `(with-config ~config ~@body)))
-  #?(:clj (defmacro logp [& args] `(log ~@args)))
+  (def  ^:deprecated ordered-levels [:trace :debug :info :warn :error :fatal :report])
+  (def  ^:deprecated log? may-log?)
+  (def  ^:deprecated example-config "DEPRECATED, prefer `default-config`" default-config)
+  (defn ^:deprecated logging-enabled? [level compile-time-ns] (may-log? level (str compile-time-ns)))
+  (defn ^:deprecated str-println      [& xs] (str-join xs))
+  #?(:clj (defmacro ^:deprecated with-log-level      [level  & body] `(with-min-level ~level ~@body)))
+  #?(:clj (defmacro ^:deprecated with-logging-config [config & body] `(with-config ~config ~@body)))
+  #?(:clj (defmacro ^:deprecated logp                [& args]        `(log ~@args)))
   #?(:clj
-     (defmacro log-env
+     (defmacro ^:deprecated log-env
        ([                 ] `(log-env :debug))
        ([       level     ] `(log-env ~level "&env"))
        ([       level name] `(log-env *config* ~level ~name))
        ([config level name] `(log* ~config ~level ~name "=>" (get-env)))))
 
-  (defn set-level! "DEPRECATED, prefer `set-min-level!`" [level] (swap-config! (fn [m] (assoc m :min-level level))))
-  #?(:clj
-     (defmacro with-level  "DEPRECATED, prefer `with-min-level`" [level & body]
-       `(binding [*config* (assoc *config* :min-level ~level)] ~@body)))
+  (defn ^:deprecated set-level! "DEPRECATED, prefer `set-min-level!`"
+    [level] (swap-config! (fn [m] (assoc m :min-level level))))
 
-  (defn stacktrace
+  #?(:clj
+     (defmacro ^:deprecated with-level "DEPRECATED, prefer `with-min-level`"
+       [level & body] `(binding [*config* (assoc *config* :min-level ~level)] ~@body)))
+
+  (defn ^:deprected stacktrace
     "DEPRECATED, use `default-output-error-fn` instead"
     ([err     ] (stacktrace err nil))
     ([err opts] (default-output-error-fn {:?err err :output-opts opts}))))
