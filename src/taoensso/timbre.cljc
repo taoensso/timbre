@@ -412,8 +412,13 @@
        (when-let [err ?err]
          (when-let [ef (get output-opts :error-fn default-output-error-fn)]
            (when-not   (get output-opts :no-stacktrace?) ; Back compatibility
-             (str enc/system-newline
-               (ef data)))))))))
+             (enc/catching
+               (str enc/system-newline (ef data)) _
+               (str
+                 enc/system-newline
+                 "[TIMBRE WARNING]: `error-fn` failed, falling back to `pr-str`:"
+                 enc/system-newline
+                 (enc/catching (pr-str err) _ "<pr-str failed>"))))))))))
 
 (defn- default-arg->str-fn [x]
   (enc/cond
