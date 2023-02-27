@@ -2,19 +2,15 @@
   "You can copy this namespace if you'd like a starting template for
   writing your own Timbre appender.
 
-  PRs for new community appenders welcome!
+  PRs for new *dependency-free* community appenders welcome!
 
-  TODO Please document any dependency GitHub links here, e.g.:
-  Requires https://github.com/clojure/java.jdbc,
-           https://github.com/swaldman/c3p0"
+  NB See the `timbre/*config*` docstring for up-to-date info
+  Timbre's appender API."
+
   {:author "TODO Your Name (@your-github-username)"}
   (:require
    [taoensso.encore :as enc]
    [taoensso.timbre :as timbre]))
-
-;; TODO If you add any special ns imports above, please remember to update
-;; Timbre's `project.clj` to include the necessary dependencies under
-;; the `:community` profile
 
 ;; TODO Please mark any implementation vars as ^:private
 
@@ -22,12 +18,12 @@
   "Docstring to explain any special opts to influence appender construction,
   etc. Returns the appender map. May close over relevant state, etc."
 
-  [{:as appender-opts :keys []}] ; Always take an opts map, even if unused
+  [{:as appender-opts :keys []}] ; TODO Always take an opts map, even if unused
 
   (let [shutdown?_ (atom false)] ; See :shutdown-fn below
 
-    ;; Return a new appender (just a map), see `timbre/example-config`
-    ;; for info on all available keys:
+    ;; Return a new appender (just a map),
+    ;; see `timbre/*config*` docstring for info on all available keys:
 
     {:enabled?     true  ; Enable new appenders by default
      ;; :async?    true  ; Use agent for appender dispatch? Useful for slow dispatch
