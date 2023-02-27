@@ -1,5 +1,31 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md) as of **Aug 16, 2014**.
 
+## v6.1.0 / 2023 Feb 27
+
+```clojure
+[com.taoensso/timbre "6.1.0"]
+```
+
+> This is a **maintenance release** that should be non-breaking for most users. 
+
+See [recommended steps](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) when updating Clojure/Script dependencies.
+
+
+### Changes since `v6.0.4`
+
+- edd4ee76 [mod] Remove support for long-deprecated `:?err_`, `:vargs_` delays in log data
+- 95bce09c [mod] Postal appender: switch to new output-opts API
+
+### Fixes since `v6.0.4`
+
+- 9455cb09 [fix] 1-arg Cljs `set-min-ns-level!` broken
+
+### New since `v6.0.4`
+
+- 09c64dc0 [new] Postal appender: add `:body-len` opt
+- 3a9dd291 [new] [#361] [#362] Add Graal test (@borkdude)
+
+
 ## v6.0.4 / 2022 Dec 8
 
 ```clojure
