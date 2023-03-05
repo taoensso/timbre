@@ -159,38 +159,55 @@
 
 ;;;; Compile-time filtering
 
+#?(:clj (defonce ^:private compile-time-config_ (atom {})))
 #?(:clj
-   (def ^:private compile-time-min-level
-     (when-let [level
-                (or
-                  (enc/read-sys-val "taoensso.timbre.min-level.edn" "TAOENSSO_TIMBRE_MIN_LEVEL_EDN")
-                  (enc/read-sys-val "TIMBRE_LEVEL")     ; Legacy
-                  (enc/read-sys-val "TIMBRE_LOG_LEVEL") ; Legacy
-                  )]
+   (defonce ^:private compile-time-min-level
+     (let [level
+           (or
+             (enc/read-sys-val "taoensso.timbre.min-level.edn" "TAOENSSO_TIMBRE_MIN_LEVEL_EDN")
+             (enc/read-sys-val "TIMBRE_LEVEL")     ; Legacy
+             (enc/read-sys-val "TIMBRE_LOG_LEVEL") ; Legacy
+             )
 
-       (let [level (if (string? level) (keyword level) level)] ; Legacy
-         (valid-level level)
+           level (if (string? level) (keyword level) level) ; Legacy
+           present? (some?        level)
+           valid?   (valid-level? level)]
+
+       (swap! compile-time-config_ assoc :min-level
+         (when present?
+           (if valid?
+             level
+             [:timbre/invalid-min-level
+              {:value level :type (type level)}])))
+
+       (when valid?
          (println (str "Compile-time (elision) Timbre min-level: " level))
          level))))
 
 #?(:clj
-   (def ^:private compile-time-ns-filter
+   (defonce ^:private compile-time-ns-filter
      (let [ns-pattern
            (or
              (enc/read-sys-val "taoensso.timbre.ns-pattern.edn" "TAOENSSO_TIMBRE_NS_PATTERN_EDN")
              (enc/read-sys-val "TIMBRE_NS_PATTERN") ; Legacy
              (legacy-ns-filter ; Legacy
                (enc/read-sys-val "TIMBRE_NS_WHITELIST")
-               (enc/read-sys-val "TIMBRE_NS_BLACKLIST")))]
+               (enc/read-sys-val "TIMBRE_NS_BLACKLIST")))
 
-       (let [ns-pattern ; Legacy
-             (if (map? ns-pattern)
-               {:allow (or (:allow ns-pattern) (:whitelist ns-pattern))
-                :deny  (or (:deny  ns-pattern) (:blacklist ns-pattern))}
-               ns-pattern)]
+           ns-pattern ; Support legacy :whitelist, :blacklist
+           (if (map? ns-pattern)
+             {:allow (or (:allow ns-pattern) (:whitelist ns-pattern))
+              :deny  (or (:deny  ns-pattern) (:blacklist ns-pattern))}
+             ns-pattern)
 
-         (when ns-pattern (println (str "Compile-time (elision) Timbre ns-pattern: " ns-pattern)))
-         (or   ns-pattern "*")))))
+           present?   (some? ns-pattern)
+           ns-pattern (or    ns-pattern "*")]
+
+       (swap! compile-time-config_ assoc :ns-pattern ns-pattern)
+       (when present?
+         (println (str "Compile-time (elision) Timbre ns-pattern: " ns-pattern)))
+
+       ns-pattern)))
 
 #?(:clj
    (defn -elide?
@@ -1206,7 +1223,14 @@
       - `TAOENSSO_TIMBRE_MIN_LEVEL_EDN`  env var      (read as EDN)
       - `TAOENSSO_TIMBRE_NS_PATTERN_EDN` env var      (read as EDN)
 
-    Note that compile-time options will OVERRIDE options in `*config*`."
+    Note that compile-time options will OVERRIDE options in `*config*`.
+
+  DEBUGGING INITIAL CONFIG
+    See `:_init-config` for information re: Timbre's config on initial load.
+    These keys are set only once on initial load, and changing them will
+    have no effect:
+      :loaded-from-source  ; e/o #{:default :prop :res :res-env}
+      :compile-time-config ; {:keys [min-level ns-filter]} for compile-time elision"
 
   #?(:cljs default-config
      :clj
@@ -1218,7 +1242,9 @@
               :res-env "taoensso.timbre.config-resource"})]
 
        (println (str "Loading initial Timbre config from: " source))
-       config)))
+       (assoc config :_init-config
+         {:loaded-from-source  source
+          :compile-time-config @compile-time-config_}))))
 
 ;;;; Deprecated
 
