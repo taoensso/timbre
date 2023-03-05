@@ -1218,9 +1218,7 @@
               :prop    "taoensso.timbre.config.edn"
               :res     "taoensso.timbre.config.edn"
               :res-env "taoensso.timbre.config-resource"})]
-
-       (println (str "Loading initial Timbre config from: " source))
-       config)))
+       (assoc config :source source))))
 
 ;;;; Deprecated
 
