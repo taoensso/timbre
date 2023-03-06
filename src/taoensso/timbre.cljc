@@ -1089,9 +1089,7 @@
     - `with-config`, `with-merged-config`   ; Bind *config*
     - `with-min-level`                      ; Bind *config* :min-level
 
-
   MAIN CONFIG OPTIONS
-
     :min-level
       Logging will occur only if a logging call's level is >= this
       min-level. Possible values, in order:
