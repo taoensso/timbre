@@ -181,7 +181,7 @@
               {:value level :type (type level)}])))
 
        (when valid?
-         (println (str "Compile-time (elision) Timbre min-level: " level))
+         ;; (println (str "Compile-time (elision) Timbre min-level: " level))
          level))))
 
 #?(:clj
@@ -204,8 +204,8 @@
            ns-pattern (or    ns-pattern "*")]
 
        (swap! compile-time-config_ assoc :ns-pattern ns-pattern)
-       (when present?
-         (println (str "Compile-time (elision) Timbre ns-pattern: " ns-pattern)))
+       ;; (when present?
+       ;;   (println (str "Compile-time (elision) Timbre ns-pattern: " ns-pattern)))
 
        ns-pattern)))
 
@@ -1241,7 +1241,7 @@
               :res     "taoensso.timbre.config.edn"
               :res-env "taoensso.timbre.config-resource"})]
 
-       (println (str "Loading initial Timbre config from: " source))
+       ;; (println (str "Loading initial Timbre config from: " source))
        (assoc config :_init-config
          {:loaded-from-source  source
           :compile-time-config @compile-time-config_}))))
