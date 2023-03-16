@@ -2,11 +2,12 @@
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Pure Clojure/Script logging library"
   :url "https://github.com/ptaoussanis/timbre"
-  :license {:name "Eclipse Public License"
-            :url  "http://www.eclipse.org/legal/epl-v10.html"
-            :distribution :repo
-            :comments "Same as Clojure"}
   :min-lein-version "2.3.3"
+
+  :license
+  {:name "Eclipse Public License 1.0"
+   :url  "http://www.eclipse.org/legal/epl-v10.html"}
+
   :global-vars
   {*warn-on-reflection* true
    *assert*             true
