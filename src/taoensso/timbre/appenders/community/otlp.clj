@@ -43,7 +43,8 @@
   ```"
   {:author "Dennis Schridde (@devurandom)"}
   (:require
-    [steffan-westcott.clj-otel.api.attributes :as attr])
+    [steffan-westcott.clj-otel.api.attributes :as attr]
+    [taoensso.encore :as enc])
   (:import
     (io.opentelemetry.api.logs LoggerProvider Severity)
     (java.util Date)))
@@ -67,6 +68,16 @@
     (when (and (map? x) (not r))
       x)))
 
+; TODO: taoensso.encore seems to be missing this:
+(defn- assoc-some-nx
+  ([m k v] (if (contains? m k) m (enc/assoc-some m k v)))
+  ([m k v & kvs] (enc/reduce-kvs assoc-some-nx (enc/assoc-some m k v) kvs))
+  ([m kvs]
+   (reduce-kv
+     (fn [m k v] (if (contains? m k) m (enc/assoc-some m k v)))
+     (if (nil? m) {} m)
+     kvs)))
+
 (defn appender
   [^LoggerProvider logger-provider]
   {:enabled?   true
@@ -83,13 +94,10 @@
                             msg
                             (force msg_))
            ?ex-data       (ex-data ?err)
-           extra          (cond-> context
-                                  (and ?file (not (contains? context :file)))
-                                  (assoc :file ?file)
-                                  (and ?line (not (contains? context :line)))
-                                  (assoc :line ?line)
-                                  (and ?ex-data (not (contains? context :ex-data)))
-                                  (assoc :ex-data ?ex-data))
+           extra          (assoc-some-nx context
+                                         :file ?file
+                                         :line ?line
+                                         :ex-data ?ex-data)
            event          (merge (dissoc arg :msg)
                                  extra)
            attributes     (attr/->attributes event)
