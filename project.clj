@@ -52,7 +52,7 @@
      [server-socket           "1.0.0"]
      [org.zeromq/cljzmq       "0.1.4"]
      [cljs-node-io            "1.1.2"] ; Node spit appender
-     ]}
+     [com.github.steffan-westcott/clj-otel-api "0.2.3"]]}
 
    :extra
    {:source-paths [         "src"                "extra/src"]
