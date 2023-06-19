@@ -50,7 +50,8 @@
      [congomongo              "2.6.0"]
      [server-socket           "1.0.0"]
      [org.zeromq/cljzmq       "0.1.4"]
-     [cljs-node-io            "1.1.2"] ; Node spit appender
+     [cljs-node-io            "1.1.2"] ; `node-spit` appender
+     [com.github.steffan-westcott/clj-otel-api "0.2.6"] ; `otlp` appender
      ]}
 
    :dev [:dev+ :community #_:deploy]
