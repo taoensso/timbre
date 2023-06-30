@@ -68,12 +68,12 @@
       :exclusions [com.taoensso/timbre]]
      [com.draines/postal        "2.0.5"]]}
 
-   :graal-test
+   :graal-tests
    {:dependencies [[org.clojure/clojure "1.11.1"]
                    [com.github.clj-easy/graal-build-time "0.1.4"]]
-    :main taoensso.timbre.graal-test
-    :aot [taoensso.timbre.graal-test]
-    :uberjar-name "graal-test.jar"}}
+    :main taoensso.graal-tests
+    :aot [taoensso.graal-tests]
+    :uberjar-name "graal-tests.jar"}}
 
   :test-paths ["test" #_"src"]
 

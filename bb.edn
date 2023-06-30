@@ -1,10 +1,10 @@
 {:paths ["bb"]
  :tasks
- {:requires ([graal-test])
-  test-graal
-  {:doc "Run native-image tests"
+ {:requires ([graal-tests])
+  graal-tests
+  {:doc "Run Graal native-image tests"
    :task
    (do
-     (graal-test/uberjar)
-     (graal-test/native-image)
-     (graal-test/test-native-image))}}}
+     (graal-tests/uberjar)
+     (graal-tests/native-image)
+     (graal-tests/run-tests))}}}
