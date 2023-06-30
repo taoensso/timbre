@@ -14,7 +14,7 @@
    *unchecked-math*     false #_:warn-on-boxed}
 
   :dependencies
-  [[com.taoensso/encore "3.59.0"]
+  [[com.taoensso/encore "3.60.0"]
    [io.aviso/pretty     "1.1.1"] ; Temporarily use old release, Ref. #369
   ]
 
