@@ -101,12 +101,25 @@
    (defn console-appender
      "Returns a simple js/console appender for ClojureScript.
 
-     Use ^:meta {:raw-console? true} as first argument to logging call if
-     you want args sent to console in a raw format enabling console-based
-     pretty-printing of JS objects, etc. E.g.:
+     Raw logging
 
-       (info                             my-js-obj) ; Send string   to console
-       (info ^:meta {:raw-console? true} my-js-obj) ; Send raw args to console
+       There's 2 ways that Timbre can log to a web browser console:
+         1. As a prepared output string (default)
+         2. As a list of raw argument objects
+
+       The benefit of #2 is that it allows the browser to offer type-specific
+       object printing and inspection (e.g. for maps, etc.).
+
+       Raw logging can be enabled or disabled as follows:
+
+         1. On a per-call basis via a special 1st argument to your logging call:
+              (info ^:meta {:raw-console? true} arg1 ...)
+
+         2. Via middleware, by adding an option to your log data:
+              (fn my-middleware [data] (assoc data :raw-console? true))
+
+         3. Via an option provided to this appender constructor:
+              (console-appender {:raw-console? <bool>})
 
      Ignoring library / \"blackbox\" code for accurate line numbers, etc.
 
@@ -131,7 +144,7 @@
      ;; (Ref. https://goo.gl/IZzkQB) to get accurate line numbers in all
      ;; browsers w/o the need for blackboxing?
 
-     [& [opts]]
+     [& [{:keys [raw-console?]}]]
      {:enabled? true
       :fn
       (if-not (exists? js/console)
@@ -154,8 +167,18 @@
           (fn [data]
             (when-let [logger (level->logger (:level data))]
 
-              (if (or (get    data :raw-console?) ; Undocumented
-                      (get-in data [:?meta :raw-console?]))
+              (if-let [raw-console?
+                       (enc/cond
+                         :let [?meta (get data :?meta)]
+
+                         ;; Useful for control via individual calls
+                         (contains? ?meta :raw-console?) (get ?meta :raw-console?)
+
+                         ;; Useful for control via middleware, etc.
+                         (contains? data  :raw-console?) (get data  :raw-console?)
+
+                         ;; Appender-level default
+                         :else raw-console?)]
 
                 (let [output
                       ((:output-fn data)
