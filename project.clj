@@ -14,7 +14,7 @@
    *unchecked-math*     false #_:warn-on-boxed}
 
   :dependencies
-  [[com.taoensso/encore "3.49.0"]
+  [[com.taoensso/encore "3.59.0"]
    [io.aviso/pretty     "1.1.1"] ; Temporarily use old release, Ref. #369
   ]
 
@@ -41,12 +41,12 @@
     [[irclj                   "0.5.0-alpha4"]
      [org.graylog2/gelfclient "1.5.1"
       :exclusions [com.fasterxml.jackson.core/jackson-core]]
-     [org.julienxx/clj-slack  "0.6.3"]
+     [org.julienxx/clj-slack  "0.8.0"]
      [org.clojure/java.jdbc   "0.7.12"]
      [com.mchange/c3p0        "0.9.5.5"]
      [cheshire                "5.11.0"]
      [ymilky/franzy           "0.0.1"]
-     [com.newrelic.agent.java/newrelic-agent "3.30.0"]
+     [com.newrelic.agent.java/newrelic-agent "8.4.0"]
      [net.java.dev.jna/jna    "5.13.0"]
      [raven-clj               "1.7.0"]
      [congomongo              "2.6.0"]
