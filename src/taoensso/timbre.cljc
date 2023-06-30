@@ -1249,7 +1249,7 @@
 ;;;; Deprecated
 
 (enc/deprecated
-  #?(:cljs (def console-?appender core-appenders/console-appender))
+  #?(:cljs (def ^:deprecated console-?appender core-appenders/console-appender))
   (def  ^:deprecated ordered-levels [:trace :debug :info :warn :error :fatal :report])
   (def  ^:deprecated log? may-log?)
   (def  ^:deprecated example-config "DEPRECATED, prefer `default-config`" default-config)

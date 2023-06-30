@@ -52,7 +52,7 @@
 ;;;; Deprecated
 
 (enc/deprecated
-  (defn make-logcat-appender
+  (defn ^:deprecated make-logcat-appender
     "DEPRECATED. Please use `android-logcat-appender` instead."
     [& [appender-merge opts]]
     (merge (android-logcat-appender) appender-merge)))

@@ -56,7 +56,7 @@
 ;;;; Deprecated
 
 (enc/deprecated
-  (defn make-socket-appender
+  (defn ^:deprecated make-socket-appender
     "DEPRECATED. Please use `server-socket-appender` instead."
     [& [appender-merge opts]]
     (merge (server-socket-appender opts) appender-merge)))
