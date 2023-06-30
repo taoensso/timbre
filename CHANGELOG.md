@@ -1,18 +1,18 @@
 > This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md).
 
-## 6.2.0 (2023-06-30)
+## 6.2.1 (2023-06-30)
 
-> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.2.0)
+> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.2.1)
 
 This is a **maintenance release** that should be non-breaking.
 
-### Fixes since `6.2.0`
+### Fixes since `6.1.0`
 
 * cd8f04c1 [fix] [#369] Temporarily switch back to old Pretty release
 * 5c189454 [fix] [#370] Remove `println` output on init load (@helins)
 * e34629e6 [fix] [#365] Provide protection against faulty error-fn
 
-### New since `6.2.0`
+### New since `6.1.0`
 
 * 0c5e07e7 [new] [#373] [#372] Cljs console appender: improve controls for raw logging
 * a0bc5e04 [new] [#370] Add `:_init-config` map to `*config*`
