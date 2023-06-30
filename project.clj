@@ -15,7 +15,8 @@
 
   :dependencies
   [[com.taoensso/encore "3.49.0"]
-   [io.aviso/pretty     "1.3"]]
+   [io.aviso/pretty     "1.1.1"] ; Temporarily use old release, Ref. #369
+  ]
 
   :plugins
   [[lein-pprint    "1.3.2"]
