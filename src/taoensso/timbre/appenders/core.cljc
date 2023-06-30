@@ -108,16 +108,28 @@
        (info                             my-js-obj) ; Send string   to console
        (info ^:meta {:raw-console? true} my-js-obj) ; Send raw args to console
 
-     For accurate line numbers in Chrome, add these Blackbox[1] patterns:
-       `/taoensso/timbre/appenders/core\\.js$`
-       `/taoensso/timbre\\.js$`
-       `/cljs/core\\.js$`
+     Ignoring library / \"blackbox\" code for accurate line numbers, etc.
 
-     [1] Ref. https://goo.gl/ZejSvR"
+       Most web browsers offer a feature to ignore library or \"blackbox\" code
+       in their debugger.
 
-     ;; TODO Any way of using something like `Function.prototype.bind`
+       You'll probably want to ignore at least the following:
+         `/taoensso/timbre/appenders/core\\.js$` ; Timbre console appender
+         `/taoensso/timbre\\.js$`                ; Timbre core
+         `/cljs/core\\.js$`                      ; ClojureScript core
+
+       Depending on the browser, you can usually set up these exclusions through
+       right-click popups and/or through a configurable list in a settings menu.
+
+       For example:
+         https://developer.chrome.com/docs/devtools/settings/ignore-list/
+         https://webkit.org/web-inspector/web-inspector-settings/
+         https://firefox-source-docs.mozilla.org/devtools-user/debugger/how_to/ignoring_sources/index.html
+         etc."
+
+     ;; TODO [#132] Any way of using something like `Function.prototype.bind`
      ;; (Ref. https://goo.gl/IZzkQB) to get accurate line numbers in all
-     ;; browsers w/o the need for Blackboxing?
+     ;; browsers w/o the need for blackboxing?
 
      [& [opts]]
      {:enabled? true
