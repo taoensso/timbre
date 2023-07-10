@@ -14,15 +14,15 @@
    *unchecked-math*     false #_:warn-on-boxed}
 
   :dependencies
-  [[com.taoensso/encore "3.60.0"]
+  [[com.taoensso/encore "3.62.1"]
    [io.aviso/pretty     "1.1.1"] ; Temporarily use old release, Ref. #369
   ]
 
   :plugins
   [[lein-pprint    "1.3.2"]
    [lein-ancient   "0.7.0"]
-   [lein-codox     "0.10.8"]
-   [lein-cljsbuild "1.1.8"]]
+   [lein-cljsbuild "1.1.8"]
+   [com.taoensso.forks/lein-codox "0.10.10"]]
 
   :codox
   {:language #{:clojure :clojurescript}
@@ -68,7 +68,7 @@
     [[org.clojure/test.check    "1.1.1"]
      [org.clojure/tools.logging "1.2.4"]
      [com.taoensso/nippy        "3.2.0"]
-     [com.taoensso/carmine      "3.2.0"
+     [com.taoensso/carmine      "3.3.0-RC1"
       :exclusions [com.taoensso/timbre]]
      [com.draines/postal        "2.0.5"]]}
 
