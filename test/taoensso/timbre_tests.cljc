@@ -35,7 +35,7 @@
                (conj timbre/default-config ~m-config
                  {:appenders {:test-appender appender#}})]
 
-       (timbre/log! ~level :p ~args {:?ns-str ~ns})
+       (timbre/log! ~level :p ~args {:loc {:ns ~(str ns)}})
        (deref (:data_ appender#)))))
 
 (comment (log-data *ns* :info {:min-level :trace} {} ["x"]))

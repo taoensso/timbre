@@ -416,7 +416,7 @@
 
   ([data]
    (let [{:keys [level ?err #_vargs msg_ ?ns-str ?file hostname_
-                 timestamp_ ?line output-opts]}
+                 timestamp_ ?line #_?column output-opts]}
          data]
 
      (str
@@ -610,17 +610,18 @@
 (defn- protected-fn [error-msg f]
   (fn [data]
     (enc/catching (f data) t
-      (let [{:keys [level ?ns-str ?file ?line]} data]
+      (let [{:keys [level ?ns-str ?file ?line #_?column]} data]
         (throw
           (ex-info error-msg
-            {:level level
+            {:output-fn f
+             :level level
              :data  data
-             :location
-             (str
-               (or ?ns-str ?file "?") ":"
-               (or ?line         "?"))
-
-             :output-fn f}
+             :loc
+             {:ns     ?ns-str
+              :file   ?file
+              :line   ?line
+              ;; :column ?column
+              }}
             t))))))
 
 (comment ((protected-fn "Whoops" (fn [data] (/ 1 0))) {}))
@@ -629,11 +630,13 @@
 
 (defn -log! "Core low-level log fn. Implementation detail!"
 
-  ;; Back compatible arities for convenience of AOT tools, Ref.
-  ;; https://github.com/fzakaria/slf4j-timbre/issues/20
-  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data            ] (-log! config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data nil         false))
-  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id] (-log! config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id false))
-  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id spying?]
+  ;; Back compatible arities for convenience of AOT tools,
+  ;; Ref. https://github.com/fzakaria/slf4j-timbre/issues/20
+  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data                    ] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data nil         false))
+  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id        ] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data callsite-id false))
+  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id spying?] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data callsite-id spying?))
+
+  ([config level ?ns-str ?file ?line ?column msg-type ?err vargs_ ?base-data callsite-id spying?]
    (when (may-log? :report level ?ns-str config)
      (let [instant (enc/now-dt*)
            context *context*
@@ -652,6 +655,7 @@
               :?ns-str ?ns-str
               :?file   ?file
               :?line   ?line
+              ;; :?column ?column
               #?(:clj :hostname_) #?(:clj (delay (get-hostname)))
               :error-level? (contains? #{:error :fatal} level)
               :?err     ?err
@@ -776,56 +780,55 @@
    nil))
 
 (comment
-  (-log! *config* :info nil nil nil :p :auto
+  (-log! *config* :info nil nil nil nil :p :auto
     (delay [(do (println "hi") :x) :y]) nil "callsite-id" false))
-
-(defn- fline [and-form] (:line (meta and-form)))
 
 (enc/defonce ^:private callsite-counter
   "Simple counter, used to uniquely identify each log macro expansion."
   (enc/counter))
 
+#?(:clj (enc/defalias enc/keep-callsite))
 #?(:clj
    (defmacro log! ; Public wrapper around `-log!`
      "Core low-level log macro. Useful for tooling/library authors, etc.
 
        * `level`    - must eval to a valid logging level
        * `msg-type` - must eval to e/o #{:p :f nil}
-       * `args`     - arguments for logging call
-       * `opts`     - ks e/o #{:config :?err :?ns-str :?file :?line :?base-data :spying?}
+       * `args`     - arguments seq (ideally vec) for logging call
+       * `opts`     - ks e/o #{:config ?err ?base-data spying?
+                               :?ns-str :?file :?line}
 
      Supports compile-time elision when compile-time const vals
      provided for `level` and/or `?ns-str`.
 
      Logging wrapper examples:
 
-       (defn     log-wrapper-fn    [& args]  (timbre/log! :info :p  args))
-       (defmacro log-wrapper-macro [& args] `(timbre/log! :info :p ~args))"
+       (defn     log-wrapper-fn    [& args]                        (timbre/log! :info :p  args))
+       (defmacro log-wrapper-macro [& args] (timbre/keep-callsite `(timbre/log! :info :p ~args)))"
 
      [level msg-type args & [opts]]
      (have [:or nil? sequential? symbol?] args)
-     (let [{:keys [?ns-str] :or {?ns-str (str *ns*)}} opts]
-       ;; level, ns may/not be compile-time consts:
-       (when-not #?(:clj (-elide? level ?ns-str) :cljs false)
-         (let [{:keys [config ?err ?file ?line ?base-data spying?]
+     (let [loc (or (get opts :loc) (enc/get-source &form &env))
+           {:keys [ns file line column]} loc]
+
+       ;; level, ns may/not be compile-time consts
+       (when-not #?(:clj (-elide? level ns) :cljs false)
+         (let [{:keys [config ?err ?base-data spying?]
                 :or   {config `*config*
-                       ?err   :auto ; => Extract as err-type v0
-                       ?file  #?(:clj *file* :cljs nil)
-                       ;; NB waiting on CLJ-865:
-                       ?line (fline &form)}} opts
+                       ?err   :auto}} opts
 
-               ?file (when (not= ?file "NO_SOURCE_PATH") ?file)
+               ns     (or (:?ns-str opts) ns)
+               file   (or (:?file   opts) file)
+               line   (or (:?line   opts) line)
+               column (or (:?column opts) column)
 
-               ;; Note that this'll be const for any fns wrapping `log!`
-               ;; (notably `tools.logging`, `slf4j-timbre`, etc.)
                callsite-id (callsite-counter)
-
                vargs-form
                (if (symbol? args)
                  `(enc/ensure-vec ~args)
                  `[               ~@args])]
 
-           `(-log! ~config ~level ~?ns-str ~?file ~?line ~msg-type ~?err
+           `(-log! ~config ~level ~ns ~file ~line ~column ~msg-type ~?err
               (delay ~vargs-form) ~?base-data ~callsite-id ~spying?))))))
 
 (comment
@@ -861,94 +864,82 @@
   )
 
 ;;;; Common public API
-;; Impln. here could be simpler with CLJ-865 resolved
+;; Note extra complications due to CLJ-865
 
 #?(:clj
    (do
      ;;; Log using print-style args
-     (defmacro log*  [config level & args] `(log! ~level  :p ~args ~{:?line (fline &form) :config config}))
-     (defmacro log          [level & args] `(log! ~level  :p ~args ~{:?line (fline &form)}))
-     (defmacro trace              [& args] `(log! :trace  :p ~args ~{:?line (fline &form)}))
-     (defmacro debug              [& args] `(log! :debug  :p ~args ~{:?line (fline &form)}))
-     (defmacro info               [& args] `(log! :info   :p ~args ~{:?line (fline &form)}))
-     (defmacro warn               [& args] `(log! :warn   :p ~args ~{:?line (fline &form)}))
-     (defmacro error              [& args] `(log! :error  :p ~args ~{:?line (fline &form)}))
-     (defmacro fatal              [& args] `(log! :fatal  :p ~args ~{:?line (fline &form)}))
-     (defmacro report             [& args] `(log! :report :p ~args ~{:?line (fline &form)}))
+     (defmacro log*  [config level & args] `(log! ~level  :p ~args ~{:loc (enc/get-source &form &env), :config config}))
+     (defmacro log          [level & args] `(log! ~level  :p ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro trace              [& args] `(log! :trace  :p ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro debug              [& args] `(log! :debug  :p ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro info               [& args] `(log! :info   :p ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro warn               [& args] `(log! :warn   :p ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro error              [& args] `(log! :error  :p ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro fatal              [& args] `(log! :fatal  :p ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro report             [& args] `(log! :report :p ~args ~{:loc (enc/get-source &form &env)}))
 
      ;;; Log using format-style args
-     (defmacro logf* [config level & args] `(log! ~level  :f ~args ~{:?line (fline &form) :config config}))
-     (defmacro logf         [level & args] `(log! ~level  :f ~args ~{:?line (fline &form)}))
-     (defmacro tracef             [& args] `(log! :trace  :f ~args ~{:?line (fline &form)}))
-     (defmacro debugf             [& args] `(log! :debug  :f ~args ~{:?line (fline &form)}))
-     (defmacro infof              [& args] `(log! :info   :f ~args ~{:?line (fline &form)}))
-     (defmacro warnf              [& args] `(log! :warn   :f ~args ~{:?line (fline &form)}))
-     (defmacro errorf             [& args] `(log! :error  :f ~args ~{:?line (fline &form)}))
-     (defmacro fatalf             [& args] `(log! :fatal  :f ~args ~{:?line (fline &form)}))
-     (defmacro reportf            [& args] `(log! :report :f ~args ~{:?line (fline &form)}))))
+     (defmacro logf* [config level & args] `(log! ~level  :f ~args ~{:loc (enc/get-source &form &env), :config config}))
+     (defmacro logf         [level & args] `(log! ~level  :f ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro tracef             [& args] `(log! :trace  :f ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro debugf             [& args] `(log! :debug  :f ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro infof              [& args] `(log! :info   :f ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro warnf              [& args] `(log! :warn   :f ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro errorf             [& args] `(log! :error  :f ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro fatalf             [& args] `(log! :fatal  :f ~args ~{:loc (enc/get-source &form &env)}))
+     (defmacro reportf            [& args] `(log! :report :f ~args ~{:loc (enc/get-source &form &env)}))))
 
 (comment
-  (infof "hello %s" "world")
-  (infof (Exception.) "hello %s" "world")
-  (infof (Exception.)))
+  (macroexpand '(infof "hello %s" "world"))
+  (macroexpand '(infof (Exception.) "hello %s" "world"))
+  (macroexpand '(infof (Exception.))))
 
 ;;;;
 
 #?(:clj
-   (defmacro -log-errors [?line & body]
-     `(enc/catching (do ~@body) e#
-        (do
-          #_(error e#) ; CLJ-865
-          (log! :error :p [e#] ~{:?line ?line})))))
-
-#?(:clj
-   (defmacro -log-and-rethrow-errors [?line & body]
-     `(enc/catching (do ~@body) e#
-        (do
-          #_(error e#) ; CLJ-865
-          (log! :error :p [e#] ~{:?line ?line})
-          (throw e#)))))
-
-#?(:clj
    (do
-     (defmacro -logged-future [?line & body] `(future (-log-errors ~?line ~@body)))
-
-     (defmacro log-errors             [& body] `(-log-errors             ~(fline &form) ~@body))
-     (defmacro log-and-rethrow-errors [& body] `(-log-and-rethrow-errors ~(fline &form) ~@body))
-     (defmacro logged-future          [& body] `(-logged-future          ~(fline &form) ~@body))))
+     (defmacro log-errors             [& body]         `(enc/catching (do ~@body) t# (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#})))
+     (defmacro logged-future          [& body] `(future (enc/catching (do ~@body) t# (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#}))))
+     (defmacro log-and-rethrow-errors [& body]
+       `(enc/catching (do ~@body) t#
+          (do
+            (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#})
+            (throw t#))))))
 
 (comment
-  (log-errors             (/ 0))
-  (log-and-rethrow-errors (/ 0))
-  (logged-future          (/ 0)))
+  (macroexpand '(log-errors             (/ 0)))
+  (macroexpand '(logged-future          (/ 0)))
+  (macroexpand '(log-and-rethrow-errors (/ 0))))
 
 #?(:clj
-   (defmacro -spy [?line config level name expr]
-     `(-log-and-rethrow-errors ~?line
-        (let [result# ~expr]
-          ;; Subject to elision:
-          ;; (log* ~config ~level ~name "=>" result#) ; CLJ-865
-          (log! ~level :p [~name "=>" result#]
-            ~{:?line ?line :config config :spying? true})
-
-          ;; NOT subject to elision:
-          result#))))
+   (defmacro -spy [loc config level name form]
+     `(enc/catching
+        (let [result# ~form]
+          (log! ~level :p [~name "=>" result#] ~{:loc loc, :config config, :spying? true})
+          result#)
+        t#
+        (do
+          (log! :error nil nil {:loc ~loc, :?err t#, :spying? true})
+          (throw t#)))))
 
 #?(:clj
    (defmacro spy
-     "Evaluates named expression and logs its result. Always returns the result.
-     Defaults to :debug logging level and unevaluated expression as name."
-     ([                  expr] `(-spy ~(fline &form) *config* :debug '~expr ~expr))
-     ([       level      expr] `(-spy ~(fline &form) *config* ~level '~expr ~expr))
-     ([       level name expr] `(-spy ~(fline &form) *config* ~level  ~name ~expr))
-     ([config level name expr] `(-spy ~(fline &form) ~config  ~level  ~name ~expr))))
+     "Evaluates named form and logs its result. Always returns the result.
+     Defaults to `:debug` logging level, and unevaluated form as name:
+       (spy (+ 3 2)) => (timbre/debug '(+ 3 2) \"=>\" 5)"
+     ([                  form] `(-spy ~(enc/get-source &form &env) *config* :debug '~form ~form))
+     ([       level      form] `(-spy ~(enc/get-source &form &env) *config* ~level '~form ~form))
+     ([       level name form] `(-spy ~(enc/get-source &form &env) *config* ~level  ~name ~form))
+     ([config level name form] `(-spy ~(enc/get-source &form &env) ~config  ~level  ~name ~form))))
 
 (comment
+  (macroexpand '(spy (+ 3 2)))
+  (do           (spy (+ 3 2)))
   (with-config
-    (assoc example-config :appenders
-      {:default {:enabled? true :fn (fn [m] (println #_(keys m) (:spying? m)))}})
-    (info "foo")
-    (spy  "foo")))
+    (assoc example-config :appenders {:default {:enabled? true :fn (fn [m] (println (:spying? m)))}})
+    (info (+ 3 2))
+    (spy  (+ 3 2))))
 
 #?(:clj
    (defn handle-uncaught-jvm-exceptions!
@@ -1203,7 +1194,7 @@
       :spying?         ; Is call occuring via the `spy` macro?
       :?ns-str         ; String,  or nil
       :?file           ; String,  or nil
-      :?line           ; Integer, or nil ; Waiting on CLJ-865
+      :?line           ; Integer, or nil
       :?err            ; First-arg platform error, or nil
       :?meta           ; First-arg map when it has ^:meta metadata, used as a
                          way of passing advanced per-call options to appenders

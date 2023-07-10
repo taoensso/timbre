@@ -24,11 +24,9 @@
   (write! [_ level throwable message]
     (timbre/log! level :p
       [message] ; No support for pre-msg raw args
-      {:config  (force-var timbre-config) ; No support for per-call config
-       :?ns-str logger-ns-str
-       :?file   nil ; No support
-       :?line   nil ; ''
-       :?err    throwable})))
+      {:config (force-var timbre-config) ; No support for per-call config
+       :loc    {:ns logger-ns-str} ; No support for other callsite info
+       :?err   throwable})))
 
 (deftype LoggerFactory [get-logger-fn]
   clojure.tools.logging.impl/LoggerFactory
