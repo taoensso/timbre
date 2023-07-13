@@ -610,7 +610,7 @@
 (defn- protected-fn [error-msg f]
   (fn [data]
     (enc/catching (f data) t
-      (let [{:keys [level ?ns-str ?file ?line #_?column]} data]
+      (let [{:keys [level ?ns-str ?file ?line ?column]} data]
         (throw
           (ex-info error-msg
             {:output-fn f
@@ -655,7 +655,7 @@
               :?ns-str ?ns-str
               :?file   ?file
               :?line   ?line
-              ;; :?column ?column
+              :?column ?column
               #?(:clj :hostname_) #?(:clj (delay (get-hostname)))
               :error-level? (contains? #{:error :fatal} level)
               :?err     ?err
@@ -796,7 +796,7 @@
        * `msg-type` - must eval to e/o #{:p :f nil}
        * `args`     - arguments seq (ideally vec) for logging call
        * `opts`     - ks e/o #{:config ?err ?base-data spying?
-                               :?ns-str :?file :?line}
+                               :?ns-str :?file :?line :?column}
 
      Supports compile-time elision when compile-time const vals
      provided for `level` and/or `?ns-str`.
@@ -1195,6 +1195,7 @@
       :?ns-str         ; String,  or nil
       :?file           ; String,  or nil
       :?line           ; Integer, or nil
+      :?column         ; Integer, or nil
       :?err            ; First-arg platform error, or nil
       :?meta           ; First-arg map when it has ^:meta metadata, used as a
                          way of passing advanced per-call options to appenders
