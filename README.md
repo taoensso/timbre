@@ -4,7 +4,7 @@
 **[CHANGELOG][]** | [API][] | current [Break Version][]:
 
 ```clojure
-[com.taoensso/timbre "6.2.1"] ; See CHANGELOG for details
+[com.taoensso/timbre "6.2.2"] ; See CHANGELOG for details
 ```
 > See [here][backers] if to help support my open-source work, thanks! - [Peter Taoussanis][Taoensso.com]
 
@@ -34,8 +34,8 @@ Happy hacking!
 Add the necessary dependency to your project:
 
 ```clojure
-Leiningen: [com.taoensso/timbre "6.2.1"] ; or
-deps.edn:   com.taoensso/timbre {:mvn/version "6.2.1"}
+Leiningen: [com.taoensso/timbre "6.2.2"] ; or
+deps.edn:   com.taoensso/timbre {:mvn/version "6.2.2"}
 ```
 
 And setup your namespace imports:

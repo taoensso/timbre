@@ -1,4 +1,13 @@
-> This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md).
+This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md).
+
+## 6.2.2 (2023-07-18)
+
+> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.2.2)
+
+Identical to `6.2.1`, but synchronizes Encore dependency with my recent library releases (Timbre, Tufte, Sente, Carmine, etc.) to prevent confusion caused by dependency conflicts.
+
+This is a safe update for users of `6.2.1`.
+
 
 ## 6.2.1 (2023-06-30)
 
