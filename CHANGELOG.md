@@ -1,33 +1,34 @@
-This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md).
 
-## 6.2.2 (2023-07-18)
+This project uses Break Versioning (https://www.taoensso.com/break-versioning)
+
+## `v6.2.2` (2023-07-18)
 
 > 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.2.2)
 
-Identical to `6.2.1`, but synchronizes Encore dependency with my recent library releases (Timbre, Tufte, Sente, Carmine, etc.) to prevent confusion caused by dependency conflicts.
+Identical to `v6.2.1`, but synchronizes Encore dependency with my recent library releases (Timbre, Tufte, Sente, Carmine, etc.) to prevent confusion caused by dependency conflicts.
 
-This is a safe update for users of `6.2.1`.
+This is a safe update for users of `v6.2.1`.
 
 
-## 6.2.1 (2023-06-30)
+## `v6.2.1` (2023-06-30)
 
 > 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.2.1)
 
 This is a **maintenance release** that should be non-breaking.
 
-### Fixes since `6.1.0`
+### Fixes since `v6.1.0`
 
 * cd8f04c1 [fix] [#369] Temporarily switch back to old Pretty release
 * 5c189454 [fix] [#370] Remove `println` output on init load (@helins)
 * e34629e6 [fix] [#365] Provide protection against faulty error-fn
 
-### New since `6.1.0`
+### New since `v6.1.0`
 
 * 0c5e07e7 [new] [#373] [#372] Cljs console appender: improve controls for raw logging
 * a0bc5e04 [new] [#370] Add `:_init-config` map to `*config*`
 
 
-## v6.1.0 / 2023 Feb 27
+## `v6.1.0` (2023-02-27)
 
 ```clojure
 [com.taoensso/timbre "6.1.0"]
@@ -35,7 +36,7 @@ This is a **maintenance release** that should be non-breaking.
 
 > This is a **maintenance release** that should be non-breaking for most users. 
 
-See [recommended steps](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) when updating Clojure/Script dependencies.
+See [recommended steps](https://github.com/taoensso/encore#recommended-steps-after-any-significant-dependency-update) when updating Clojure/Script dependencies.
 
 
 ### Changes since `v6.0.4`
@@ -74,7 +75,7 @@ See [recommended steps](https://github.com/ptaoussanis/encore#recommended-steps-
 
 > This is a **major feature release**. Changes may be BREAKING for some users, see relevant commits referenced below for details.  
 > Please test before use in production and report any problems, thanks!  
-> See [here](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
+> See [here](https://github.com/taoensso/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
 
 ### Changes since `v5.2.1`
 
@@ -107,7 +108,7 @@ See [recommended steps](https://github.com/ptaoussanis/encore#recommended-steps-
 ```
 
 > This is a **minor maintenance release**.  
-> See [here](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
+> See [here](https://github.com/taoensso/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
 
 ### Fixes since `v5.1.2`
 
@@ -129,7 +130,7 @@ See [recommended steps](https://github.com/ptaoussanis/encore#recommended-steps-
 ```
 
 > This is a **minor hotfix release**.  
-> See [here](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
+> See [here](https://github.com/taoensso/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
 
 ### Fixes since `v5.1.1`
 
@@ -144,7 +145,7 @@ See [recommended steps](https://github.com/ptaoussanis/encore#recommended-steps-
 ```
 
 > This is a **minor hotfix release**.  
-> See [here](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
+> See [here](https://github.com/taoensso/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
 
 ### Fixes since `v5.1.0`
 
@@ -161,7 +162,7 @@ See [recommended steps](https://github.com/ptaoussanis/encore#recommended-steps-
 ```
 
 > This is a **minor feature release**.  
-> See [here](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
+> See [here](https://github.com/taoensso/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
 
 ### Changes since `v5.0.0`
 
@@ -195,7 +196,7 @@ See [recommended steps](https://github.com/ptaoussanis/encore#recommended-steps-
 ```
 
 > This is a **major feature release**. It should be non-breaking for most users, but **please test**!  
-> See [here](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
+> See [here](https://github.com/taoensso/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
 
 Same as `v5.0.0-RC1`.
 
@@ -203,7 +204,7 @@ Same as `v5.0.0-RC1`.
 
 - **[BREAKING]** Bump minimum Clojure `1.5`->`1.7`
 - **[BREAKING]** [#155] Change default timestamp pattern from `yy-MM-dd HH:mm:ss` to `ISO8601`
-- **[Deprecated]** `:ns-whitelist` and `:ns-blacklist` options are being replaced with a single `:ns-filter` option. See [docstring](http://ptaoussanis.github.io/timbre/taoensso.timbre.html#var-*config*) for details.
+- **[Deprecated]** `:ns-whitelist` and `:ns-blacklist` options are being replaced with a single `:ns-filter` option. See [docstring](http://taoensso.github.io/timbre/taoensso.timbre.html#var-*config*) for details.
 - **[Deprecated]** `:level` config option is being renamed `:min-level`
 - [#289] [3rd-party appenders] Logstash appender: now async by default
 - [#290] [3rd-party appenders] Logstash appender: don't use ANSI colors in stacktraces (@antonmos)
@@ -211,15 +212,15 @@ Same as `v5.0.0-RC1`.
 
 ### New since `v4.10.0`
 
-- [#255] In additional to the usual values like `:trace`, `:warn`, etc. - min levels may now also be of form `[[<ns-pattern> <min-level>] ...]` (both in global and per-appender config). See [docstring](http://ptaoussanis.github.io/timbre/taoensso.timbre.html#var-*config*) for details (@mikekap, @ptaoussanis).
+- [#255] In additional to the usual values like `:trace`, `:warn`, etc. - min levels may now also be of form `[[<ns-pattern> <min-level>] ...]` (both in global and per-appender config). See [docstring](http://taoensso.github.io/timbre/taoensso.timbre.html#var-*config*) for details (@mikekap, @ptaoussanis).
 - [#73 #301] [3rd-party appenders] Add Syslog appender (@audriu)
 - [#270] [3rd-party appenders] Add UDP appender (@inaimathi)
 - [#266 #239] Add support for timestamps in Cljs (@thatismatt)
 - [#271] Appender data now incl. `:spying?` key
 - [#265] Officially document `^:meta` feature (was previously experimental)
   - Enables ^:meta {:raw-console? true} ClojureScript console appender option
-- New JVM properties and env variables to control compile-time elision, see [docstring](http://ptaoussanis.github.io/timbre/taoensso.timbre.html#var-*config*) for details
-- Significantly improved [config documentation](http://ptaoussanis.github.io/timbre/taoensso.timbre.html#var-*config*)
+- New JVM properties and env variables to control compile-time elision, see [docstring](http://taoensso.github.io/timbre/taoensso.timbre.html#var-*config*) for details
+- Significantly improved [config documentation](http://taoensso.github.io/timbre/taoensso.timbre.html#var-*config*)
 
 ### Fixes since `v4.10.0`
 
@@ -242,13 +243,13 @@ Same as `v5.0.0-RC1`.
 ```
 
 > This is a **major feature release**. It should be non-breaking for most users, but **please test**!  
-> See [here](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
+> See [here](https://github.com/taoensso/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
 
 ### Changes since `v4.10.0`
 
 - **[BREAKING]** Bump minimum Clojure `1.5`->`1.7`
 - **[BREAKING]** [#155] Change default timestamp pattern from `yy-MM-dd HH:mm:ss` to `ISO8601`
-- **[Deprecated]** `:ns-whitelist` and `:ns-blacklist` options are being replaced with a single `:ns-filter` option. See [docstring](http://ptaoussanis.github.io/timbre/taoensso.timbre.html#var-*config*) for details. 
+- **[Deprecated]** `:ns-whitelist` and `:ns-blacklist` options are being replaced with a single `:ns-filter` option. See [docstring](http://taoensso.github.io/timbre/taoensso.timbre.html#var-*config*) for details. 
 - **[Deprecated]** `:level` config option is being renamed `:min-level`
 - [#289] [3rd-party appenders] Logstash appender: now async by default
 - [#290] [3rd-party appenders] Logstash appender: don't use ANSI colors in stacktraces (@antonmos)
@@ -256,15 +257,15 @@ Same as `v5.0.0-RC1`.
 
 ### New since `v4.10.0`
 
-- [#255] In additional to the usual values like `:trace`, `:warn`, etc. - min levels may now also be of form `[[<ns-pattern> <min-level>] ...]` (both in global and per-appender config). See [docstring](http://ptaoussanis.github.io/timbre/taoensso.timbre.html#var-*config*) for details (@mikekap, @ptaoussanis).
+- [#255] In additional to the usual values like `:trace`, `:warn`, etc. - min levels may now also be of form `[[<ns-pattern> <min-level>] ...]` (both in global and per-appender config). See [docstring](http://taoensso.github.io/timbre/taoensso.timbre.html#var-*config*) for details (@mikekap, @ptaoussanis).
 - [#73 #301] [3rd-party appenders] Add Syslog appender (@audriu)
 - [#270] [3rd-party appenders] Add UDP appender (@inaimathi)
 - [#266 #239] Add support for timestamps in Cljs (@thatismatt)
 - [#271] Appender data now incl. `:spying?` key
 - [#265] Officially document `^:meta` feature (was previously experimental)
   - Enables ^:meta {:raw-console? true} ClojureScript console appender option
-- New JVM properties and env variables to control compile-time elision, see [docstring](http://ptaoussanis.github.io/timbre/taoensso.timbre.html#var-*config*) for details
-- Significantly improved [config documentation](http://ptaoussanis.github.io/timbre/taoensso.timbre.html#var-*config*)
+- New JVM properties and env variables to control compile-time elision, see [docstring](http://taoensso.github.io/timbre/taoensso.timbre.html#var-*config*) for details
+- Significantly improved [config documentation](http://taoensso.github.io/timbre/taoensso.timbre.html#var-*config*)
 
 ### Fixes since `v4.10.0`
 
@@ -532,7 +533,7 @@ Same as `v5.0.0-RC1`.
 * **New**: default :println appender has picked up a :stream opt [#49]
 * **New**: create necessary spit appender paths [#93]
 * **New**: full-power fn-level `log1-fn` util [#99]
-* **New**: added a reference appender example [here](https://github.com/ptaoussanis/timbre/blob/master/src/taoensso/timbre/appenders/core.cljx)
+* **New**: added a reference appender example [here](https://github.com/taoensso/timbre/blob/master/src/taoensso/timbre/appenders/core.cljx)
 * **Implementation**: modernized + simplified codebase
 * **Implementation**: significant performance improvements across the board
 * **Implementation**: use delays to avoid unnecessarily producing unused arg msgs [#71]
@@ -570,7 +571,7 @@ Apologies for the hassle in migrating. The changes made here all bring serious b
 
 ## v3.3.1 / 2014 Sep 7
 
- * **FIX** https://github.com/ptaoussanis/timbre/issues/79.
+ * **FIX** https://github.com/taoensso/timbre/issues/79.
 
 
 ## v3.3.0 / 2014 May 8
@@ -707,7 +708,7 @@ Apologies for the hassle in migrating. The changes made here all bring serious b
 
 
 ## v2.0.0 → v2.1.2
-  * Added appenders: socket, IRC, MongoDB (CongoMongo). See [README](https://github.com/ptaoussanis/timbre#built-in-appenders) for details.
+  * Added appenders: socket, IRC, MongoDB (CongoMongo). See [README](https://github.com/taoensso/timbre#built-in-appenders) for details.
   * Add `ex-data` output to `stacktrace` fn.
   * Fixed a number of small bugs (mostly regressions from 1.x).
 

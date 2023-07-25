@@ -10,7 +10,6 @@ pom.xml*
 /target/
 /checkouts/
 /logs/
-/docs/
-/doc/
 .idea/
 *.iml
+/wiki/.git
