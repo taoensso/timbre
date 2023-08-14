@@ -1,5 +1,5 @@
 (ns taoensso.timbre.appenders.community.syslog-appender
-  "Requires https://github.com/java-native-access/jna"
+  "Requires <https://github.com/java-native-access/jna>."
   {:author "Audrius Molis @audriu"
    :inspired-by "https://github.com/joshrotenberg/brolog"}
   (:require

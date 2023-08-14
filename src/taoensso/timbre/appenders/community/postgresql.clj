@@ -1,7 +1,7 @@
 (ns taoensso.timbre.appenders.community.postgresql
   "JDBC PostgreSQL database appender.
-  Requires https://github.com/clojure/java.jdbc,
-           https://github.com/swaldman/c3p0."
+  Requires <https://github.com/clojure/java.jdbc>,
+           <https://github.com/swaldman/c3p0>."
   {:author "Yue Liu (@yuliu-mdsol)"}
   (:require
    [taoensso.timbre   :as timbre]

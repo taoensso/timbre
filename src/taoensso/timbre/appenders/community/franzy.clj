@@ -1,6 +1,6 @@
 (ns taoensso.timbre.appenders.community.franzy
   "Franzy (Kafka) appender.
-  Requires Franzy (https://github.com/ymilky/franzy."
+  Requires <https://github.com/ymilky/franzy>."
   {:author "Isaac Zeng (@gfZeng)"}
   (:require
    [franzy.serialization.serializers  :as serializers]

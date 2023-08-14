@@ -1,6 +1,6 @@
 (ns taoensso.timbre.appenders.community.server-socket
   "TCP socket appender.
-  Requires https://github.com/technomancy/server-socket."
+  Requires <https://github.com/technomancy/server-socket>."
   {:author "Emlyn Corrin (@emlyn)"}
   (:require
    [taoensso.encore :as enc]

@@ -1,5 +1,7 @@
-(ns taoensso.timbre.appenders.community.zmq
-  "ØMQ appender. Requires https://github.com/zeromq/cljzmq."
+(ns ^:no-doc taoensso.timbre.appenders.community.zmq
+  ;; `^:no-doc` needed to prevent broken cljdoc build
+  "ØMQ appender.
+  Requires <https://github.com/zeromq/cljzmq>."
   {:author "Angus Fletcher (@angusiguess)"}
   (:require
    [taoensso.encore :as enc]

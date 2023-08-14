@@ -1,5 +1,6 @@
 (ns taoensso.timbre.appenders.postal
-  "Email (Postal) appender. Requires https://github.com/drewr/postal."
+  "Email (Postal) appender.
+  Requires <https://github.com/drewr/postal>."
   {:author "Peter Taoussanis (@ptaoussanis)"}
   (:require
    [clojure.string     :as str]

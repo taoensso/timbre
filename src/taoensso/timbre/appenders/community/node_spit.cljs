@@ -1,5 +1,5 @@
 (ns taoensso.timbre.appenders.community.node-spit
-  "Requires https://github.com/pkpkpk/cljs-node-io."
+  "Requires <https://github.com/pkpkpk/cljs-node-io>."
   {:author "Mason Vines (@mavines)"}
   (:require
    [taoensso.encore   :as enc]

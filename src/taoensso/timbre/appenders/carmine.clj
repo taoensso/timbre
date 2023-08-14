@@ -1,6 +1,6 @@
 (ns taoensso.timbre.appenders.carmine
   "Carmine (Redis) appender.
-  Requires https://github.com/ptaoussanis/carmine."
+  Requires <https://github.com/taoensso/carmine>."
   {:author "Peter Taoussanis (@ptaoussanis)"}
   (:require
    [taoensso.encore  :as enc :refer [have have?]]

@@ -5,8 +5,9 @@
   PRs for new *dependency-free* community appenders welcome!
 
   NB See the `timbre/*config*` docstring for up-to-date info
-  Timbre's appender API."
+  Timbre's appender API.
 
+  Requires <https://github.com/<TODO>/<TODO>>."
   {:author "TODO Your Name (@your-github-username)"}
   (:require
    [taoensso.encore :as enc]

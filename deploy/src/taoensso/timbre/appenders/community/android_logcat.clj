@@ -1,4 +1,5 @@
-(ns taoensso.timbre.appenders.community.android-logcat
+(ns ^:no-doc taoensso.timbre.appenders.community.android-logcat
+  ;; `^:no-doc` needed to prevent broken cljdoc build
   "Android LogCat appender. Requires Android runtime."
   {:author "Adam Clements (@AdamClements)"}
   (:require

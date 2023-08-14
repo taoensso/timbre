@@ -1,5 +1,6 @@
 (ns taoensso.timbre.appenders.community.sentry
-  "Sentry appender. Requires https://github.com/sethtrain/raven-clj."
+  "Sentry appender.
+  Requires <https://github.com/sethtrain/raven-clj>."
   {:author "Samuel Otter (@samuelotter)"}
   (:require
    [taoensso.encore :as enc]

@@ -1,6 +1,5 @@
 (ns taoensso.timbre.appenders.community.rolling
   "Rolling file appender."
-  {:author "Unknown - please let me know?"}
   (:require
    [clojure.java.io :as io]
    [taoensso.encore :as enc]

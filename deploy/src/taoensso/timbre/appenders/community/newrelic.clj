@@ -1,6 +1,7 @@
-(ns taoensso.timbre.appenders.community.newrelic
-  "New Relic appender. Requires an appropriate New Relic jar,
-  Ref. https://goo.gl/3Nv0QX."
+(ns ^:no-doc taoensso.timbre.appenders.community.newrelic
+  ;; `^:no-doc` needed to prevent broken cljdoc build
+  "New Relic appender.
+  Requires <https://github.com/newrelic/newrelic-java-agent>."
   {:author "Camilo Polymeris (@polymeris)"}
   (:import [com.newrelic.api.agent NewRelic]))
 
