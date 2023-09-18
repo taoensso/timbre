@@ -817,18 +817,20 @@
                 :or   {config `*config*
                        ?err   :auto}} opts
 
+               callsite-id (callsite-counter)
                ns     (or (:?ns-str opts) ns)
                file   (or (:?file   opts) file)
                line   (or (:?line   opts) line)
                column (or (:?column opts) column)
 
-               callsite-id (callsite-counter)
                vargs-form
-               (if (symbol? args)
-                 `(enc/ensure-vec ~args)
-                 `[               ~@args])]
+               (get opts :vargs ; For max flexibility
+                 (if (symbol? args)
+                   `(enc/ensure-vec  ~args)
+                   `[               ~@args]))]
 
-           `(-log! ~config ~level ~ns ~file ~line ~column ~msg-type ~?err
+           ;; Note pre-resolved expansion
+           `(taoensso.timbre/-log! ~config ~level ~ns ~file ~line ~column ~msg-type ~?err
               (delay ~vargs-form) ~?base-data ~callsite-id ~spying?))))))
 
 (comment
