@@ -806,32 +806,43 @@
        (defn     log-wrapper-fn    [& args]                        (timbre/log! :info :p  args))
        (defmacro log-wrapper-macro [& args] (timbre/keep-callsite `(timbre/log! :info :p ~args)))"
 
-     [level msg-type args & [opts]]
-     (have [:or nil? sequential? symbol?] args)
-     (let [loc (or (get opts :loc) (enc/get-source &form &env))
-           {:keys [ns file line column]} loc]
+     ([{:as   opts
+        :keys [loc level msg-type args vargs
+               config ?err ?base-data spying?]
+        :or
+        {config `*config*
+         ?err   :auto}}]
 
-       ;; level, ns may/not be compile-time consts
-       (when-not #?(:clj (-elide? level ns) :cljs false)
-         (let [{:keys [config ?err ?base-data spying?]
-                :or   {config `*config*
-                       ?err   :auto}} opts
+      (have [:or nil? sequential? symbol?] args)
+      (let [callsite-id (callsite-counter)
+            loc (or loc (enc/get-source &form &env))
+            {:keys [ns file line column]} loc
 
-               callsite-id (callsite-counter)
-               ns     (or (:?ns-str opts) ns)
-               file   (or (:?file   opts) file)
-               line   (or (:?line   opts) line)
-               column (or (:?column opts) column)
+            ns     (or (get opts :?ns-str) ns)
+            file   (or (get opts :?file)   file)
+            line   (or (get opts :?line)   line)
+            column (or (get opts :?column) column)
 
-               vargs-form
-               (get opts :vargs ; For max flexibility
-                 (if (symbol? args)
-                   `(enc/ensure-vec  ~args)
-                   `[               ~@args]))]
+            elide? (and (enc/const-forms? level ns) (-elide? level ns))]
 
-           ;; Note pre-resolved expansion
-           `(taoensso.timbre/-log! ~config ~level ~ns ~file ~line ~column ~msg-type ~?err
-              (delay ~vargs-form) ~?base-data ~callsite-id ~spying?))))))
+        (when-not elide?
+          (let [vargs-form
+                (or vargs
+                  (if (symbol? args)
+                    `(enc/ensure-vec ~args)
+                    `[              ~@args]))]
+
+            ;; Note pre-resolved expansion
+            `(taoensso.timbre/-log! ~config ~level ~ns ~file ~line ~column ~msg-type ~?err
+               (delay ~vargs-form) ~?base-data ~callsite-id ~spying?)))))
+
+     ([level msg-type args & [opts]]
+      (let [loc  (enc/get-source &form &env)
+            opts (assoc (conj {:loc loc} opts)
+                   :level level, :msg-type msg-type, :args args)]
+        `(log! ~opts)))))
+
+(macroexpand '(log! :info :p ["foo"]   {:loc {:ns "foo"}}))
 
 (comment
   (do           (log! :info :p ["foo"]))
