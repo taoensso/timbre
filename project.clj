@@ -8,13 +8,12 @@
    :url  "https://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies
-  [[com.taoensso/encore "3.62.1"]
-   [io.aviso/pretty     "1.1.1"] ; Temporarily use old release, Ref. #369
-  ]
+  [[com.taoensso/encore "3.68.0"]
+   [io.aviso/pretty     "1.4.4"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
-   :provided {:dependencies [[org.clojure/clojurescript "1.11.60"]
+   :provided {:dependencies [[org.clojure/clojurescript "1.11.121"]
                              [org.clojure/clojure       "1.11.1"]]}
    :c1.11    {:dependencies [[org.clojure/clojure       "1.11.1"]]}
    :c1.10    {:dependencies [[org.clojure/clojure       "1.10.1"]]}
@@ -25,12 +24,12 @@
     [[irclj                   "0.5.0-alpha4"]
      [org.graylog2/gelfclient "1.5.1"
       :exclusions [com.fasterxml.jackson.core/jackson-core]]
-     [org.julienxx/clj-slack  "0.8.0"]
+     [org.julienxx/clj-slack  "0.8.1"]
      [org.clojure/java.jdbc   "0.7.12"]
      [com.mchange/c3p0        "0.9.5.5"]
-     [cheshire                "5.11.0"]
+     [cheshire                "5.12.0"]
      [ymilky/franzy           "0.0.1"]
-     [com.newrelic.agent.java/newrelic-agent "8.4.0"]
+     [com.newrelic.agent.java/newrelic-agent "8.6.0"]
      [net.java.dev.jna/jna    "5.13.0"]
      [raven-clj               "1.7.0"]
      [congomongo              "2.6.0"]
@@ -53,14 +52,14 @@
     :dependencies
     [[org.clojure/test.check    "1.1.1"]
      [org.clojure/tools.logging "1.2.4"]
-     [com.taoensso/nippy        "3.2.0"]
+     [com.taoensso/nippy        "3.3.0-RC2"]
      [com.taoensso/carmine      "3.3.0-RC1"
       :exclusions [com.taoensso/timbre]]
      [com.draines/postal        "2.0.5"]]}
 
    :graal-tests
    {:dependencies [[org.clojure/clojure "1.11.1"]
-                   [com.github.clj-easy/graal-build-time "0.1.4"]]
+                   [com.github.clj-easy/graal-build-time "1.0.5"]]
     :main taoensso.graal-tests
     :aot [taoensso.graal-tests]
     :uberjar-name "graal-tests.jar"}
