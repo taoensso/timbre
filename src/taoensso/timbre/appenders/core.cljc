@@ -16,10 +16,6 @@
 
 #?(:clj (alias 'timbre 'taoensso.timbre))
 
-#?(:clj
-   (let [system-newline enc/system-newline]
-     (defn- atomic-println [x] (print (str x system-newline)) (flush))))
-
 (defn println-appender
   "Returns a simple `println` appender for Clojure/Script.
   Use with ClojureScript requires that `cljs.core/*print-fn*` be set.
@@ -51,7 +47,7 @@
                     stream)]
 
               (binding [*out* stream]
-                (atomic-println (force output_)))))))}))
+                (enc/println-atomic (force output_)))))))}))
 
 (comment (println-appender))
 

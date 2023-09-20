@@ -19,9 +19,7 @@
    (fn self [data]
      (let [{:keys [output_]} data]
        (try
-         (nio/spit fname (str (force output_) enc/system-newline)
-           :append append?)
-
+         (nio/spit fname (str (force output_) enc/newline) :append append?)
          (catch :default e
            (if (:spit-appender/retry? data)
              (throw e)

@@ -12,7 +12,7 @@
 
   #?(:cljs (:require-macros [taoensso.timbre])))
 
-(enc/assert-min-encore-version [3 62 1])
+(enc/assert-min-encore-version [3 68 0])
 
 (comment
   (remove-ns 'taoensso.timbre)
@@ -65,7 +65,7 @@
 ;; fn or `ns-pattern`) and `ns-pattern` (subtype of `ns-filter`).
 
 (let [fn?         fn?
-      compile     (enc/fmemoize (fn [x] (enc/compile-str-filter x)))
+      compile     (enc/fmemoize (fn [x] (enc/name-filter x)))
       conform?*   (enc/fmemoize (fn [x ns] ((compile x) ns)))
       ;; conform? (enc/fmemoize (fn [x ns] (if (fn? x) (x ns) ((compile x) ns))))
       conform?
@@ -163,11 +163,11 @@
 #?(:clj
    (defonce ^:private compile-time-min-level
      (let [level
-           (or
-             (enc/read-sys-val "taoensso.timbre.min-level.edn" "TAOENSSO_TIMBRE_MIN_LEVEL_EDN")
-             (enc/read-sys-val "TIMBRE_LEVEL")     ; Legacy
-             (enc/read-sys-val "TIMBRE_LOG_LEVEL") ; Legacy
-             )
+           (enc/read-sys-val*
+             [:taoensso.timbre.min-level
+              :timbre-level     ; Legacy
+              :timbre-log-level ; Legacy
+              ])
 
            level (if (string? level) (keyword level) level) ; Legacy
            present? (some?        level)
@@ -188,11 +188,14 @@
    (defonce ^:private compile-time-ns-filter
      (let [ns-pattern
            (or
-             (enc/read-sys-val "taoensso.timbre.ns-pattern.edn" "TAOENSSO_TIMBRE_NS_PATTERN_EDN")
-             (enc/read-sys-val "TIMBRE_NS_PATTERN") ; Legacy
+             (enc/read-sys-val*
+               [:taoensso.timbre.ns-pattern
+                :timbre-ns-pattern ; Legacy
+                ])
+
              (legacy-ns-filter ; Legacy
-               (enc/read-sys-val "TIMBRE_NS_WHITELIST")
-               (enc/read-sys-val "TIMBRE_NS_BLACKLIST")))
+               (enc/read-sys-val* [:timbre-ns-whitelist])
+               (enc/read-sys-val* [:timbre-ns-blacklist])))
 
            ns-pattern ; Support legacy :whitelist, :blacklist
            (if (map? ns-pattern)
@@ -313,7 +316,7 @@
 
      :cljs
      (let [{:keys [pattern]} timestamp-opts]
-       (if (enc/kw-identical? pattern :iso8601)
+       (if (enc/identical-kw? pattern :iso8601)
          (.toISOString (js/Date. instant)) ; e.g. 2020-09-14T08:29:49.711Z (UTC)
          ;; Pattern can also be be `goog.i18n.DateTimeFormat.Format`, etc.
          (.format
@@ -432,11 +435,11 @@
          (when-let [ef (get output-opts :error-fn default-output-error-fn)]
            (when-not   (get output-opts :no-stacktrace?) ; Back compatibility
              (enc/catching
-               (str enc/system-newline (ef data)) _
+               (str enc/newline (ef data)) _
                (str
-                 enc/system-newline
+                 enc/newline
                  "[TIMBRE WARNING]: `error-fn` failed, falling back to `pr-str`:"
-                 enc/system-newline
+                 enc/newline
                  (enc/catching (pr-str err) _ "<pr-str failed>"))))))))))
 
 (defn- default-arg->str-fn [x]
@@ -486,13 +489,10 @@
 
 #?(:clj
    (def ^:private default-stacktrace-fonts
-     (or
-       (enc/read-sys-val
-         "taoensso.timbre.default-stacktrace-fonts.edn"
-         "TAOENSSO_TIMBRE_DEFAULT_STACKTRACE_FONTS_EDN") ; Undocumented
-
-       (enc/read-sys-val "TIMBRE_DEFAULT_STACKTRACE_FONTS") ; Legacy
-       nil)))
+     (enc/read-sys-val*
+       [:taoensso.timbre.default-stacktrace-fonts ; Undocumented
+        :timbre-defaut-stacktrace-fonts ; Legacy
+        ])))
 
 (defn default-output-error-fn
   "Default (fn [data]) -> string, used by `default-output-fn` to
@@ -510,7 +510,7 @@
   (let [err (have ?err)]
 
     #?(:cljs
-       (let [nl enc/system-newline]
+       (let [nl enc/newline]
          (str
            (.-stack err) ; Includes `ex-message`
            (when-let [d (ex-data err)]
@@ -571,8 +571,8 @@
 (defn- parse-vargs
   "vargs -> [?err ?meta ?msg-fmt api-vargs]"
   [?err msg-type vargs]
-  (let [auto-error? (enc/kw-identical? ?err :auto)
-        fmt-msg?    (enc/kw-identical? msg-type :f)
+  (let [auto-error? (enc/identical-kw? ?err :auto)
+        fmt-msg?    (enc/identical-kw? msg-type :f)
         [v0] vargs]
 
     (if (and auto-error? (enc/error? v0))
@@ -703,7 +703,7 @@
                  (fn [?appender-opts] ; Return timestamp_ delay
                    (if (or
                          (nil? ?appender-opts)
-                         (enc/kw-identical? ?appender-opts :inherit) ; Back compatibility
+                         (enc/identical-kw? ?appender-opts :inherit) ; Back compatibility
                          )
 
                      (get-shared-delay       @base-opts_)
@@ -715,7 +715,7 @@
                    (protected-fn "Timbre error when calling (output-fn <data>)"
                      (if (or
                            (nil? ?appender-fn)
-                           (enc/kw-identical? ?appender-fn :inherit) ; Back compatibility
+                           (enc/identical-kw? ?appender-fn :inherit) ; Back compatibility
                            )
 
                        base-fn
@@ -1219,22 +1219,18 @@
     Note that compile-time options will OVERRIDE options in `*config*`.
 
   DEBUGGING INITIAL CONFIG
-    See `:_init-config` for information re: Timbre's config on initial load.
-    These keys are set only once on initial load, and changing them will
-    have no effect:
-      :loaded-from-source  ; e/o #{:default :prop :res :res-env}
-      :compile-time-config ; {:keys [min-level ns-filter]} for compile-time elision"
+    See `:_init-config` for information re: Timbre's config on initial load."
 
   #?(:cljs default-config
      :clj
      (let [{:keys [config source]}
-           (enc/load-edn-config
-             {:default  default-config
-              :prop     "taoensso.timbre.config.edn"
-              :res      "taoensso.timbre.config.edn"
-              :res-prop "taoensso.timbre.config-resource"})]
+           (enc/get-config
+             {:as      :edn
+              :default default-config
+              :prop    :taoensso.timbre.config})
 
-       ;; (println (str "Loading initial Timbre config from: " source))
+           config (enc/nested-merge default-config config)]
+
        (assoc config :_init-config
          {:loaded-from-source  source
           :compile-time-config @compile-time-config_}))))
