@@ -973,17 +973,18 @@
 ;;;; Ns imports
 
 #?(:clj
-   (defn refer-timbre
-     "Shorthand for:
-     (require '[taoensso.timbre :as timbre
-                :refer [log  trace  debug  info  warn  error  fatal  report
-                        logf tracef debugf infof warnf errorf fatalf reportf
-                        spy]])"
+   (defmacro refer-timbre
+     "(require
+        '[taoensso.timbre :as timbre
+          :refer [log  trace  debug  info  warn  error  fatal  report
+                  logf tracef debugf infof warnf errorf fatalf reportf
+                  spy]])"
      []
-     (require '[taoensso.timbre :as timbre
-                :refer [log  trace  debug  info  warn  error  fatal  report
-                        logf tracef debugf infof warnf errorf fatalf reportf
-                        spy]])))
+     `(require
+        '[taoensso.timbre :as timbre
+          :refer [log  trace  debug  info  warn  error  fatal  report
+                  logf tracef debugf infof warnf errorf fatalf reportf
+                  spy]])))
 
 ;;;; Appender shutdown
 
