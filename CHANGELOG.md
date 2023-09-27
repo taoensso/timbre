@@ -2,9 +2,9 @@ This project uses [**Break Versioning**](https://www.taoensso.com/break-versioni
 
 ---
 
-# `v6.3.0` (2023-09-27)
+# `v6.3.1` (2023-09-27)
 
-> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.3.0), this project uses [Break Versioning](https://www.taoensso.com/break-versioning).
+> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.3.1), this project uses [Break Versioning](https://www.taoensso.com/break-versioning).
 
 This is a **minor maintenance release** that should be non-breaking.
 
