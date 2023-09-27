@@ -143,8 +143,8 @@
 ;;;; Deprecated
 
 (enc/deprecated
-  (defn ^:deprecated make-carmine-appender
-    "DEPRECATED. Please use `carmine-appender` instead."
+  (defn ^:no-doc ^:deprecated make-carmine-appender
+    "Prefer `carmine-appender`."
     [& [appender-merge opts]]
     (merge (carmine-appender opts) appender-merge)))
 

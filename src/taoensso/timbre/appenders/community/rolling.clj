@@ -75,7 +75,7 @@
 ;;;; Deprecated
 
 (enc/deprecated
-  (defn ^:deprecated make-rolling-appender
-    "DEPRECATED. Please use `rolling-appender` instead."
+  (defn ^:no-doc ^:deprecated make-rolling-appender
+    "Prefer `rolling-appender`."
     [& [appender-merge opts]]
     (merge (rolling-appender opts) appender-merge)))

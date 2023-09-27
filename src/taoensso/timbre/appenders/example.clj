@@ -60,7 +60,7 @@
        (when-not @shutdown?_
          (let [{:keys
                 [instant level output_
-                 ;; ... lots more stuff, see `timbre/example-config`
+                 ;; ... lots more, see `timbre/default-config`
                  ]} data
 
                ;; Final output, in a format appropriate for this

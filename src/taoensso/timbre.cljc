@@ -369,10 +369,12 @@
      `(binding [*out* default-out, *err* default-err] ~@body)))
 
 #?(:clj
-   (defmacro sometimes "Handy for sampled logging, etc."
+   (defmacro sometimes
+     "Handy for sampled logging, etc."
      [probability & body]
-     `(do (assert (<= 0 ~probability 1) "Probability: 0 <= p <= 1")
-          (when (< (rand) ~probability) ~@body))))
+     (if (enc/const-form? probability)
+       `(when (< (Math/random) ~(enc/as-pnum! probability)) ~@body)
+       `(when (< (Math/random) (double       ~probability)) ~@body))))
 
 ;;;; Default fns
 
@@ -806,7 +808,7 @@
        ;; level, ns may/not be compile-time consts:
        (when-not #?(:clj (-elide? level ?ns-str) :cljs false)
          (let [{:keys [config ?err ?file ?line ?base-data spying?]
-                :or   {config 'taoensso.timbre/*config*
+                :or   {config `*config*
                        ?err   :auto ; => Extract as err-type v0
                        ?file  #?(:clj *file* :cljs nil)
                        ;; NB waiting on CLJ-865:
@@ -1236,10 +1238,10 @@
      :clj
      (let [{:keys [config source]}
            (enc/load-edn-config
-             {:default default-config
-              :prop    "taoensso.timbre.config.edn"
-              :res     "taoensso.timbre.config.edn"
-              :res-env "taoensso.timbre.config-resource"})]
+             {:default  default-config
+              :prop     "taoensso.timbre.config.edn"
+              :res      "taoensso.timbre.config.edn"
+              :res-prop "taoensso.timbre.config-resource"})]
 
        ;; (println (str "Loading initial Timbre config from: " source))
        (assoc config :_init-config
@@ -1249,30 +1251,30 @@
 ;;;; Deprecated
 
 (enc/deprecated
-  #?(:cljs (def ^:deprecated console-?appender core-appenders/console-appender))
-  (def  ^:deprecated ordered-levels [:trace :debug :info :warn :error :fatal :report])
-  (def  ^:deprecated log? may-log?)
-  (def  ^:deprecated example-config "DEPRECATED, prefer `default-config`" default-config)
-  (defn ^:deprecated logging-enabled? [level compile-time-ns] (may-log? level (str compile-time-ns)))
-  (defn ^:deprecated str-println      [& xs] (str-join xs))
-  #?(:clj (defmacro ^:deprecated with-log-level      [level  & body] `(with-min-level ~level ~@body)))
-  #?(:clj (defmacro ^:deprecated with-logging-config [config & body] `(with-config ~config ~@body)))
-  #?(:clj (defmacro ^:deprecated logp                [& args]        `(log ~@args)))
+  #?(:cljs (def ^:no-doc ^:deprecated console-?appender core-appenders/console-appender))
+  (def  ^:no-doc ^:deprecated ordered-levels [:trace :debug :info :warn :error :fatal :report])
+  (def  ^:no-doc ^:deprecated log? may-log?)
+  (def  ^:no-doc ^:deprecated example-config "Prefer `default-config`." default-config)
+  (defn ^:no-doc ^:deprecated logging-enabled? [level compile-time-ns] (may-log? level (str compile-time-ns)))
+  (defn ^:no-doc ^:deprecated str-println      [& xs] (str-join xs))
+  #?(:clj (defmacro ^:no-doc ^:deprecated with-log-level      [level  & body] `(with-min-level ~level ~@body)))
+  #?(:clj (defmacro ^:no-doc ^:deprecated with-logging-config [config & body] `(with-config ~config ~@body)))
+  #?(:clj (defmacro ^:no-doc ^:deprecated logp                [& args]        `(log ~@args)))
   #?(:clj
-     (defmacro ^:deprecated log-env
+     (defmacro ^:no-doc ^:deprecated log-env
        ([                 ] `(log-env :debug))
        ([       level     ] `(log-env ~level "&env"))
        ([       level name] `(log-env *config* ~level ~name))
        ([config level name] `(log* ~config ~level ~name "=>" (get-env)))))
 
-  (defn ^:deprecated set-level! "DEPRECATED, prefer `set-min-level!`"
+  (defn ^:no-doc ^:deprecated set-level! "Prefer `set-min-level!.`"
     [level] (swap-config! (fn [m] (assoc m :min-level level))))
 
   #?(:clj
-     (defmacro ^:deprecated with-level "DEPRECATED, prefer `with-min-level`"
+     (defmacro ^:no-doc ^:deprecated with-level "Prefer `with-min-level`."
        [level & body] `(binding [*config* (assoc *config* :min-level ~level)] ~@body)))
 
-  (defn ^:deprected stacktrace
-    "DEPRECATED, use `default-output-error-fn` instead"
+  (defn ^:no-doc ^:deprected stacktrace
+    "Prefer `default-output-error-fn`."
     ([err     ] (stacktrace err nil))
     ([err opts] (default-output-error-fn {:?err err :output-opts opts}))))

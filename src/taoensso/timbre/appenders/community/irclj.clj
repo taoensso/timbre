@@ -60,8 +60,8 @@
 ;;;; Deprecated
 
 (enc/deprecated
-  (defn make-irc-appender
-    "DEPRECATED. Please use `irclj-appender` instead."
+  (defn ^:no-doc ^:deprecated make-irc-appender
+    "Prefer `irclj-appender`."
     [& [appender-merge opts]]
     (merge (irclj-appender (:irc-config opts)) appender-merge)))
 

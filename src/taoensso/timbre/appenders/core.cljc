@@ -200,4 +200,4 @@
 ;;;; Deprecated
 
 (enc/deprecated
-  #?(:cljs (def ^:deprecated console-?appender "DEPRECATED" console-appender)))
+  #?(:cljs (def ^:no-doc ^:deprecated console-?appender console-appender)))

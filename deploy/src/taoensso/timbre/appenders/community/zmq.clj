@@ -39,7 +39,7 @@
 ;;;; Deprecated
 
 (enc/deprecated
-  (defn ^:deprecated make-zmq-appender
-    "DEPRECATED. Please use `zmq-appender` instead."
+  (defn ^:no-doc ^:deprecated make-zmq-appender
+    "Prefer `zmq-appender`."
     [& [appender-merge opts]]
     (merge (zmq-appender opts) zmq-merge)))

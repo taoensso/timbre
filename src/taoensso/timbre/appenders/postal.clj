@@ -74,8 +74,8 @@ sdf"))
 ;;;; Deprecated
 
 (enc/deprecated
-  (defn ^:deprecated make-postal-appender
-    "DEPRECATED. Please use `postal-appender` instead."
+  (defn ^:no-doc ^:deprecated make-postal-appender
+    "Prefer `postal-appender`."
     [& [appender-merge opts]]
     (merge (postal-appender (:postal-config opts) (dissoc opts :postal-config))
       appender-merge)))

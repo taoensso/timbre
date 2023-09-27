@@ -74,7 +74,7 @@
 ;;;; Deprecated
 
 (enc/deprecated
-  (defn make-rotor-appender
-    "DEPRECATED. Please use `rotor-appender` instead."
+  (defn ^:no-doc ^:deprecated make-rotor-appender
+    "Prefer `rotor-appender`."
     [& [appender-merge opts]]
     (merge (rotor-appender opts) appender-merge)))
