@@ -22,15 +22,15 @@ See [here][GitHub releases] for earlier releases.
 
 ## Why Timbre?
 
-- Full **Clojure** & **ClojureScript** support, with built-in appenders for both.
-- **A single, simple config map**, and you're set. No need for XML or properties files.
-- Simple `(fn [data]) -> ?effects` appenders, and `(fn [data]) -> ?data` middleware.
-- Easily save **raw logging arguments** to the DB of your choice.
-- Easily filter logging calls by **any combination** of: level, namespace, appender.
-- **Zero overhead** compile-time level/ns elision.
-- Powerful, easy-to-configure **rate limits** and **async logging**.
-- **Great performance** and flexibility at any scale.
-- Small, simple, cross-platform pure-Clojure codebase.
+- Full **Clojure** & **ClojureScript** support, with built-in appenders for both
+- **A single, simple config map**, and you're set. No need for XML or properties files
+- Simple `(fn [data]) -> ?effects` appenders, and `(fn [data]) -> ?data` middleware
+- Easily save **raw logging arguments** to the DB of your choice
+- Easily filter logging calls by **any combination** of: level, namespace, appender
+- **Zero overhead** compile-time level/ns elision
+- Powerful, easy-to-configure **rate limits** and **async logging**
+- **Great performance** and flexibility at any scale
+- Small, simple, cross-platform pure-Clojure codebase
 
 ## Documentation
 

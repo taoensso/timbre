@@ -4,7 +4,7 @@ This project uses [**Break Versioning**](https://www.taoensso.com/break-versioni
 
 # `v6.3.0` (2023-09-27)
 
-> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.3.0)
+> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.3.0), this project uses [Break Versioning](https://www.taoensso.com/break-versioning).
 
 This is a **minor maintenance release** that should be non-breaking.
 
@@ -19,19 +19,21 @@ This is a **minor maintenance release** that should be non-breaking.
 * Some internal refactoring
 * Update dependencies
 
+---
 
 # `v6.2.2` (2023-07-18)
 
-> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.2.2)
+> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.2.2), this project uses [Break Versioning](https://www.taoensso.com/break-versioning).
 
 Identical to `v6.2.1`, but synchronizes Encore dependency with my recent library releases (Timbre, Tufte, Sente, Carmine, etc.) to prevent confusion caused by dependency conflicts.
 
 This is a safe update for users of `v6.2.1`.
 
+---
 
 # `v6.2.1` (2023-06-30)
 
-> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.2.1)
+> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.2.1), this project uses [Break Versioning](https://www.taoensso.com/break-versioning).
 
 This is a **maintenance release** that should be non-breaking.
 
@@ -46,6 +48,7 @@ This is a **maintenance release** that should be non-breaking.
 * 0c5e07e7 [new] [#373] [#372] Cljs console appender: improve controls for raw logging
 * a0bc5e04 [new] [#370] Add `:_init-config` map to `*config*`
 
+---
 
 # `v6.1.0` (2023-02-27)
 
@@ -72,6 +75,7 @@ See [recommended steps](https://github.com/taoensso/encore#recommended-steps-aft
 - 09c64dc0 [new] Postal appender: add `:body-len` opt
 - 3a9dd291 [new] [#361] [#362] Add Graal test (@borkdude)
 
+---
 
 # v6.0.4 / 2022 Dec 8
 
@@ -85,6 +89,7 @@ See [recommended steps](https://github.com/taoensso/encore#recommended-steps-aft
 - [fix] [#360] Fix broken compatibility with GraalVM (@borkdude)
 - [fix] [#364] Update bundled Encore dependency to fix compilation issue with shadow-cljs
 
+---
 
 # v6.0.0 / 2022 Oct 28
 
