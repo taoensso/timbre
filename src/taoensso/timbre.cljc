@@ -981,10 +981,10 @@
                   spy]])"
      []
      `(require
-        '[taoensso.timbre :as timbre
-          :refer [log  trace  debug  info  warn  error  fatal  report
-                  logf tracef debugf infof warnf errorf fatalf reportf
-                  spy]])))
+        '~'[taoensso.timbre :as timbre
+            :refer [log  trace  debug  info  warn  error  fatal  report
+                    logf tracef debugf infof warnf errorf fatalf reportf
+                    spy]])))
 
 ;;;; Appender shutdown
 
