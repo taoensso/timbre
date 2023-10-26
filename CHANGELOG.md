@@ -68,7 +68,7 @@ See [recommended steps](https://github.com/taoensso/encore#recommended-steps-aft
 
 ## Fixes since `v6.0.4`
 
-- 9455cb09 [fix] 1-arg Cljs `set-min-ns-level!` broken
+- 9455cb09 [fix] 1-arg Cljs `set-ns-min-level!` broken
 
 ## New since `v6.0.4`
 

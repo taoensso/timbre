@@ -1109,7 +1109,7 @@
   For convenience, there's also some dedicated helper utils:
 
     - `set-config!`, `merge-config!`        ; Mutate *config*
-    - `set-min-level!`, `set-min-ns-level!` ; Mutate *config* :min-level
+    - `set-min-level!`, `set-ns-min-level!` ; Mutate *config* :min-level
     - `with-config`, `with-merged-config`   ; Bind *config*
     - `with-min-level`                      ; Bind *config* :min-level
 
@@ -1134,7 +1134,7 @@
         #{}, \"*\", \"foo.bar\", \"foo.bar.*\", #{\"foo\" \"bar.*\"},
         {:allow #{\"foo\" \"bar.*\"} :deny #{\"foo.*.bar.*\"}}.
 
-      See also `set-min-ns-level!` for a helper tool.
+      See also `set-ns-min-level!` for a helper tool.
 
     :ns-filter
       Logging will occur only if a logging call's namespace is permitted
