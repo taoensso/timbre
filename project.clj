@@ -7,6 +7,8 @@
   {:name "Eclipse Public License - v 1.0"
    :url  "https://www.eclipse.org/legal/epl-v10.html"}
 
+  :test-paths ["test" #_"src"]
+
   :dependencies
   [[com.taoensso/encore "3.68.0"]
    [io.aviso/pretty     "1.4.4"]]
@@ -18,6 +20,19 @@
    :c1.11    {:dependencies [[org.clojure/clojure       "1.11.1"]]}
    :c1.10    {:dependencies [[org.clojure/clojure       "1.10.1"]]}
    :c1.9     {:dependencies [[org.clojure/clojure       "1.9.0"]]}
+
+   :deploy
+   {:source-paths [         "src"                 "deploy/src"]
+    :test-paths   ["test" #_"src" "deploy/test" #_"deploy/src"]}
+
+   :graal-tests
+   {:source-paths ["test"]
+    :main taoensso.graal-tests
+    :aot [taoensso.graal-tests]
+    :uberjar-name "graal-tests.jar"
+    :dependencies
+    [[org.clojure/clojure                  "1.11.1"]
+     [com.github.clj-easy/graal-build-time "1.0.5"]]}
 
    :community
    {:dependencies
@@ -38,12 +53,9 @@
      [cljs-node-io            "1.1.2"] ; Node spit appender
      ]}
 
-   :deploy
-   {:source-paths [         "src"                 "deploy/src"]
-    :test-paths   ["test" #_"src" "deploy/test" #_"deploy/src"]}
-
-   :test
-   {:jvm-opts ["-Dtaoensso.elide-deprecated=true"]
+   :dev [:dev+ :community #_:deploy]
+   :dev+
+   {:jvm-opts ["-server" "-Dtaoensso.elide-deprecated=true"]
     :global-vars
     {*warn-on-reflection* true
      *assert*             true
@@ -55,29 +67,17 @@
      [com.taoensso/nippy        "3.3.0-RC2"]
      [com.taoensso/carmine      "3.3.0-RC1"
       :exclusions [com.taoensso/timbre]]
-     [com.draines/postal        "2.0.5"]]}
+     [com.draines/postal        "2.0.5"]]
 
-   :graal-tests
-   {:dependencies [[org.clojure/clojure "1.11.1"]
-                   [com.github.clj-easy/graal-build-time "1.0.5"]]
-    :main taoensso.graal-tests
-    :aot [taoensso.graal-tests]
-    :uberjar-name "graal-tests.jar"}
+    :plugins
+    [[lein-pprint    "1.3.2"]
+     [lein-ancient   "0.7.0"]
+     [lein-cljsbuild "1.1.8"]
+     [com.taoensso.forks/lein-codox "0.10.10"]]
 
-   :dev
-   [:c1.11 :test :community #_:deploy
-    {:jvm-opts ["-server"]
-     :plugins
-     [[lein-pprint    "1.3.2"]
-      [lein-ancient   "0.7.0"]
-      [lein-cljsbuild "1.1.8"]
-      [com.taoensso.forks/lein-codox "0.10.10"]]
-
-     :codox
-     {:language #{:clojure :clojurescript}
-      :base-language :clojure}}]}
-
-  :test-paths ["test" #_"src"]
+    :codox
+    {:language #{:clojure :clojurescript}
+     :base-language :clojure}}}
 
   :cljsbuild
   {:test-commands {"node" ["node" "target/test.js"]}

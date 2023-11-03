@@ -34,8 +34,8 @@ See [here][GitHub releases] for earlier releases.
 
 ## Documentation
 
-- [Full documentation][GitHub wiki] (**getting started** and more)
-- Auto-generated API reference: [Codox][Codox docs], [clj-doc][clj-doc docs]
+- [Wiki][GitHub wiki] (getting started, usage, etc.)
+- API reference: [Codox][Codox docs], [clj-doc][clj-doc docs]
 
 ## Funding
 
@@ -43,7 +43,7 @@ You can [help support][sponsor] continued work on this project, thank you!! 🙏
 
 ## License
 
-Copyright &copy; 2014-2023 [Peter Taoussanis][].  
+Copyright &copy; 2014-2024 [Peter Taoussanis][].  
 Licensed under [EPL 1.0](LICENSE.txt) (same as Clojure).
 
 <!-- Common -->
