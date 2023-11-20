@@ -9,7 +9,7 @@
 
   :dependencies
   [[com.taoensso/encore "3.68.0"]
-   [io.aviso/pretty     "1.4.4"]]
+   [org.clj-commons/pretty "2.2.1"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]

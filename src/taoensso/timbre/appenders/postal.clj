@@ -6,7 +6,6 @@
    [clojure.string     :as str]
    [taoensso.encore    :as enc :refer [have have?]]
    [taoensso.timbre    :as timbre]
-   [io.aviso.exception :as aviso-ex]
    [postal.core        :as postal]))
 
 (defn default-subject-fn

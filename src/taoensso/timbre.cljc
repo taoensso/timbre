@@ -7,7 +7,7 @@
    [taoensso.encore :as enc :refer [have have?]]
    [taoensso.timbre.appenders.core :as core-appenders]
 
-   #?(:clj  [io.aviso.exception :as aviso-ex])
+   #?(:clj  [clj-commons.format.exceptions :as pretty-ex])
    #?(:cljs [goog.i18n.DateTimeFormat :as dtf]))
 
   #?(:cljs (:require-macros [taoensso.timbre])))
@@ -499,9 +499,9 @@
   generate output for `:?err` value in log data.
 
   For Clj:
-     Uses `io.aviso/pretty` to return an attractive stacktrace.
+     Uses `org.clj-commons/pretty` to return an attractive stacktrace.
      Options:
-       :stacktrace-fonts ; See `io.aviso.exception/*fonts*`
+       :stacktrace-fonts ; See `clj-commons.format.exceptions/*fonts*`
 
   For Cljs:
      Returns simple stacktrace string."
@@ -531,9 +531,9 @@
                default-stacktrace-fonts)]
 
          (if-let [fonts stacktrace-fonts]
-           (binding [aviso-ex/*fonts* fonts]
-             (do (aviso-ex/format-exception err)))
-           (do   (aviso-ex/format-exception err)))))))
+           (binding [pretty-ex/*fonts* fonts]
+             (do (pretty-ex/format-exception err)))
+           (do (pretty-ex/format-exception err)))))))
 
 (comment
   (default-output-error-fn
