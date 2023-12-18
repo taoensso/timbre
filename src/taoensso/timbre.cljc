@@ -461,7 +461,7 @@
   ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id spying?] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data callsite-id spying?))
 
   ([config level ?ns-str ?file ?line ?column msg-type ?err vargs_ ?base-data callsite-id spying?]
-   (when (may-log? :report level ?ns-str config)
+   (when (may-log? :trace level ?ns-str config)
      (let [instant (enc/now-dt*)
            context *context*
            vargs   @vargs_

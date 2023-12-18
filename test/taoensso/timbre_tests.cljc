@@ -60,7 +60,8 @@
 
 (deftest levels
   [(testing "Levels.global/basic"
-     [(is (map? (log-data "ns" :trace {:min-level :trace} {} [])) "call >= min")
+     [(is (map? (log-data "ns" :trace {:min-level nil}    {} [])) "call >= default (:trace)")
+      (is (map? (log-data "ns" :trace {:min-level :trace} {} [])) "call >= min")
       (is (nil? (log-data "ns" :trace {:min-level :info}  {} [])) "call <  min")
       (is (map? (log-data "ns" :info  {:min-level :info}  {} [])) "call >= min")
 
@@ -68,8 +69,7 @@
       (is (boolean (:error-level? (log-data "ns" :error {:min-level :error} {} []))))])
 
    (testing "Levels.global/by-ns"
-     [(is (nil? (log-data "ns.2" :info   {:min-level [["ns.1" :info]                         ]} {} [])) "call <  default")
-      (is (map? (log-data "ns.2" :report {:min-level [["ns.1" :info]                         ]} {} [])) "call >= default")
+     [(is (map? (log-data "ns.2" :trace  {:min-level [["ns.1" :info]                         ]} {} [])) "call >= default (:trace)")
       (is (map? (log-data "ns.2" :info   {:min-level [["ns.1" :warn] ["ns.2"           :info]]} {} [])) "call >= match")
       (is (map? (log-data "ns.2" :info   {:min-level [["ns.1" :warn] [#{"ns.3" "ns.2"} :info]]} {} [])) "call >= match")
       (is (map? (log-data "ns.2" :info   {:min-level [["ns.1" :warn] ["*"              :info]]} {} [])) "call >= *")
