@@ -56,7 +56,8 @@
               backlog  5}}]]
   {:enabled? true
    :fn
-   (let [lock (Object.)]
+   (let [lock (Object.)
+         max-size (long max-size)]
      (fn [data]
        (let [{:keys [output_]} data
              output-str (str (force output_) "\n")]
