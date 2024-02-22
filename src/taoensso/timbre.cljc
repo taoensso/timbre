@@ -7,8 +7,8 @@
    [taoensso.encore :as enc :refer [have have?]]
    [taoensso.timbre.appenders.core :as core-appenders]
 
-   #?(:clj  [io.aviso.exception :as aviso-ex])
-   #?(:cljs [goog.i18n.DateTimeFormat :as dtf]))
+   #?(:clj  [clj-commons.format.exceptions :as fmt-ex])
+   #?(:cljs [goog.i18n.DateTimeFormat      :as dtf]))
 
   #?(:cljs (:require-macros [taoensso.timbre])))
 
@@ -489,9 +489,11 @@
 
 #?(:clj
    (def ^:private default-stacktrace-fonts
-     (enc/get-env {:as :edn}
+     (enc/get-env
+       {:as      :edn
+        :default clj-commons.format.exceptions/default-fonts}
        [:taoensso.timbre.default-stacktrace-fonts<.edn> ; Undocumented
-        :timbre-defaut-stacktrace-fonts<.edn> ; Legacy
+        :timbre-defaut-stacktrace-fonts<.edn>           ; Legacy
         ])))
 
 (defn default-output-error-fn
@@ -499,9 +501,9 @@
   generate output for `:?err` value in log data.
 
   For Clj:
-     Uses `io.aviso/pretty` to return an attractive stacktrace.
+     Uses `org.clj-commons/pretty` to return an attractive stacktrace.
      Options:
-       :stacktrace-fonts ; See `io.aviso.exception/*fonts*`
+       :stacktrace-fonts ; See `clj-commons.format.exceptions/*fonts*`
 
   For Cljs:
      Returns simple stacktrace string."
@@ -522,18 +524,10 @@
                  (assoc data :?err c))))))
 
        :clj
-       (let [stacktrace-fonts ; nil->{}
-             (if-let [e (find output-opts :stacktrace-fonts)]
-               (let [st-fonts (val e)]
-                 (if (nil? st-fonts)
-                   {}
-                   st-fonts))
-               default-stacktrace-fonts)]
-
-         (if-let [fonts stacktrace-fonts]
-           (binding [aviso-ex/*fonts* fonts]
-             (do (aviso-ex/format-exception err)))
-           (do   (aviso-ex/format-exception err)))))))
+       (binding [fmt-ex/*fonts*
+                 (get output-opts :stacktrace-fonts
+                   default-stacktrace-fonts)]
+         (fmt-ex/format-exception err)))))
 
 (comment
   (default-output-error-fn
