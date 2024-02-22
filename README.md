@@ -13,7 +13,7 @@ Supports optional interop with [tools.logging](https://github.com/taoensso/timbr
 
 ## Latest release/s
 
-- `2023-09-27` `v6.3.1` (stable): [changes](../../releases/tag/v6.3.1)
+- `2024-02-22` `v6.4.0` (stable): [changes](../../releases/tag/v6.4.0)
 
 [![Main tests][Main tests SVG]][Main tests URL]
 [![Graal tests][Graal tests SVG]][Graal tests URL]

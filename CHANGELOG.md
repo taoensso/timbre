@@ -2,6 +2,20 @@ This project uses [**Break Versioning**](https://www.taoensso.com/break-versioni
 
 ---
 
+# `v6.4.0` (2024-02-22)
+
+> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.4.0), this project uses [Break Versioning](https://www.taoensso.com/break-versioning).
+
+This is a **maintenance release** that should be non-breaking, but that **may change** (fix) logging output for users of the JS console logger's `:raw-console?` option.
+
+## Fixes since `v6.3.1`
+
+* 9ec4e3c4 [fix] JS console appender unintentionally duplicating raw args
+* dbf84818 [fix] Unnecessary boxed math in (community) rotor appender
+* fab7b26c [fix] [#380] Fix docstring typo (@alexpetrov)
+
+---
+
 # `v6.3.1` (2023-09-27)
 
 > 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.3.1), this project uses [Break Versioning](https://www.taoensso.com/break-versioning).
