@@ -418,7 +418,7 @@
      (default-output-fn data)))
 
   ([data]
-   (let [{:keys [level ?err #_vargs msg_ ?ns-str ?file hostname_
+   (let [{:keys [level ?err #_vargs #_msg_ ?ns-str ?file hostname_
                  timestamp_ ?line #_?column output-opts]}
          data]
 

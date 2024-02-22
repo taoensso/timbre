@@ -179,8 +179,8 @@
                 (let [output
                       ((:output-fn data)
                        (assoc data
-                         :msg_  ""
-                         :?err nil))
+                         :msg-type nil
+                         :?err     nil))
 
                       args ; (<output> ?<raw-error> <raw-arg1> <raw-arg2> ...)
                       (let [vargs (:vargs data)]
