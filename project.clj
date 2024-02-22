@@ -15,7 +15,7 @@
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
-   :provided {:dependencies [[org.clojure/clojurescript "1.11.121"]
+   :provided {:dependencies [[org.clojure/clojurescript "1.11.132"]
                              [org.clojure/clojure       "1.11.1"]]}
    :c1.11    {:dependencies [[org.clojure/clojure       "1.11.1"]]}
    :c1.10    {:dependencies [[org.clojure/clojure       "1.10.1"]]}
@@ -39,13 +39,13 @@
     [[irclj                   "0.5.0-alpha4"]
      [org.graylog2/gelfclient "1.5.1"
       :exclusions [com.fasterxml.jackson.core/jackson-core]]
-     [org.julienxx/clj-slack  "0.8.1"]
+     [org.julienxx/clj-slack  "0.8.3"]
      [org.clojure/java.jdbc   "0.7.12"]
      [com.mchange/c3p0        "0.9.5.5"]
      [cheshire                "5.12.0"]
      [ymilky/franzy           "0.0.1"]
-     [com.newrelic.agent.java/newrelic-agent "8.6.0"]
-     [net.java.dev.jna/jna    "5.13.0"]
+     [com.newrelic.agent.java/newrelic-agent "8.9.1"]
+     [net.java.dev.jna/jna    "5.14.0"]
      [raven-clj               "1.7.0"]
      [congomongo              "2.6.0"]
      [server-socket           "1.0.0"]
@@ -63,9 +63,9 @@
 
     :dependencies
     [[org.clojure/test.check    "1.1.1"]
-     [org.clojure/tools.logging "1.2.4"]
-     [com.taoensso/nippy        "3.3.0-RC2"]
-     [com.taoensso/carmine      "3.3.0-RC1"
+     [org.clojure/tools.logging "1.3.0"]
+     [com.taoensso/nippy        "3.3.0"]
+     [com.taoensso/carmine      "3.3.2"
       :exclusions [com.taoensso/timbre]]
      [com.draines/postal        "2.0.5"]]
 
@@ -73,7 +73,7 @@
     [[lein-pprint    "1.3.2"]
      [lein-ancient   "0.7.0"]
      [lein-cljsbuild "1.1.8"]
-     [com.taoensso.forks/lein-codox "0.10.10"]]
+     [com.taoensso.forks/lein-codox "0.10.11"]]
 
     :codox
     {:language #{:clojure :clojurescript}
