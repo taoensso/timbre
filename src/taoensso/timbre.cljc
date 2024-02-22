@@ -12,7 +12,7 @@
 
   #?(:cljs (:require-macros [taoensso.timbre])))
 
-(enc/assert-min-encore-version [3 68 0])
+(enc/assert-min-encore-version [3 81 0])
 
 (comment
   (remove-ns 'taoensso.timbre)
@@ -163,10 +163,10 @@
 #?(:clj
    (defonce ^:private compile-time-min-level
      (let [level
-           (enc/read-sys-val*
-             [:taoensso.timbre.min-level
-              :timbre-level     ; Legacy
-              :timbre-log-level ; Legacy
+           (enc/get-env {:as :edn}
+             [:taoensso.timbre.min-level<.edn>
+              :timbre-level<.edn>     ; Legacy
+              :timbre-log-level<.edn> ; Legacy
               ])
 
            level (if (string? level) (keyword level) level) ; Legacy
@@ -188,14 +188,14 @@
    (defonce ^:private compile-time-ns-filter
      (let [ns-pattern
            (or
-             (enc/read-sys-val*
-               [:taoensso.timbre.ns-pattern
-                :timbre-ns-pattern ; Legacy
+             (enc/get-env {:as :edn}
+               [:taoensso.timbre.ns-pattern<.edn>
+                :timbre-ns-pattern<.edn> ; Legacy
                 ])
 
              (legacy-ns-filter ; Legacy
-               (enc/read-sys-val* [:timbre-ns-whitelist])
-               (enc/read-sys-val* [:timbre-ns-blacklist])))
+               (enc/get-env {:as :edn} :timbre-ns-whitelist<.edn>)
+               (enc/get-env {:as :edn} :timbre-ns-blacklist<.edn>)))
 
            ns-pattern ; Support legacy :whitelist, :blacklist
            (if (map? ns-pattern)
@@ -296,11 +296,11 @@
 
 ;;;; Utils
 
-#?(:clj (defmacro get-env [] `(enc/get-env)))
+#?(:clj (defmacro get-env [] `(enc/get-locals)))
 (comment ((fn foo [x y] (get-env)) 5 10))
 
 #?(:clj (defonce ^:private get-agent        (enc/fmemoize (fn [appender-id      ] (agent nil :error-mode :continue)))))
-(do     (defonce ^:private get-rate-limiter (enc/fmemoize (fn [appender-id specs] (enc/limiter specs)))))
+(do     (defonce ^:private get-rate-limiter (enc/fmemoize (fn [appender-id specs] (enc/rate-limiter specs)))))
 
 (comment
   (get-agent :my-appender)
@@ -489,9 +489,9 @@
 
 #?(:clj
    (def ^:private default-stacktrace-fonts
-     (enc/read-sys-val*
-       [:taoensso.timbre.default-stacktrace-fonts ; Undocumented
-        :timbre-defaut-stacktrace-fonts ; Legacy
+     (enc/get-env {:as :edn}
+       [:taoensso.timbre.default-stacktrace-fonts<.edn> ; Undocumented
+        :timbre-defaut-stacktrace-fonts<.edn> ; Legacy
         ])))
 
 (defn default-output-error-fn
@@ -1238,16 +1238,14 @@
 
   #?(:cljs default-config
      :clj
-     (let [{:keys [config source]}
-           (enc/get-config
-             {:as      :edn
-              :default default-config
-              :prop    :taoensso.timbre.config})
+     (let [{:keys [source value]}
+           (enc/get-env {:as :edn, :return :map}
+             :taoensso.timbre.config<.edn>)
 
-           config (enc/nested-merge default-config config)]
+           value (enc/nested-merge default-config value)]
 
-       (assoc config :_init-config
-         {:loaded-from-source  source
+       (assoc value :_init-config
+         {:loaded-from-source  (or source :default)
           :compile-time-config @compile-time-config_}))))
 
 ;;;; Deprecated

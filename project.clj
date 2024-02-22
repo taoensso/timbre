@@ -10,7 +10,7 @@
   :test-paths ["test" #_"src"]
 
   :dependencies
-  [[com.taoensso/encore "3.68.0"]
+  [[com.taoensso/encore "3.81.0"]
    [io.aviso/pretty     "1.4.4"]]
 
   :profiles
