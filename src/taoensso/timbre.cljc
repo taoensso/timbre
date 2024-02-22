@@ -379,161 +379,6 @@
        `(when (< (Math/random) ~(enc/as-pnum! probability)) ~@body)
        `(when (< (Math/random) (double       ~probability)) ~@body))))
 
-;;;; Default fns
-
-(declare
-  default-output-msg-fn
-  default-output-error-fn)
-
-(defn default-output-fn
-  "Default (fn [data]) -> final output string, used to produce
-  final formatted output_ string from final log data.
-
-  Options (included as `:output-opts` in data sent to fns below):
-
-    :error-fn ; When present and (:?err data) present,
-              ; (error-fn data) will be called to generate output
-              ; (e.g. a stacktrace) for the error.
-              ;
-              ; Default value: `default-output-error-fn`.
-              ; Use `nil` value to exclude error output.
-
-    :msg-fn   ; When present, (msg-fn data) will be called to
-              ; generate a message from `vargs` (vector of raw
-              ; logging arguments).
-              ;
-              ; Default value: `default-output-msg-fn`.
-              ; Use `nil` value to exclude message output."
-
-  ([base-output-opts data] ; Back compatibility (before :output-opts)
-   (let [data
-         (if (empty? base-output-opts)
-           data
-           (assoc data :output-opts
-             (conj
-               base-output-opts ; Opts from partial
-               (get data :output-opts) ; Opts from data override
-               )))]
-
-     (default-output-fn data)))
-
-  ([data]
-   (let [{:keys [level ?err #_vargs #_msg_ ?ns-str ?file hostname_
-                 timestamp_ ?line #_?column output-opts]}
-         data]
-
-     (str
-       (when-let [ts (force timestamp_)] (str ts " "))
-       #?(:clj (force hostname_))  #?(:clj " ")
-       (str/upper-case (name level))  " "
-       "[" (or ?ns-str ?file "?") ":" (or ?line "?") "] - "
-
-       (when-let [msg-fn (get output-opts :msg-fn default-output-msg-fn)]
-         (msg-fn data))
-
-       (when-let [err ?err]
-         (when-let [ef (get output-opts :error-fn default-output-error-fn)]
-           (when-not   (get output-opts :no-stacktrace?) ; Back compatibility
-             (enc/catching
-               (str enc/newline (ef data)) _
-               (str
-                 enc/newline
-                 "[TIMBRE WARNING]: `error-fn` failed, falling back to `pr-str`:"
-                 enc/newline
-                 (enc/catching (pr-str err) _ "<pr-str failed>"))))))))))
-
-(defn- default-arg->str-fn [x]
-  (enc/cond
-    (nil?    x) "nil"
-    (string? x) x
-    :else
-    #?(:clj (with-out-str (pr x))
-       :cljs          (pr-str x))))
-
-(defn- legacy-arg->str-fn [x]
-  (enc/cond
-    (nil?    x) "nil"
-    (record? x) (pr-str x)
-    :else               x))
-
-(defn- str-join
-  ([            xs] (str-join default-arg->str-fn       xs))
-  ([arg->str-fn xs] (enc/str-join " " (map arg->str-fn) xs)))
-
-(comment
-  (defrecord MyRec [x])
-  (str-join ["foo" (MyRec. "foo")]))
-
-(defn default-output-msg-fn
-  "(fn [data]) -> string, used by `default-output-fn` to generate output
-  for `:vargs` value (vector of raw logging arguments) in log data."
-  [{:keys [msg-type ?msg-fmt vargs output-opts] :as data}]
-  (let [{:keys [arg->str-fn] ; Undocumented
-         :or   {arg->str-fn default-arg->str-fn}}
-        output-opts]
-
-    (case msg-type
-      nil ""
-      :p  (str-join arg->str-fn vargs)
-      :f
-      (if (string?   ?msg-fmt)
-        (enc/format* ?msg-fmt vargs) ; Don't use arg->str-fn, would prevent custom formatting
-        (throw
-          (ex-info "Timbre format-style logging call without a format pattern string"
-            {:?msg-fmt ?msg-fmt :type (type ?msg-fmt) :vargs vargs}))))))
-
-(comment
-  (default-output-msg-fn
-    {:msg-type :p :vargs ["a" "b"]
-     :output-opts {:arg->str-fn (fn [_] "x")}}))
-
-#?(:clj
-   (def ^:private default-stacktrace-fonts
-     (enc/get-env
-       {:as      :edn
-        :default clj-commons.format.exceptions/default-fonts}
-       [:taoensso.timbre.default-stacktrace-fonts<.edn> ; Undocumented
-        :timbre-defaut-stacktrace-fonts<.edn>           ; Legacy
-        ])))
-
-(defn default-output-error-fn
-  "Default (fn [data]) -> string, used by `default-output-fn` to
-  generate output for `:?err` value in log data.
-
-  For Clj:
-     Uses `org.clj-commons/pretty` to return an attractive stacktrace.
-     Options:
-       :stacktrace-fonts ; See `clj-commons.format.exceptions/*fonts*`
-
-  For Cljs:
-     Returns simple stacktrace string."
-
-  [{:keys [?err output-opts] :as data}]
-  (let [err (have ?err)]
-
-    #?(:cljs
-       (let [nl enc/newline]
-         (str
-           (.-stack err) ; Includes `ex-message`
-           (when-let [d (ex-data err)]
-             (str nl "ex-data:" nl "    " (pr-str d)))
-
-           (when-let [c (ex-cause err)]
-             (str nl nl "Caused by:" nl
-               (default-output-error-fn
-                 (assoc data :?err c))))))
-
-       :clj
-       (binding [fmt-ex/*fonts*
-                 (get output-opts :stacktrace-fonts
-                   default-stacktrace-fonts)]
-         (fmt-ex/format-exception err)))))
-
-(comment
-  (default-output-error-fn
-    {:?err (Exception. "Boo")
-     :output-opts {:stacktrace-fonts {}}}))
-
 ;;;; Context
 
 (def ^:dynamic *context* "General-purpose dynamic logging context" nil)
@@ -620,7 +465,11 @@
 
 (comment ((protected-fn "Whoops" (fn [data] (/ 1 0))) {}))
 
-(declare default-timestamp-opts)
+(declare
+  default-timestamp-opts
+  default-output-fn
+  default-output-msg-fn
+  default-output-error-fn)
 
 (defn -log! "Core low-level log fn. Implementation detail!"
 
@@ -964,6 +813,157 @@
 
 (comment (handle-uncaught-jvm-exceptions!))
 
+;;;; Default fns
+
+(defn default-output-fn
+  "Default (fn [data]) -> final output string, used to produce
+  final formatted output_ string from final log data.
+
+  Options (included as `:output-opts` in data sent to fns below):
+
+    :error-fn ; When present and (:?err data) present,
+              ; (error-fn data) will be called to generate output
+              ; (e.g. a stacktrace) for the error.
+              ;
+              ; Default value: `default-output-error-fn`.
+              ; Use `nil` value to exclude error output.
+
+    :msg-fn   ; When present, (msg-fn data) will be called to
+              ; generate a message from `vargs` (vector of raw
+              ; logging arguments).
+              ;
+              ; Default value: `default-output-msg-fn`.
+              ; Use `nil` value to exclude message output."
+
+  ([base-output-opts data] ; Back compatibility (before :output-opts)
+   (let [data
+         (if (empty? base-output-opts)
+           data
+           (assoc data :output-opts
+             (conj
+               base-output-opts ; Opts from partial
+               (get data :output-opts) ; Opts from data override
+               )))]
+
+     (default-output-fn data)))
+
+  ([data]
+   (let [{:keys [level ?err #_vargs #_msg_ ?ns-str ?file hostname_
+                 timestamp_ ?line #_?column output-opts]}
+         data]
+
+     (str
+       (when-let [ts (force timestamp_)] (str ts " "))
+       #?(:clj (force hostname_))  #?(:clj " ")
+       (str/upper-case (name level))  " "
+       "[" (or ?ns-str ?file "?") ":" (or ?line "?") "] - "
+
+       (when-let [msg-fn (get output-opts :msg-fn default-output-msg-fn)]
+         (msg-fn data))
+
+       (when-let [err ?err]
+         (when-let [ef (get output-opts :error-fn default-output-error-fn)]
+           (when-not   (get output-opts :no-stacktrace?) ; Back compatibility
+             (enc/catching
+               (str enc/newline (ef data)) _
+               (str
+                 enc/newline
+                 "[TIMBRE WARNING]: `error-fn` failed, falling back to `pr-str`:"
+                 enc/newline
+                 (enc/catching (pr-str err) _ "<pr-str failed>"))))))))))
+
+(defn- default-arg->str-fn [x]
+  (enc/cond
+    (nil?    x) "nil"
+    (string? x) x
+    :else
+    #?(:clj (with-out-str (pr x))
+       :cljs          (pr-str x))))
+
+(defn- legacy-arg->str-fn [x]
+  (enc/cond
+    (nil?    x) "nil"
+    (record? x) (pr-str x)
+    :else               x))
+
+(defn- str-join
+  ([            xs] (str-join default-arg->str-fn       xs))
+  ([arg->str-fn xs] (enc/str-join " " (map arg->str-fn) xs)))
+
+(comment
+  (defrecord MyRec [x])
+  (str-join ["foo" (MyRec. "foo")]))
+
+(defn default-output-msg-fn
+  "(fn [data]) -> string, used by `default-output-fn` to generate output
+  for `:vargs` value (vector of raw logging arguments) in log data."
+  [{:keys [msg-type ?msg-fmt vargs output-opts] :as data}]
+  (let [{:keys [arg->str-fn] ; Undocumented
+         :or   {arg->str-fn default-arg->str-fn}}
+        output-opts]
+
+    (case msg-type
+      nil ""
+      :p  (str-join arg->str-fn vargs)
+      :f
+      (if (string?   ?msg-fmt)
+        (enc/format* ?msg-fmt vargs) ; Don't use arg->str-fn, would prevent custom formatting
+        (throw
+          (ex-info "Timbre format-style logging call without a format pattern string"
+            {:?msg-fmt ?msg-fmt :type (type ?msg-fmt) :vargs vargs}))))))
+
+(comment
+  (default-output-msg-fn
+    {:msg-type :p :vargs ["a" "b"]
+     :output-opts {:arg->str-fn (fn [_] "x")}}))
+
+#?(:clj
+   (def ^:private default-stacktrace-fonts
+     (enc/get-env
+       {:as      :edn
+        :default clj-commons.format.exceptions/default-fonts}
+       [:taoensso.timbre.default-stacktrace-fonts<.edn> ; Undocumented
+        :timbre-defaut-stacktrace-fonts<.edn>           ; Legacy
+        ])))
+
+(defn default-output-error-fn
+  "Default (fn [data]) -> string, used by `default-output-fn` to
+  generate output for `:?err` value in log data.
+
+  For Clj:
+     Uses `org.clj-commons/pretty` to return an attractive stacktrace.
+     Options:
+       :stacktrace-fonts ; See `clj-commons.format.exceptions/*fonts*`
+
+  For Cljs:
+     Returns simple stacktrace string."
+
+  [{:keys [?err output-opts] :as data}]
+  (let [err (have ?err)]
+
+    #?(:cljs
+       (let [nl enc/newline]
+         (str
+           (.-stack err) ; Includes `ex-message`
+           (when-let [d (ex-data err)]
+             (str nl "ex-data:" nl "    " (pr-str d)))
+
+           (when-let [c (ex-cause err)]
+             (str nl nl "Caused by:" nl
+               (default-output-error-fn
+                 (assoc data :?err c))))))
+
+       :clj
+       (binding [fmt-ex/*fonts*
+                 (get output-opts :stacktrace-fonts
+                   default-stacktrace-fonts)]
+         (fmt-ex/format-exception err)))))
+
+(comment
+  (default-output-error-fn
+    {:?err (Exception. "Boo")
+     :output-opts {:stacktrace-fonts {}}}))
+
 ;;;; Ns imports
 
 #?(:clj
@@ -1239,7 +1239,7 @@
            value (enc/nested-merge default-config value)]
 
        (assoc value :_init-config
-         {:loaded-from-source  (or source :default)
+         {:loaded-from-source  (or source [:default])
           :compile-time-config @compile-time-config_}))))
 
 ;;;; Deprecated
