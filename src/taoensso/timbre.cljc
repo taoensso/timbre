@@ -899,13 +899,34 @@
      :output-opts {:arg->str-fn (fn [_] "x")}}))
 
 #?(:clj
-   (def ^:private default-stacktrace-fonts
-     (enc/get-env
-       {:as      :edn
-        :default clj-commons.format.exceptions/default-fonts}
-       [:taoensso.timbre.default-stacktrace-fonts<.edn> ; Undocumented
-        :timbre-defaut-stacktrace-fonts<.edn>           ; Legacy
-        ])))
+   (do
+     ;; Pretty v1 used string fonts, v2 uses unrelated keywords
+     (def ^:private invalid-stacktrace-fonts-msg "Invalid Timbre stacktrace fonts (see `org.clj-commons/pretty` docs)")
+     (def ^:private   valid-stacktrace-fonts? (fn [st-fonts] (not (enc/rsome-kv (fn [k v] (string? v)) st-fonts))))
+     (def ^:private default-stacktrace-fonts
+       (let [st-fonts
+             (enc/get-env
+               {:as :edn :default fmt-ex/default-fonts}
+               [:taoensso.timbre.default-stacktrace-fonts<.edn> ; Undocumented
+                :timbre-defaut-stacktrace-fonts<.edn>           ; Legacy
+                ])]
+
+         (if (valid-stacktrace-fonts? st-fonts) ; May be nil or {}
+           (do                        st-fonts)
+           (throw
+             (ex-info invalid-stacktrace-fonts-msg
+               {:given-fonts               st-fonts
+                :default-fonts fmt-ex/default-fonts})))))
+
+     (def ^:private valid-stacktrace-fonts!
+       (enc/fmemoize
+         (fn [st-fonts]
+           (if (valid-stacktrace-fonts? st-fonts)
+             (do                        st-fonts)
+             (do
+               ;; Log error on first encounter
+               (error invalid-stacktrace-fonts-msg st-fonts)
+               default-stacktrace-fonts)))))))
 
 (defn default-output-error-fn
   "Default (fn [data]) -> string, used by `default-output-fn` to
@@ -935,10 +956,13 @@
                  (assoc data :?err c))))))
 
        :clj
-       (binding [fmt-ex/*fonts*
-                 (get output-opts :stacktrace-fonts
-                   default-stacktrace-fonts)]
-         (fmt-ex/format-exception err)))))
+       (let [st-fonts
+             (if-let [e (find output-opts :stacktrace-fonts)]
+               (valid-stacktrace-fonts! (val e))
+               default-stacktrace-fonts)]
+
+         (binding [fmt-ex/*fonts* st-fonts]
+          (fmt-ex/format-exception err))))))
 
 (comment
   (default-output-error-fn

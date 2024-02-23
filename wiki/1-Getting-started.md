@@ -109,9 +109,9 @@ lein cljsbuild once # Compile js with appropriate logging calls excluded
 lein uberjar        # Compile jar ''
 ```
 
-## Stacktrace colors
+## Stacktrace fonts
 
-ANSI colors are enabled by default for Clojure stacktraces. To turn these off (e.g. for log files or emails), you can add the following entry to your top-level config or individual appender map/s:
+ANSI fonts are enabled by default for Clojure stacktraces being printed to a console. To disable these, add the following entry to your top-level config or individual appender map/s:
 
 ```clojure
 :output-opts {:stacktrace-fonts {}}
