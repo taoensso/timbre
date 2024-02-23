@@ -325,27 +325,8 @@
 
 (comment (get-timestamp default-timestamp-opts (enc/now-udt)))
 
-#?(:clj
-   (do ; Hostname stuff
-     (defn get-?hostname "Returns live local hostname, or nil." []
-       (try (.getHostName (java.net.InetAddress/getLocalHost))
-            (catch java.net.UnknownHostException _ nil)))
-
-     (let [unknown "UnknownHost"]
-       (def get-hostname "Returns cached hostname string."
-         (enc/memoize (enc/ms :mins 1)
-           (fn []
-             (try
-               (let [p (promise)]
-                 ;; Android doesn't like hostname calls on the main thread.
-                 ;; Using `future` would start the Clojure agent threadpool though,
-                 ;; which can slow down application shutdown w/o a `(shutdown-agents)`
-                 ;; call.
-                 (.start (Thread. (fn [] (deliver p (get-?hostname)))))
-                 (or (deref p 5000 nil) unknown))
-               (catch Exception _ unknown))))))))
-
-(comment (get-hostname))
+#?(:clj (defn ^:no-doc get-?hostname "Returns uncached local hostname string, or nil." [] (enc/get-hostname nil)))
+#?(:clj (defn          get-hostname  "Returns cached local hostname string."   ^String [] (enc/get-hostname (enc/msecs :mins 1) 5000 "UnknownHost")))
 
 #?(:clj
    (defn ansi-color [color]
