@@ -2,6 +2,27 @@ This project uses [**Break Versioning**](https://www.taoensso.com/break-versioni
 
 ---
 
+# `v6.5.0` (2024-02-26)
+
+> 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.5.0), this project uses [Break Versioning](https://www.taoensso.com/break-versioning).
+
+This is a **maintenance release** that should be non-breaking, but **does** change the default `:min-level` when none is specified.
+
+## Changes since `v6.4.0`
+
+* 6b165c61 [mod] Change default top-level `*config*` :min-level (when none specified) from :report -> :trace
+
+## Fixes since `v6.4.0`
+
+* 3d730f9c [fix] [#381] Handle possible invalid stacktrace fonts
+
+## New since `v6.4.0`
+
+* f3ce2b5c [new] [#374] Add OpenTelemetry Protocol (OTLP) community appender (@devurandom)
+* Update dependencies, misc internal improvements
+
+---
+
 # `v6.4.0` (2024-02-22)
 
 > 📦 [Available on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.4.0), this project uses [Break Versioning](https://www.taoensso.com/break-versioning).
