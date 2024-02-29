@@ -17,6 +17,7 @@
   {;; :default [:base :system :user :provided :dev]
    :provided {:dependencies [[org.clojure/clojurescript "1.11.132"]
                              [org.clojure/clojure       "1.11.1"]]}
+   :c1.12    {:dependencies [[org.clojure/clojure       "1.12.0-alpha9"]]}
    :c1.11    {:dependencies [[org.clojure/clojure       "1.11.1"]]}
    :c1.10    {:dependencies [[org.clojure/clojure       "1.10.1"]]}
    :c1.9     {:dependencies [[org.clojure/clojure       "1.9.0"]]}
@@ -103,6 +104,6 @@
    "deploy-lib"    ["with-profile" "+deploy" "do"
                     ["build-once"] ["deploy" "clojars"] ["install"]]
 
-   "test-clj"   ["with-profile" "+c1.11:+c1.10:+c1.9" "test"]
-   "test-cljs"  ["with-profile" "+test" "cljsbuild"   "test"]
+   "test-clj"   ["with-profile" "+c1.12:+c1.11:+c1.10:+c1.9" "test"]
+   "test-cljs"  ["with-profile" "+c1.12" "cljsbuild"         "test"]
    "test-all"   ["do" ["clean"] ["test-clj"] ["test-cljs"]]})
