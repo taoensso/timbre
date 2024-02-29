@@ -13,7 +13,7 @@ Supports optional interop with [tools.logging](https://github.com/taoensso/timbr
 
 ## Latest release/s
 
-- `2024-02-26` `v6.5.0` (stable): [changes](../../releases/tag/v6.5.0)
+- `2024-02-26` `v6.5.0` (stable): [release info](../../releases/tag/v6.5.0)
 
 [![Main tests][Main tests SVG]][Main tests URL]
 [![Graal tests][Graal tests SVG]][Graal tests URL]
@@ -35,7 +35,7 @@ See [here][GitHub releases] for earlier releases.
 ## Documentation
 
 - [Wiki][GitHub wiki] (getting started, usage, etc.)
-- API reference: [Codox][Codox docs], [clj-doc][clj-doc docs]
+- API reference: [cljdoc][cljdoc docs], [Codox][Codox docs]
 
 ## Funding
 
@@ -58,7 +58,7 @@ Licensed under [EPL 1.0](LICENSE.txt) (same as Clojure).
 <!-- Project -->
 
 [Codox docs]:   https://taoensso.github.io/timbre/
-[clj-doc docs]: https://cljdoc.org/d/com.taoensso/timbre/
+[cljdoc docs]: https://cljdoc.org/d/com.taoensso/timbre/
 
 [Clojars SVG]: https://img.shields.io/clojars/v/com.taoensso/timbre.svg
 [Clojars URL]: https://clojars.org/com.taoensso/timbre
