@@ -48,4 +48,4 @@ See also [`car-appender/query-entries`](https://taoensso.github.io/timbre/taoens
 
 ## Community appenders
 
-See [community resources](./3-Community-resources) section.
+See [community](./3-Community.md) section.
