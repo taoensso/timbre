@@ -11,7 +11,7 @@
 
   :dependencies
   [[com.taoensso/encore   "3.85.0"]
-   [org.clj-commons/pretty "2.2.1"]]
+   [org.clj-commons/pretty "2.3.0"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
