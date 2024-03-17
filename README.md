@@ -15,6 +15,8 @@ Supports optional interop with [tools.logging](https://github.com/taoensso/timbr
 
 - `2024-02-26` `v6.5.0` (stable): [release info](../../releases/tag/v6.5.0)
 
+
+[![Clojars Project](https://img.shields.io/clojars/v/com.taoensso/timbre.svg)](https://clojars.org/com.taoensso/timbre)
 [![Main tests][Main tests SVG]][Main tests URL]
 [![Graal tests][Graal tests SVG]][Graal tests URL]
 
