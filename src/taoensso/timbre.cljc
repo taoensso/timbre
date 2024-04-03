@@ -794,6 +794,17 @@
 
 ;;;; Default fns
 
+(defn- pr-error
+  "Used as fallback error-fn"
+  [error]
+  (enc/try*
+    (pr-str error)
+    (catch :all _pr-str-error
+      (enc/try*
+        (str error)
+        (catch :all _str-error
+          "<pr-error failed>")))))
+
 (defn default-output-fn
   "Default (fn [data]) -> final output string, used to produce
   final formatted output_ string from final log data.
@@ -843,13 +854,14 @@
        (when-let [err ?err]
          (when-let [ef (get output-opts :error-fn default-output-error-fn)]
            (when-not   (get output-opts :no-stacktrace?) ; Back compatibility
-             (enc/catching
-               (str enc/newline (ef data)) _
-               (str
-                 enc/newline
-                 "[TIMBRE WARNING]: `error-fn` failed, falling back to `pr-str`:"
-                 enc/newline
-                 (enc/catching (pr-str err) _ "<pr-str failed>"))))))))))
+             (let [nl enc/newline]
+               (enc/try*
+                 (str nl (ef data))
+                 (catch :all ef-error
+                   (str nl
+                     "[TIMBRE WARNING]: `error-fn` failed, falling back to `pr-error`." nl
+                     "`error-fn` error: "                       nl (pr-error ef-error) nl nl
+                     " Original error (given to `error-fn`): "  nl (pr-error err))))))))))))
 
 (defn- default-arg->str-fn [x]
   (enc/cond
