@@ -8,7 +8,7 @@
    [franzy.clients.producer.defaults  :as pd]
    [franzy.clients.producer.protocols :as protocols]))
 
-(def ^:private partition       0)
+(def ^:private kafka-partition 0)
 (def ^:private default-options (pd/make-default-producer-options))
 (def ^:private producer_       (atom nil))
 
@@ -41,7 +41,7 @@
   (protocols/send-async!
     @producer_
     topic
-    partition
+    kafka-partition
     (naive-key-strategy data)
     (entry-fn data)
     default-options))

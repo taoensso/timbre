@@ -64,10 +64,9 @@
 ;; Terminology note: we distinguish loosely between `ns-filter` (which may be a
 ;; fn or `ns-pattern`) and `ns-pattern` (subtype of `ns-filter`).
 
-(let [fn?         fn?
-      compile     (enc/fmemoize (fn [x] (enc/name-filter x)))
-      conform?*   (enc/fmemoize (fn [x ns] ((compile x) ns)))
-      ;; conform? (enc/fmemoize (fn [x ns] (if (fn? x) (x ns) ((compile x) ns))))
+(let [fn?       fn?
+      compile   (enc/fmemoize (fn [x] (enc/name-filter x)))
+      conform?* (enc/fmemoize (fn [x ns] ((compile x) ns)))
       conform?
       (fn [ns-filter ns]
         (if (fn? ns-filter)
@@ -75,7 +74,6 @@
           (conform?* ns-filter ns)))]
 
   (defn- #?(:clj may-log-ns? :cljs ^boolean may-log-ns?)
-    "Implementation detail."
     [ns-filter ns] (if (conform? ns-filter ns) true false))
 
   (def ^:private ns->?min-level
@@ -89,7 +87,7 @@
           specs)))))
 
 (comment
-  (enc/qb 1e6 ; [75.68 171.17 102.96]
+  (enc/qb 1e6 ; [49.2 112.43 73.27]
     (may-log-ns? "*" "taoensso.timbre")
     (ns->?min-level [[#{"taoensso.*" "foo.bar"} :info] ["*" :debug]] "foo.bar")
     (ns->?min-level [["ns.1" :info] ["ns.2" :debug]] "ns.2")))
@@ -127,9 +125,8 @@
       get-min-level    get-min-level
       legacy-ns-filter legacy-ns-filter]
 
-  (defn #?(:clj may-log? :cljs ^:boolean may-log?)
-    "Implementation detail.
-    Returns true iff level and ns are runtime unfiltered."
+  (defn #?(:clj ^:no-doc may-log? :cljs ^:no-doc ^:boolean may-log?)
+    "Private, don't use. Returns true iff level and ns are runtime unfiltered."
     ([                  level                ] (may-log? :trace level nil     nil))
     ([                  level ?ns-str        ] (may-log? :trace level ?ns-str nil))
     ([                  level ?ns-str ?config] (may-log? :trace level ?ns-str ?config))
@@ -213,7 +210,7 @@
        ns-pattern)))
 
 #?(:clj
-   (defn -elide?
+   (defn ^:no-doc -elide?
      "Returns true iff level or ns are compile-time filtered.
      Called only at macro-expansiom time."
      [level-form ns-str-form]
@@ -282,21 +279,22 @@
 
 (comment :see-tests)
 
-(defmacro set-ns-min-level!
-  "Like `set-ns-min-level` but directly modifies `*config*`.
+#?(:clj
+   (defmacro set-ns-min-level!
+     "Like `set-ns-min-level` but directly modifies `*config*`.
 
-  Can conveniently set the minimum log level for the current ns:
-    (set-ns-min-level! :info) => Sets min-level for current *ns*
+     Can conveniently set the minimum log level for the current ns:
+      (set-ns-min-level! :info) => Sets min-level for current *ns*
 
-  See `set-ns-min-level` for details."
+     See `set-ns-min-level` for details."
 
-  ;; Macro to support compile-time Cljs *ns*
-  ([   ?min-level] `(set-ns-min-level! ~(str *ns*) ~?min-level))
-  ([ns ?min-level] `(swap-config! (fn [config#] (set-ns-min-level config# ~(str ns) ~?min-level)))))
+     ;; Macro to support compile-time Cljs *ns*
+     ([   ?min-level] `(set-ns-min-level! ~(str *ns*) ~?min-level))
+     ([ns ?min-level] `(swap-config! (fn [config#] (set-ns-min-level config# ~(str ns) ~?min-level))))))
 
 ;;;; Utils
 
-#?(:clj (defmacro get-env [] `(enc/get-locals)))
+#?(:clj (defmacro ^:no-doc get-env [] `(enc/get-locals)))
 (comment ((fn foo [x y] (get-env)) 5 10))
 
 #?(:clj (defonce ^:private get-agent        (enc/fmemoize (fn [appender-id      ] (agent nil :error-mode :continue)))))
@@ -428,18 +426,13 @@
 (defn- protected-fn [error-msg f]
   (fn [data]
     (enc/catching (f data) t
-      (let [{:keys [level ?ns-str ?file ?line ?column]} data]
+      (let [{:keys [level ?ns-str ?file ?line]} data]
         (throw
           (ex-info error-msg
             {:output-fn f
-             :level level
-             :data  data
-             :loc
-             {:ns     ?ns-str
-              :file   ?file
-              :line   ?line
-              ;; :column ?column
-              }}
+             :level     level
+             :loc       {:ns ?ns-str, :file ?file, :line ?line}
+             :log-data  data}
             t))))))
 
 (comment ((protected-fn "Whoops" (fn [data] (/ 1 0))) {}))
@@ -664,8 +657,6 @@
                    :level level, :msg-type msg-type, :args args)]
         `(log! ~opts)))))
 
-(macroexpand '(log! :info :p ["foo"]   {:loc {:ns "foo"}}))
-
 (comment
   (do           (log! :info :p ["foo"]))
   (macroexpand '(log! :info :p ["foo" x]))
@@ -748,7 +739,7 @@
   (macroexpand '(log-and-rethrow-errors (/ 0))))
 
 #?(:clj
-   (defmacro -spy [loc config level name form]
+   (defmacro ^:no-doc -spy [loc config level name form]
      `(enc/catching
         (let [result# ~form]
           (log! ~level :p [~name "=>" result#] ~{:loc loc, :config config, :spying? true})
@@ -1173,7 +1164,7 @@
         :min-level       ; Optional *additional* appender-specific min-level
         :ns-filter       ; Optional *additional* appender-specific ns-filter
 
-        :async?          ; Dispatch using agent? Useful for slow appenders (clj only)
+        :async?          ; Dispatch using agent? Useful for slow appenders (Clj only)
                          ; Tip: consider calling (shutdown-agents) as part of your
                          ; application shutdown if you have this enabled for any
                          ; appenders.
@@ -1224,7 +1215,7 @@
                          way of passing advanced per-call options to appenders
       :vargs           ; Vector of raw args provided to logging call
       :timestamp_      ; Forceable - string
-      :hostname_       ; Forceable - string (clj only)
+      :hostname_       ; Forceable - string (Clj only)
       :output-fn       ; (fn [data]) -> final output for use by appenders
       :output_         ; Forceable result of calling (output-fn <this-data-map>)
 
