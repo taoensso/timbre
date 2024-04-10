@@ -428,18 +428,13 @@
 (defn- protected-fn [error-msg f]
   (fn [data]
     (enc/catching (f data) t
-      (let [{:keys [level ?ns-str ?file ?line ?column]} data]
+      (let [{:keys [level ?ns-str ?file ?line]} data]
         (throw
           (ex-info error-msg
             {:output-fn f
-             :level level
-             :data  data
-             :loc
-             {:ns     ?ns-str
-              :file   ?file
-              :line   ?line
-              ;; :column ?column
-              }}
+             :level     level
+             :loc       {:ns ?ns-str, :file ?file, :line ?line}
+             :log-data  data}
             t))))))
 
 (comment ((protected-fn "Whoops" (fn [data] (/ 1 0))) {}))
