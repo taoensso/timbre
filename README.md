@@ -11,6 +11,14 @@ Timbre offers an **all Clojure/Script** alternative that's fast, deeply flexible
 
 Supports optional interop with [tools.logging](https://github.com/taoensso/timbre/blob/master/src/taoensso/timbre/tools/logging.clj) and [log4j/logback/slf4j](https://github.com/fzakaria/slf4j-timbre).
 
+## Library status
+
+While I will continue to support Timbre as always, I'd recommend new users see [Telemere](https://www.taoensso.com/telemere) instead - which is essentially a **modern rewrite of Timbre**.
+
+There's **zero pressure** for existing users of Timbre to migrate, though there are significant benefits - and migration is often [quick and easy](https://github.com/taoensso/telemere/wiki/5-Migrating#from-timbre). See [here](https://github.com/taoensso/telemere/wiki/6-FAQ#why-not-just-update-timbre) for why I made the decision to release a new library.
+
+\- Peter Taoussanis
+
 ## Latest release/s
 
 - `2024-02-26` `v6.5.0` (stable): [release info](../../releases/tag/v6.5.0)
