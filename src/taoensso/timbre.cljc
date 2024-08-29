@@ -444,16 +444,17 @@
   default-output-msg-fn
   default-output-error-fn)
 
-(defn -log! "Core low-level log fn. Implementation detail!"
+(defn ^:no-doc -log!
+  "Core low-level log fn. Private, don't use!"
 
   ;; Back compatible arities for convenience of AOT tools,
-  ;; Ref. https://github.com/fzakaria/slf4j-timbre/issues/20
-  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data                    ] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data nil         false))
-  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id        ] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data callsite-id false))
-  ([config level ?ns-str ?file ?line msg-type ?err vargs_ ?base-data callsite-id spying?] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data callsite-id spying?))
-
-  ([config level ?ns-str ?file ?line ?column msg-type ?err vargs_ ?base-data callsite-id spying?]
-   (when (may-log? :trace level ?ns-str config)
+  ;; Ref. <https://github.com/fzakaria/slf4j-timbre/issues/20>
+  ([config level ?ns-str ?file ?line         msg-type ?err vargs_ ?base-data                            ] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data nil         false   nil))
+  ([config level ?ns-str ?file ?line         msg-type ?err vargs_ ?base-data callsite-id                ] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data callsite-id false   nil))
+  ([config level ?ns-str ?file ?line         msg-type ?err vargs_ ?base-data callsite-id spying?        ] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data callsite-id spying? nil))
+  ([config level ?ns-str ?file ?line         msg-type ?err vargs_ ?base-data callsite-id spying? may-log] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data callsite-id spying? may-log))
+  ([config level ?ns-str ?file ?line ?column msg-type ?err vargs_ ?base-data callsite-id spying? may-log]
+   (when (or may-log (may-log? :trace level ?ns-str config))
      (let [instant (enc/now-dt*)
            context *context*
            vargs   @vargs_
@@ -624,7 +625,7 @@
 
      ([{:as   opts
         :keys [loc level msg-type args vargs
-               config ?err ?base-data spying?]
+               config ?err ?base-data spying? #_may-log?]
         :or
         {config `*config*
          ?err   :auto}}]
@@ -650,7 +651,7 @@
 
             ;; Note pre-resolved expansion
             `(taoensso.timbre/-log! ~config ~level ~ns ~file ~line ~column ~msg-type ~?err
-               (delay ~vargs-form) ~?base-data ~callsite-id ~spying?)))))
+               (delay ~vargs-form) ~?base-data ~callsite-id ~spying? ~(get opts :may-log?))))))
 
      ([level msg-type args & [opts]]
       (let [loc  (enc/get-source &form &env)

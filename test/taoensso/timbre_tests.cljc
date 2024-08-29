@@ -1,8 +1,10 @@
 (ns taoensso.timbre-tests
   (:require
-   [clojure.test    :as test :refer [deftest testing is]]
-   [taoensso.encore :as enc]
-   [taoensso.timbre :as timbre])
+   [clojure.test :as test :refer [deftest testing is]]
+   #?(:clj [clojure.tools.logging :as ctl])
+   [taoensso.encore :as enc :refer [throws? submap?] :rename {submap? sm?}]
+   [taoensso.timbre :as timbre]
+   #?(:clj [taoensso.timbre.tools.logging :as ttl]))
 
   #?(:cljs
      (:require-macros
@@ -145,6 +147,16 @@
          {:k :v2})
 
      "Appender :output-opts overrides top-level :output-opts")])
+
+;;;; Interop
+
+#?(:clj (def dt-pred (enc/pred (fn [x] (instance? java.util.Date x)))))
+#?(:clj
+   (deftest _interop
+     [(testing "tools.logging -> Timbre"
+        (ttl/use-timbre)
+        [                            (is (sm? (log-data (ctl/info     "a" "b" "c")) {:level :info,  :?ns-str "taoensso.timbre-tests", :instant dt-pred, :msg_ "a b c"}))
+         (is (let [ex (ex-info "Ex" {})] (sm? (log-data (ctl/error ex "a" "b" "c")) {:level :error, :?ns-str "taoensso.timbre-tests", :instant dt-pred, :msg_ "a b c", :?err ex})))])]))
 
 ;;;;
 
