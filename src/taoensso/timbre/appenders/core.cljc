@@ -47,7 +47,7 @@
                     stream)]
 
               (binding [*out* stream]
-                (enc/println-atomic (force output_)))))))}))
+                (enc/println (force output_)))))))}))
 
 (comment (println-appender))
 

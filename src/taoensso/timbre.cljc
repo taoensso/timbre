@@ -12,7 +12,7 @@
 
   #?(:cljs (:require-macros [taoensso.timbre])))
 
-(enc/assert-min-encore-version [3 85 0])
+(enc/assert-min-encore-version [3 117 0])
 
 (comment
   (remove-ns 'taoensso.timbre)
@@ -323,8 +323,8 @@
 
 (comment (get-timestamp default-timestamp-opts (enc/now-udt)))
 
-#?(:clj (defn ^:no-doc get-?hostname "Returns uncached local hostname string, or nil." [] (enc/get-hostname nil)))
-#?(:clj (defn          get-hostname  "Returns cached local hostname string."   ^String [] (enc/get-hostname (enc/msecs :mins 1) 5000 "UnknownHost")))
+#?(:clj (defn ^:no-doc get-?hostname "Returns uncached local hostname string, or nil." [] (enc/hostname nil)))
+#?(:clj (defn          get-hostname    "Returns cached local hostname string." ^String [] (enc/hostname (enc/msecs :mins 1) 5000 "UnknownHost")))
 
 #?(:clj
    (defn ansi-color [color]
@@ -425,15 +425,16 @@
 
 (defn- protected-fn [error-msg f]
   (fn [data]
-    (enc/catching (f data) t
-      (let [{:keys [level ?ns-str ?file ?line]} data]
-        (throw
-          (ex-info error-msg
-            {:output-fn f
-             :level     level
-             :loc       {:ns ?ns-str, :file ?file, :line ?line}
-             :log-data  data}
-            t))))))
+    (enc/try* (f data)
+      (catch :all t
+        (let [{:keys [level ?ns-str ?file ?line]} data]
+          (throw
+            (ex-info error-msg
+              {:output-fn f
+               :level     level
+               :loc       {:ns ?ns-str, :file ?file, :line ?line}
+               :log-data  data}
+              t)))))))
 
 (comment ((protected-fn "Whoops" (fn [data] (/ 1 0))) {}))
 
@@ -725,11 +726,11 @@
 
 #?(:clj
    (do
-     (defmacro log-errors             [& body]         `(enc/catching (do ~@body) t# (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#})))
-     (defmacro logged-future          [& body] `(future (enc/catching (do ~@body) t# (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#}))))
+     (defmacro log-errors             [& body]         `(enc/try* (do ~@body) (catch :all t# (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#}))))
+     (defmacro logged-future          [& body] `(future (enc/try* (do ~@body) (catch :all t# (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#})))))
      (defmacro log-and-rethrow-errors [& body]
-       `(enc/catching (do ~@body) t#
-          (do
+       `(enc/try* (do ~@body)
+          (catch :all t#
             (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#})
             (throw t#))))))
 
@@ -740,12 +741,11 @@
 
 #?(:clj
    (defmacro ^:no-doc -spy [loc config level name form]
-     `(enc/catching
+     `(enc/try*
         (let [result# ~form]
           (log! ~level :p [~name "=>" result#] ~{:loc loc, :config config, :spying? true})
           result#)
-        t#
-        (do
+        (catch :all t#
           (log! :error nil nil {:loc ~loc, :?err t#, :spying? true})
           (throw t#)))))
 
