@@ -14,29 +14,37 @@
 
 ;;;; Utils, etc.
 
-(defn apn
-  "Returns a test appender."
-  ([ ] (apn nil))
+(defn capturing-appender
+  ([ ] (capturing-appender nil))
   ([m]
-   (let [data_ (atom nil)]
+   (let [data_ (volatile! nil)]
      (conj
-       {:enabled? true
-        :fn (fn [data] (reset! data_ data))
-        :data_ data_}
+       (with-meta
+         {:enabled? true
+          :fn (fn [data] (vreset! data_ data))}
+         {:data_ data_})
        m))))
 
-(comment (apn {:min-level :info :ns-filter "*"}))
+(comment (capturing-appender {:min-level :info :ns-filter "*"}))
 
-(defmacro log-data
-  "Executes an easily-configured log call and returns ?data sent to test appender."
-  [ns level m-config m-appender args]
-  `(let [appender# (apn ~m-appender)]
-     (binding [timbre/*config*
-               (conj timbre/default-config ~m-config
-                 {:appenders {:test-appender appender#}})]
+(defn- captured [appender]
+  (when-let [data (deref (get (meta appender) :data_))]
+    (update data :msg_ force)))
 
-       (timbre/log! ~level :p ~args {:loc {:ns ~ns}})
-       (deref (:data_ appender#)))))
+#?(:clj
+   (defmacro log-data
+     ([ns level   m-config  m-appender args]
+      `(log-data ~m-config ~m-appender
+         (timbre/log! ~level :p ~args {:loc {:ns ~ns}})))
+
+     ([                    form] `(log-data nil nil ~form))
+     ([m-config m-appender form]
+      `(let [appender# (capturing-appender ~m-appender)]
+         (binding [timbre/*config*
+                   (conj timbre/default-config ~m-config
+                     {:appenders {:capturing-appender appender#}})]
+           (do ~form))
+         (captured appender#)))))
 
 (comment (macroexpand '(log-data "my-ns" :info {:min-level :trace} {} ["x"])))
 
