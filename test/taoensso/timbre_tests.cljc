@@ -1,10 +1,13 @@
 (ns taoensso.timbre-tests
   (:require
-   [clojure.test :as test :refer [deftest testing is]]
-   #?(:clj [clojure.tools.logging :as ctl])
-   [taoensso.encore :as enc :refer [throws? submap?] :rename {submap? sm?}]
+   [clojure.test    :as test :refer [deftest testing is]]
+   [taoensso.encore :as enc  :refer [throws? submap?] :rename {submap? sm?}]
    [taoensso.timbre :as timbre]
-   #?(:clj [taoensso.timbre.tools.logging :as ttl]))
+
+   #?@(:clj
+       [[clojure.tools.logging :as ctl]
+        [taoensso.timbre.tools.logging :as ttl]
+        [taoensso.timbre.slf4j :as slf4j]]))
 
   #?(:cljs
      (:require-macros
@@ -150,13 +153,50 @@
 
 ;;;; Interop
 
-#?(:clj (def dt-pred (enc/pred (fn [x] (instance? java.util.Date x)))))
+(comment (def ^org.slf4j.Logger sl (org.slf4j.LoggerFactory/getLogger "my.class")))
+#?(:clj  (def dt-pred (enc/pred (fn [x] (instance? java.util.Date x)))))
+(def ex1      (ex-info "Ex1" {}))
+(def ex1-pred (enc/pred (fn [x] (= (enc/ex-root x) ex1))))
+
 #?(:clj
    (deftest _interop
      [(testing "tools.logging -> Timbre"
         (ttl/use-timbre)
         [                            (is (sm? (log-data (ctl/info     "a" "b" "c")) {:level :info,  :?ns-str "taoensso.timbre-tests", :instant dt-pred, :msg_ "a b c"}))
-         (is (let [ex (ex-info "Ex" {})] (sm? (log-data (ctl/error ex "a" "b" "c")) {:level :error, :?ns-str "taoensso.timbre-tests", :instant dt-pred, :msg_ "a b c", :?err ex})))])]))
+         (is (let [ex (ex-info "Ex" {})] (sm? (log-data (ctl/error ex "a" "b" "c")) {:level :error, :?ns-str "taoensso.timbre-tests", :instant dt-pred, :msg_ "a b c", :?err ex})))])
+
+      (testing "SLF4J -> Timbre"
+        (let [^org.slf4j.Logger sl (org.slf4j.LoggerFactory/getLogger "my.class")]
+          [(testing "Basics"
+             [(is (sm? (log-data (.info sl "Hello"))               {:level :info, :?ns-str "my.class", :msg_ "Hello", :instant dt-pred}) "Legacy API: info basics")
+              (is (sm? (log-data (.warn sl "Hello"))               {:level :warn, :?ns-str "my.class", :msg_ "Hello", :instant dt-pred}) "Legacy API: warn basics")
+              (is (sm? (log-data (-> (.atInfo sl) (.log "Hello"))) {:level :info, :?ns-str "my.class", :msg_ "Hello", :instant dt-pred}) "Fluent API: info basics")
+              (is (sm? (log-data (-> (.atWarn sl) (.log "Hello"))) {:level :warn, :?ns-str "my.class", :msg_ "Hello", :instant dt-pred}) "Fluent API: warn basics")])
+
+           (testing "Message formatting"
+             (let [msgp "x={},y={}", expected {:msg_ "x=1,y=2", :slf4j/args ["1" "2"]}]
+               [(is (sm? (log-data (.info sl msgp "1" "2"))                                                           expected) "Legacy API: formatted message, raw args")
+                (is (sm? (log-data (-> (.atInfo sl) (.setMessage msgp) (.addArgument "1") (.addArgument "2") (.log))) expected) "Fluent API: formatted message, raw args")]))
+
+           (is (sm? (log-data (-> (.atInfo sl) (.addKeyValue "k1" "v1") (.addKeyValue "k2" "v2") (.log))) {:slf4j/kvs {"k1" "v1", "k2" "v2"}}) "Fluent API: kvs")
+
+           (testing "Markers"
+             (let [m1 (#'slf4j/est-marker! "M1")
+                   m2 (#'slf4j/est-marker! "M2")
+                   cm (#'slf4j/est-marker! "Compound" "M1" "M2")]
+
+               [(is (sm? (log-data (.info sl cm "Hello"))                                    {:slf4j/marker-names #{"Compound" "M1" "M2"}}) "Legacy API: markers")
+                (is (sm? (log-data (-> (.atInfo sl) (.addMarker m1) (.addMarker cm) (.log))) {:slf4j/marker-names #{"Compound" "M1" "M2"}}) "Fluent API: markers")]))
+
+           (testing "Errors"
+             [(is (sm? (log-data (.warn sl "An error" ^Throwable ex1))     {:level :warn, :?err ex1-pred}) "Legacy API: errors")
+              (is (sm? (log-data (-> (.atWarn sl) (.setCause ex1) (.log))) {:level :warn, :?err ex1-pred}) "Fluent API: errors")])
+
+           (testing "MDC (Mapped Diagnostic Context)"
+             (with-open [_   (org.slf4j.MDC/putCloseable "k1" "v1")]
+               (with-open [_ (org.slf4j.MDC/putCloseable "k2" "v2")]
+                 [(is (sm? (log-data (->          sl  (.info "Hello"))) {:level :info, :slf4j/context {"k1" "v1", "k2" "v2"}}) "Legacy API: MDC")
+                  (is (sm? (log-data (-> (.atInfo sl) (.log  "Hello"))) {:level :info, :slf4j/context {"k1" "v1", "k2" "v2"}}) "Fluent API: MDC")])))]))]))
 
 ;;;;
 

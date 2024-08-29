@@ -1,0 +1,15 @@
+pom.xml*
+.lein*
+.nrepl-port
+*.jar
+*.class
+.env
+.DS_Store
+/lib/
+/classes/
+/target/
+/checkouts/
+/logs/
+/.clj-kondo/.cache
+.idea/
+*.iml

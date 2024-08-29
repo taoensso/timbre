@@ -66,9 +66,10 @@
     :dependencies
     [[org.clojure/test.check    "1.1.1"]
      [org.clojure/tools.logging "1.3.0"]
+     [org.slf4j/slf4j-api       "2.0.16"]
+     [com.taoensso/timbre-slf4j "6.6.0-SNAPSHOT"]
      [com.taoensso/nippy        "3.4.2"]
-     [com.taoensso/carmine      "3.4.1"
-      :exclusions [com.taoensso/timbre]]
+     [com.taoensso/carmine      "3.4.1" :exclusions [com.taoensso/timbre]]
      [com.draines/postal        "2.0.5"]]
 
     :plugins
