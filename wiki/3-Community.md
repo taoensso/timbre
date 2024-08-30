@@ -14,10 +14,10 @@ GitHub PRs very welcome for:
 
 If you spot issues with any linked resources, please **contact the relevant authors** to let them know!
 
-Contributor | Link | Description
-:-- | :-- | :--
-[@fzakaria](https://github.com/fzakaria) | [slf4j-timbre](https://github.com/fzakaria/slf4j-timbre) | Route log4j/logback/sfl4j log output to Timbre
-[@palletops](https://github.com/palletops) | [log-config](https://github.com/palletops/log-config)  | Library to help manage Timbre logging config
-[@djblue](https://github.com/djblue) | [portal](https://github.com/djblue/portal/tree/master/examples/timbre) | Guide to using Timbre with [Portal](https://github.com/djblue/portal)
-[@viesti](https://github.com/viesti) | [timbre-json-appender](https://github.com/viesti/timbre-json-appender/) | JSON appender for Timbre
-_ | _ | Your link here? [PRs](../wiki#contributions-welcome) welcome!
+| Contributor                                | Link                                                                    | Description                                                                                                                         |
+| :----------------------------------------- | :---------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- |
+| [@fzakaria](https://github.com/fzakaria)   | [slf4j-timbre](https://github.com/fzakaria/slf4j-timbre)                | Route log4j/logback/sfl4j log output to Timbre (**UPDATE**: Timbre now includes [built-in SLF4J support](./4-Interop#java-logging)) |
+| [@palletops](https://github.com/palletops) | [log-config](https://github.com/palletops/log-config)                   | Library to help manage Timbre logging config                                                                                        |
+| [@djblue](https://github.com/djblue)       | [portal](https://github.com/djblue/portal/tree/master/examples/timbre)  | Guide to using Timbre with [Portal](https://github.com/djblue/portal)                                                               |
+| [@viesti](https://github.com/viesti)       | [timbre-json-appender](https://github.com/viesti/timbre-json-appender/) | JSON appender for Timbre                                                                                                            |
+| _                                          | _                                                                       | Your link here? [PRs](../wiki#contributions-welcome) welcome!                                                                       |
