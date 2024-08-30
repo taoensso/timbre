@@ -837,7 +837,10 @@
        (when-let [ts (force timestamp_)] (str ts " "))
        #?(:clj (force hostname_))  #?(:clj " ")
        (str/upper-case (name level))  " "
-       "[" (or ?ns-str ?file "?") ":" (or ?line "?") "] - "
+       ;; "[" (or ?ns-str ?file "?") ":" (or ?line "?") "] - "
+       (when-let [loc (or ?ns-str ?file)]
+         (str "[" loc (when-let [line ?line] (str ":" line)) "]"))
+       " - "
 
        (when-let [msg-fn (get output-opts :msg-fn default-output-msg-fn)]
          (msg-fn data))
