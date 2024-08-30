@@ -11,7 +11,7 @@ Uses [Break Versioning](https://www.taoensso.com/break-versioning).
 
 This is a significant **feature** release that includes new **built-in support** for [Java logging interop via SLF4J](https://github.com/taoensso/timbre/wiki/4-Interop#java-logging).
 
-Big thanks to @fzakaria for their long-time work on Timbre's [previous optional SLF4J interop](https://github.com/fzakaria/slf4j-timbre) 🙏
+Big thanks to @fzakaria and @rufoa for their long-time work on Timbre's [previous optional SLF4J interop](https://github.com/fzakaria/slf4j-timbre) 🙏
 
 As always, feedback and bug reports very welcome! - [Peter Taoussanis](https://www.taoensso.com)
 

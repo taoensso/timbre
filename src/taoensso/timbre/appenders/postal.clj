@@ -23,8 +23,8 @@
             (str/replace #"\s+" " "))]
 
     (if (and max-len (> (count s) ^long max-len))
-      (str (enc/get-substr-by-len s 0 (- ^long max-len 3)) "...")
-      (do                         s))))
+      (str (enc/substr s 0 (- ^long max-len 3)) "...")
+      (do              s))))
 
 (comment
   (default-subject-fn {:max-len 8} "sdfghsjhfdg shj
@@ -40,8 +40,8 @@ sdf"))
     [{:type "text/plain; charset=utf-8"
       :content
       (if max-len
-        (enc/get-substr-by-len s 0 max-len)
-        (do                    s))}]))
+        (enc/substr s 0 max-len)
+        (do         s))}]))
 
 (defn postal-appender
   "Returns a Postal email appender.

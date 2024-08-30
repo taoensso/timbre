@@ -52,7 +52,7 @@
              (cond-> context
                (and ?ex-data (not (contains? context :ex-data)))
                (assoc :ex-data
-                 (enc/get-substr-by-idx (str ?ex-data) 0 4096)))
+                 (enc/substr (str ?ex-data) 0 4096)))
 
              event
              (as-> base-event event

@@ -44,7 +44,7 @@ See [here][GitHub releases] for earlier releases.
 ## Documentation
 
 - [Wiki][GitHub wiki] (getting started, usage, etc.)
-- API reference: [cljdoc][cljdoc docs], [Codox][Codox docs]
+- API reference: [Codox][Codox docs]
 
 ## Funding
 
