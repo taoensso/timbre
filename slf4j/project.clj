@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre-slf4j "6.6.0-SNAPSHOT"
+(defproject com.taoensso/timbre-slf4j "6.6.0-RC1"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Timbre backend/provider for SLF4J API v2"
   :url "https://www.taoensso.com/timbre"
@@ -18,7 +18,7 @@
    {:dependencies
     [[org.clojure/clojure "1.11.4"]
      [org.slf4j/slf4j-api "2.0.16"]
-     [com.taoensso/timbre "6.6.0-SNAPSHOT"]]}
+     [com.taoensso/timbre "6.6.0-RC1"]]}
 
    :dev
    {:plugins
