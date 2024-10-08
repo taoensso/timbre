@@ -10,8 +10,8 @@
   :test-paths ["test" #_"src"]
 
   :dependencies
-  [[com.taoensso/encore  "3.117.0"]
-   [org.clj-commons/pretty "3.1.1"]]
+  [[com.taoensso/encore  "3.121.0"]
+   [org.clj-commons/pretty "3.2.0"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
@@ -45,8 +45,8 @@
      [com.mchange/c3p0        "0.10.1"]
      [cheshire                "5.13.0"]
      [ymilky/franzy           "0.0.1"]
-     [com.newrelic.agent.java/newrelic-agent "8.14.0"]
-     [net.java.dev.jna/jna    "5.14.0"]
+     [com.newrelic.agent.java/newrelic-agent "8.15.0"]
+     [net.java.dev.jna/jna    "5.15.0"]
      [raven-clj               "1.7.0"]
      [congomongo              "2.6.0"]
      [server-socket           "1.0.0"]
