@@ -16,7 +16,7 @@
   :profiles
   {:provided
    {:dependencies
-    [[org.clojure/clojure "1.11.4"]
+    [[org.clojure/clojure "1.12.0"]
      [org.slf4j/slf4j-api "2.0.16"]
      [com.taoensso/timbre "6.6.0-RC1"]]}
 

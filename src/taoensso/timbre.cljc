@@ -12,7 +12,7 @@
 
   #?(:cljs (:require-macros [taoensso.timbre])))
 
-(enc/assert-min-encore-version [3 117 0])
+(enc/assert-min-encore-version [3 127 0])
 
 (comment
   (remove-ns 'taoensso.timbre)
