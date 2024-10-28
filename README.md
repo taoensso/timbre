@@ -1,5 +1,5 @@
 <a href="https://www.taoensso.com/clojure" title="More stuff by @ptaoussanis at www.taoensso.com"><img src="https://www.taoensso.com/open-source.png" alt="Taoensso open source" width="340"/></a>  
-[**Documentation**](#documentation) | [Latest releases](#latest-releases) | [Get support][GitHub issues]
+[**API**][codox docs] | [**Wiki**][GitHub wiki] | [Latest releases](#latest-releases) | [Slack channel][]
 
 # Timbre
 
@@ -21,8 +21,7 @@ There's **zero pressure** for existing users of Timbre to migrate, though there 
 
 ## Latest release/s
 
-- `2024-08-30` `v6.6.0-RC1` (next): [release info](../../releases/tag/v6.6.0-RC1)
-- `2024-02-26` `v6.5.0` (stable): [release info](../../releases/tag/v6.5.0)
+- `2024-10-28` `v6.6.0`: [release info](../../releases/tag/v6.6.0)
 
 [![Main tests][Main tests SVG]][Main tests URL]
 [![Graal tests][Graal tests SVG]][Graal tests URL]
@@ -60,14 +59,15 @@ Licensed under [EPL 1.0](LICENSE.txt) (same as Clojure).
 [GitHub releases]: ../../releases
 [GitHub issues]:   ../../issues
 [GitHub wiki]:     ../../wiki
+[Slack channel]: https://www.taoensso.com/timbre/slack
 
 [Peter Taoussanis]: https://www.taoensso.com
 [sponsor]:          https://www.taoensso.com/sponsor
 
 <!-- Project -->
 
-[Codox docs]:   https://taoensso.github.io/timbre/
-[cljdoc docs]: https://cljdoc.org/d/com.taoensso/timbre/
+[Codox docs]:  https://taoensso.github.io/timbre/
+[cljdoc docs]: https://cljdoc.org/d/com.taoensso/timbre/CURRENT/api/taoensso.timbre
 
 [Clojars SVG]: https://img.shields.io/clojars/v/com.taoensso/timbre.svg
 [Clojars URL]: https://clojars.org/com.taoensso/timbre

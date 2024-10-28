@@ -2,12 +2,13 @@ This project uses [**Break Versioning**](https://www.taoensso.com/break-versioni
 
 ---
 
-# `v6.6.0-RC1` (2024-08-30)
+# `v6.6.0` (2024-10-28)
 
-📦 **Available on Clojars**: [Timbre](https://clojars.org/com.taoensso/timbre/versions/6.6.0-RC1) | [SLF4J provider](https://clojars.org/com.taoensso/timbre-slf4j/versions/6.6.0-RC1)  
-Uses [Break Versioning](https://www.taoensso.com/break-versioning).
+- **Main dependency**: [on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.6.0)
+- **SLF4J provider**: [on Clojars](https://clojars.org/com.taoensso/timbre-slf4j/versions/6.6.0)
+- **Versioning**: [Break Versioning](https://www.taoensso.com/break-versioning)
 
----
+Same as `v6.6.0-RC1` (2024-08-30), just updates some dependencies.
 
 This is a significant **feature** release that includes new **built-in support** for [Java logging interop via SLF4J](https://github.com/taoensso/timbre/wiki/4-Interop#java-logging).
 
@@ -17,13 +18,42 @@ As always, feedback and bug reports very welcome! - [Peter Taoussanis](https://w
 
 ## Changes since `v6.5.0` (2024-02-26)
 
-* 6d7495a7 [mod] `default-output-fn`: omit "?" location info
+* \[mod] `default-output-fn`: omit "?" location info [6d7495a7]
 
 ## New since `v6.5.0` (2024-02-26)
 
-* 6b4873ec [new] Add SLF4Jv2 backend/provider
-* 95ea032d [new] [#389] Capture cause of failing error-fn
-* 0fa226eb [doc] [#386] Add `timbre-json-appender` to wiki (@NoahTheDuke)
+* \[new] Add SLF4Jv2 backend/provider [6b4873ec]
+* \[new] [#389] Capture cause of failing error-fn [95ea032d]
+* \[doc] [#386] Add `timbre-json-appender` to wiki (@NoahTheDuke) [0fa226eb]
+* Various internal improvements and updated dependencies
+
+## Fixes since `v6.5.0` (2024-02-26)
+
+* None
+
+---
+
+# `v6.6.0-RC1` (2024-08-30)
+
+- **Main dependency**: [on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.6.0-RC1)
+- **SLF4J provider**: [on Clojars](https://clojars.org/com.taoensso/timbre-slf4j/versions/6.6.0-RC1)
+- **Versioning**: [Break Versioning](https://www.taoensso.com/break-versioning)
+
+This is a significant **feature** release that includes new **built-in support** for [Java logging interop via SLF4J](https://github.com/taoensso/timbre/wiki/4-Interop#java-logging).
+
+Big thanks to @fzakaria and @rufoa for their long-time work on Timbre's [previous optional SLF4J interop](https://github.com/fzakaria/slf4j-timbre) 🙏
+
+As always, feedback and bug reports very welcome! - [Peter Taoussanis](https://www.taoensso.com)
+
+## Changes since `v6.5.0` (2024-02-26)
+
+* \[mod] `default-output-fn`: omit "?" location info [6d7495a7]
+
+## New since `v6.5.0` (2024-02-26)
+
+* \[new] Add SLF4Jv2 backend/provider [6b4873ec]
+* \[new] [#389] Capture cause of failing error-fn [95ea032d]
+* \[doc] [#386] Add `timbre-json-appender` to wiki (@NoahTheDuke) [0fa226eb]
 * Various internal improvements and updated dependencies
 
 ## Fixes since `v6.5.0` (2024-02-26)
