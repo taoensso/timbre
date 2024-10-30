@@ -450,9 +450,10 @@
 
   ;; Back compatible arities for AOT tools,
   ;; Ref. <https://github.com/fzakaria/slf4j-timbre/issues/20>
-  ([config level ?ns-str ?file ?line         msg-type ?err vargs_ ?base-data                                    ] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data nil         false   nil nil))
-  ([config level ?ns-str ?file ?line         msg-type ?err vargs_ ?base-data callsite-id                        ] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data callsite-id false   nil nil))
-  ([config level ?ns-str ?file ?line         msg-type ?err vargs_ ?base-data callsite-id spying?                ] (-log! config level ?ns-str ?file ?line nil msg-type ?err vargs_ ?base-data callsite-id spying? nil nil))
+  ([config level ?ns-str ?file ?line         msg-type ?err vargs_ ?base-data                                    ] (-log! config level ?ns-str ?file ?line nil     msg-type ?err vargs_ ?base-data nil         false   nil nil))
+  ([config level ?ns-str ?file ?line         msg-type ?err vargs_ ?base-data callsite-id                        ] (-log! config level ?ns-str ?file ?line nil     msg-type ?err vargs_ ?base-data callsite-id false   nil nil))
+  ([config level ?ns-str ?file ?line         msg-type ?err vargs_ ?base-data callsite-id spying?                ] (-log! config level ?ns-str ?file ?line nil     msg-type ?err vargs_ ?base-data callsite-id spying? nil nil))
+  ([config level ?ns-str ?file ?line ?column msg-type ?err vargs_ ?base-data callsite-id spying?                ] (-log! config level ?ns-str ?file ?line ?column msg-type ?err vargs_ ?base-data callsite-id spying? nil nil))
   ([config level ?ns-str ?file ?line ?column msg-type ?err vargs_ ?base-data callsite-id spying? instant may-log]
    (when (or may-log (may-log? :trace level ?ns-str config))
      (let [instant (or instant (enc/now-dt*))
