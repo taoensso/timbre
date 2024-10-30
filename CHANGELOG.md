@@ -12,7 +12,7 @@ This is a non-breaking **hotfix release** that should be a safe update for users
 
 ## Fixes since `v6.6.0` (2024-10-28)
 
-* \[fix] Add missing 12-arity `-log!` (may affect AOT users) (@borkdude) [d78c79f2]
+* \[fix] Add missing 12-arity `-log!` (may affect AOT users) (@borkdude) [201678bc]
 
 ## New since `v6.6.0` (2024-10-28)
 
