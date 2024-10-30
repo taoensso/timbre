@@ -2,6 +2,24 @@ This project uses [**Break Versioning**](https://www.taoensso.com/break-versioni
 
 ---
 
+# `v6.6.1` (2024-10-30)
+
+- **Main dependency**: [on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.6.1)
+- **SLF4J provider**: [on Clojars](https://clojars.org/com.taoensso/timbre-slf4j/versions/6.6.1)
+- **Versioning**: [Break Versioning](https://www.taoensso.com/break-versioning)
+
+This is a non-breaking **hotfix release** that should be a safe update for users of `v6.6.0`.
+
+## Fixes since `v6.6.0` (2024-10-28)
+
+* \[fix] Add missing 12-arity `-log!` (may affect AOT users) (@borkdude) [d78c79f2]
+
+## New since `v6.6.0` (2024-10-28)
+
+* Update dependencies
+
+---
+
 # `v6.6.0` (2024-10-28)
 
 - **Main dependency**: [on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.6.0)
