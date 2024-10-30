@@ -4,7 +4,7 @@
 
   (:require
    [clojure.string  :as str]
-   [taoensso.encore :as enc :refer [have have?]]
+   [taoensso.encore :as enc]
    [taoensso.timbre.appenders.core :as core-appenders]
 
    #?(:clj  [clj-commons.format.exceptions :as fmt-ex])
@@ -15,7 +15,8 @@
 (enc/assert-min-encore-version [3 128 0])
 
 (comment
-  (remove-ns 'taoensso.timbre)
+  (remove-ns (symbol (str *ns*)))
+  (:api (enc/interns-overview))
   (test/run-tests))
 
 ;;;; Dynamic config
@@ -246,7 +247,7 @@
 
   #?(:clj ([config    ?min-level] (set-ns-min-level config *ns* ?min-level))) ; No *ns* at Cljs runtime
   (        [config ns ?min-level]
-   (let [ns (str (have ns))
+   (let [ns (str (enc/have ns))
          min-level* ; [[<ns-pattern> <min-level>] ...]
          (let [x (get config :min-level)]
            (if (vector? x)
@@ -630,7 +631,7 @@
         {config `*config*
          ?err   :auto}}]
 
-      (have [:or nil? sequential? symbol?] args)
+      (enc/have? [:or nil? sequential? symbol?] args)
       (let [callsite-id (callsite-counter)
             loc (or loc (enc/get-source &form &env))
             {:keys [ns file line column]} loc
@@ -948,7 +949,7 @@
      Returns simple stacktrace string."
 
   [{:keys [?err output-opts] :as data}]
-  (let [err (have ?err)]
+  (let [err (enc/have ?err)]
 
     #?(:cljs
        (let [nl enc/newline]
