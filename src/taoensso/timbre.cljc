@@ -633,15 +633,16 @@
 
       (enc/have? [:or nil? sequential? symbol?] args)
       (let [callsite-id (callsite-counter)
-            loc (or loc (enc/get-source &form &env))
-            {:keys [ns file line column]} loc
+            loc-form (or loc (enc/get-source &form &env))
+            loc-map  (when (map?    loc-form) loc-form)
+            loc-sym  (when (symbol? loc-form) loc-form)
 
-            ns     (or (get opts :?ns-str) ns)
-            file   (or (get opts :?file)   file)
-            line   (or (get opts :?line)   line)
-            column (or (get opts :?column) column)
+            ns-form     (get opts :?ns-str (get loc-map :ns     (when loc-sym `(get ~loc-sym :ns))))
+            file-form   (get opts :?file   (get loc-map :file   (when loc-sym `(get ~loc-sym :file))))
+            line-form   (get opts :?line   (get loc-map :line   (when loc-sym `(get ~loc-sym :line))))
+            column-form (get opts :?column (get loc-map :column (when loc-sym `(get ~loc-sym :column))))
 
-            elide? (and (enc/const-forms? level ns) (-elide? level ns))]
+            elide? (and (enc/const-forms? level ns-form) (-elide? level ns-form))]
 
         (when-not elide?
           (let [vargs-form
@@ -651,7 +652,7 @@
                     `[              ~@args]))]
 
             ;; Note pre-resolved expansion
-            `(taoensso.timbre/-log! ~config ~level ~ns ~file ~line ~column ~msg-type ~?err
+            `(taoensso.timbre/-log! ~config ~level ~ns-form ~file-form ~line-form ~column-form ~msg-type ~?err
                (delay ~vargs-form) ~?base-data ~callsite-id ~spying?
                ~(get opts :instant)
                ~(get opts :may-log?))))))
