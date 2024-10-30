@@ -10,7 +10,7 @@
   :test-paths ["test" #_"src"]
 
   :dependencies
-  [[com.taoensso/encore  "3.127.0"]
+  [[com.taoensso/encore  "3.128.0"]
    [org.clj-commons/pretty "3.2.0"]]
 
   :profiles
