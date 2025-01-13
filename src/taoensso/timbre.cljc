@@ -168,19 +168,14 @@
               ])
 
            level (if (string? level) (keyword level) level) ; Legacy
-           present? (some?        level)
-           valid?   (valid-level? level)]
+           ]
 
-       (swap! compile-time-config_ assoc :min-level
-         (when present?
-           (if valid?
-             level
-             [:timbre/invalid-min-level
-              {:value level :type (type level)}])))
-
-       (when valid?
-         ;; (println (str "Compile-time (elision) Timbre min-level: " level))
-         level))))
+       (when     (some?        level)
+         (if-not (valid-level? level)
+           (throw (ex-info (str "Invalid compile-time min-level: " level) {:level (enc/typed-val level)}))
+           (do
+             (swap! compile-time-config_ assoc :min-level level)
+             level))))))
 
 #?(:clj
    (defonce ^:private compile-time-ns-filter
