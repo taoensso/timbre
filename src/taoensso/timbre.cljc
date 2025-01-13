@@ -1237,6 +1237,10 @@
 
     Note that compile-time options will OVERRIDE options in `*config*`.
 
+    NB: only simple (keyword) compile-time min-level's are supported,
+    you CANNOT currently use the syntax for namespace-specific levels
+    here.
+
   DEBUGGING INITIAL CONFIG
     See `:_init-config` for information re: Timbre's config on initial load."
 
