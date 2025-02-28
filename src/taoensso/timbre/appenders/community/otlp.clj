@@ -80,7 +80,7 @@
            timestamp (.toInstant instant)
            severity  (get timbre->otlp-levels level default-severity)
            arg       (single-map vargs)
-           message   (if-let [msg (:msg arg)] msg (force msg_))
+           ^String message (if-let [msg (:msg arg)] msg (force msg_))
            ?ex-data  (ex-data ?err)
            extra
            (assoc-some-nx context
