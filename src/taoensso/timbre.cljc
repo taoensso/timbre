@@ -4,6 +4,7 @@
 
   (:require
    [clojure.string  :as str]
+   [taoensso.truss  :as truss]
    [taoensso.encore :as enc]
    [taoensso.timbre.appenders.core :as core-appenders]
 
@@ -51,8 +52,8 @@
          nil)]
 
   (defn- valid-level?     [x] (if (level->int x) true false))
-  (defn- valid-level      [x] (if (level->int x) x (throw (ex-info err {:given x :type (type x)}))))
-  (defn- valid-level->int [x] (or (level->int x)   (throw (ex-info err {:given x :type (type x)})))))
+  (defn- valid-level      [x] (if (level->int x) x (truss/ex-info! err {:given x :type (type x)})))
+  (defn- valid-level->int [x] (or (level->int x)   (truss/ex-info! err {:given x :type (type x)}))))
 
 (let [valid-level->int valid-level->int]
   (defn #?(:clj level>= :cljs ^:boolean level>=)
@@ -172,7 +173,7 @@
 
        (when     (some?        level)
          (if-not (valid-level? level)
-           (throw (ex-info (str "Invalid compile-time min-level: " level) {:level (enc/typed-val level)}))
+           (truss/ex-info! (str "Invalid compile-time min-level: " level) {:level (truss/typed-val level)})
            (do
              (swap! compile-time-config_ assoc :min-level level)
              level))))))
@@ -242,7 +243,7 @@
 
   #?(:clj ([config    ?min-level] (set-ns-min-level config *ns* ?min-level))) ; No *ns* at Cljs runtime
   (        [config ns ?min-level]
-   (let [ns (str (enc/have ns))
+   (let [ns (str (truss/have ns))
          min-level* ; [[<ns-pattern> <min-level>] ...]
          (let [x (get config :min-level)]
            (if (vector? x)
@@ -421,16 +422,15 @@
 
 (defn- protected-fn [error-msg f]
   (fn [data]
-    (enc/try* (f data)
+    (truss/try* (f data)
       (catch :all t
         (let [{:keys [level ?ns-str ?file ?line]} data]
-          (throw
-            (ex-info error-msg
-              {:output-fn f
-               :level     level
-               :loc       {:ns ?ns-str, :file ?file, :line ?line}
-               :log-data  data}
-              t)))))))
+          (truss/ex-info! error-msg
+            {:output-fn f
+             :level     level
+             :loc       {:ns ?ns-str, :file ?file, :line ?line}
+             :log-data  data}
+            t))))))
 
 (comment ((protected-fn "Whoops" (fn [data] (/ 1 0))) {}))
 
@@ -600,7 +600,7 @@
   "Simple counter, used to uniquely identify each log macro expansion."
   (enc/counter))
 
-#?(:clj (enc/defalias enc/keep-callsite))
+#?(:clj (enc/defalias truss/keep-callsite))
 #?(:clj
    (defmacro log! ; Public wrapper around `-log!`
      "Core low-level log macro. Useful for tooling/library authors, etc.
@@ -627,7 +627,7 @@
         {config `*config*
          ?err   :auto}}]
 
-      (enc/have? [:or nil? sequential? symbol?] args)
+      (truss/have? [:or nil? sequential? symbol?] args)
       (let [callsite-id (callsite-counter)
             loc-form (or loc (enc/get-source &form &env))
             loc-map  (when (map?    loc-form) loc-form)
@@ -727,10 +727,10 @@
 
 #?(:clj
    (do
-     (defmacro log-errors             [& body]         `(enc/try* (do ~@body) (catch :all t# (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#}))))
-     (defmacro logged-future          [& body] `(future (enc/try* (do ~@body) (catch :all t# (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#})))))
+     (defmacro log-errors             [& body]         `(truss/try* (do ~@body) (catch :all t# (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#}))))
+     (defmacro logged-future          [& body] `(future (truss/try* (do ~@body) (catch :all t# (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#})))))
      (defmacro log-and-rethrow-errors [& body]
-       `(enc/try* (do ~@body)
+       `(truss/try* (do ~@body)
           (catch :all t#
             (log! :error nil nil {:loc ~(enc/get-source &form &env), :?err t#})
             (throw t#))))))
@@ -742,7 +742,7 @@
 
 #?(:clj
    (defmacro ^:no-doc -spy [loc config level name form]
-     `(enc/try*
+     `(truss/try*
         (let [result# ~form]
           (log! ~level :p [~name "=>" result#] ~{:loc loc, :config config, :spying? true})
           result#)
@@ -789,10 +789,10 @@
 (defn- pr-error
   "Used as fallback error-fn"
   [error]
-  (enc/try*
+  (truss/try*
     (pr-str error)
     (catch :all _pr-str-error
-      (enc/try*
+      (truss/try*
         (str error)
         (catch :all _str-error
           "<pr-error failed>")))))
@@ -850,7 +850,7 @@
          (when-let [ef (get output-opts :error-fn default-output-error-fn)]
            (when-not   (get output-opts :no-stacktrace?) ; Back compatibility
              (let [nl enc/newline]
-               (enc/try*
+               (truss/try*
                  (str nl (ef data))
                  (catch :all ef-error
                    (str nl
@@ -894,9 +894,8 @@
       :f
       (if (string?   ?msg-fmt)
         (enc/format* ?msg-fmt vargs) ; Don't use arg->str-fn, would prevent custom formatting
-        (throw
-          (ex-info "Timbre format-style logging call without a format pattern string"
-            {:?msg-fmt ?msg-fmt :type (type ?msg-fmt) :vargs vargs}))))))
+        (truss/ex-info! "Timbre format-style logging call without a format pattern string"
+          {:?msg-fmt ?msg-fmt :type (type ?msg-fmt) :vargs vargs})))))
 
 (comment
   (default-output-msg-fn
@@ -918,10 +917,9 @@
 
          (if (valid-stacktrace-fonts? st-fonts) ; May be nil or {}
            (do                        st-fonts)
-           (throw
-             (ex-info invalid-stacktrace-fonts-msg
-               {:given-fonts               st-fonts
-                :default-fonts fmt-ex/default-fonts})))))
+           (truss/ex-info! invalid-stacktrace-fonts-msg
+             {:given-fonts               st-fonts
+              :default-fonts fmt-ex/default-fonts}))))
 
      (def ^:private valid-stacktrace-fonts!
        (enc/fmemoize
@@ -946,7 +944,7 @@
      Returns simple stacktrace string."
 
   [{:keys [?err output-opts] :as data}]
-  (let [err (enc/have ?err)]
+  (let [err (truss/have ?err)]
 
     #?(:cljs
        (let [nl enc/newline]

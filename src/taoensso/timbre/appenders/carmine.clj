@@ -3,7 +3,8 @@
   Requires <https://github.com/taoensso/carmine>."
   {:author "Peter Taoussanis (@ptaoussanis)"}
   (:require
-   [taoensso.encore  :as enc :refer [have have?]]
+   [taoensso.truss   :as truss]
+   [taoensso.encore  :as enc]
    [taoensso.carmine :as car]
    [taoensso.nippy   :as nippy]
    [taoensso.timbre  :as timbre]))
@@ -63,8 +64,8 @@
               entry-fn          default-entry-fn
               nentries-by-level default-nentries-by-level}}]]
 
-  (have? string?  (keyfn             :info))
-  (have? integer? (nentries-by-level :info))
+  (truss/have? string?  (keyfn             :info))
+  (truss/have? integer? (nentries-by-level :info))
 
   {:enabled? true
    :fn
@@ -110,7 +111,7 @@
   Returns latest `n` log entries by level as an ordered vector of
   deserialized maps."
   [conn-opts level & [n asc? keyfn]]
-  (have? [:or nil? integer?] n)
+  (truss/have? [:or nil? integer?] n)
   (let [keyfn  (or keyfn default-keyfn)
         k-zset (keyfn level)
         k-hash (str k-zset ":entries")

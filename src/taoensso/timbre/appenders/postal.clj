@@ -4,7 +4,8 @@
   {:author "Peter Taoussanis (@ptaoussanis)"}
   (:require
    [clojure.string  :as str]
-   [taoensso.encore :as enc :refer [have have?]]
+   [taoensso.truss  :as truss]
+   [taoensso.encore :as enc]
    [taoensso.timbre :as timbre]
    [postal.core     :as postal]))
 

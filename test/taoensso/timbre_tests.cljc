@@ -1,7 +1,8 @@
 (ns taoensso.timbre-tests
   (:require
-   [clojure.test    :as test :refer [deftest testing is]]
-   [taoensso.encore :as enc  :refer [throws? submap?] :rename {submap? sm?}]
+   [clojure.test    :as test  :refer [deftest testing is]]
+   [taoensso.truss  :as truss :refer [throws? submap?] :rename {submap? sm?}]
+   [taoensso.encore :as enc]
    [taoensso.timbre :as timbre]
 
    #?@(:clj

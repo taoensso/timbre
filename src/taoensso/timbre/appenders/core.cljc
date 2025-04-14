@@ -3,9 +3,10 @@
   These can be aliased into the main Timbre ns for convenience."
   {:author "Peter Taoussanis (@ptaoussanis)"}
   (:require
-   [clojure.string  :as str]
    #?(:clj [clojure.java.io :as jio])
-   [taoensso.encore :as enc :refer [have have?]]))
+   [clojure.string  :as str]
+   [taoensso.truss  :as truss]
+   [taoensso.encore :as enc]))
 
 ;; TODO Add a simple official rolling spit appender?
 
@@ -75,7 +76,7 @@
                  append?  true
                  locking? true}}]]
 
-     (have? enc/nblank-str? fname)
+     (truss/have? enc/nblank-str? fname)
 
      {:enabled? true
       :fn

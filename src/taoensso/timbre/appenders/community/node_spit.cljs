@@ -2,6 +2,7 @@
   "Requires <https://github.com/pkpkpk/cljs-node-io>."
   {:author "Mason Vines (@mavines)"}
   (:require
+   [taoensso.truss    :as truss]
    [taoensso.encore   :as enc]
    [cljs-node-io.core :as nio]))
 
@@ -12,7 +13,7 @@
        :or   {fname "./timbre-spit.log"
               append? true}}]]
 
-  (enc/have? enc/nblank-str? fname)
+  (truss/have? enc/nblank-str? fname)
 
   {:enabled? true
    :fn
