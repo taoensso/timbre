@@ -1,4 +1,4 @@
-(defproject com.taoensso/timbre "6.6.1"
+(defproject com.taoensso/timbre "6.7.0"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Pure Clojure/Script logging library"
   :url "https://www.taoensso.com/timbre"
@@ -66,7 +66,7 @@
     [[org.clojure/test.check    "1.1.1"]
      [org.clojure/tools.logging "1.3.0"]
      [org.slf4j/slf4j-api       "2.0.17"]
-     [com.taoensso/timbre-slf4j "6.6.1"]
+     [com.taoensso/timbre-slf4j "6.7.0"]
      [com.taoensso/nippy        "3.5.0"]
      [com.taoensso/carmine      "3.4.1" :exclusions [com.taoensso/timbre]]
      [com.draines/postal        "2.0.5"]]

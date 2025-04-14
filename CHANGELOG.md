@@ -2,6 +2,26 @@ This project uses [**Break Versioning**](https://www.taoensso.com/break-versioni
 
 ---
 
+# `v6.7.0` (2025-04-15)
+
+- **Main dependency**: [on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.7.0)
+- **SLF4J provider**: [on Clojars](https://clojars.org/com.taoensso/timbre-slf4j/versions/6.7.0)
+- **Versioning**: [Break Versioning](https://www.taoensso.com/break-versioning)
+
+This is a **maintenance release** focused on updating dependencies.
+
+It **drops support for Clojure v1.9** but should otherwise be a safe update for users of `v6.6.x`.
+
+## Since `v6.6.1` (2024-10-30)
+
+- **\[mod]** Drop official Clojure v1.9 support
+- **\[mod]** Now **throw** on invalid compile-time min-level \[a393582b]
+- \[new] Use [Truss exceptions](https://cljdoc.org/d/com.taoensso/truss/CURRENT/api/taoensso.truss#ex-info) on errors \[ad4a37c1]
+* \[fix] [#394] OTLP appender: fix reflection (@ericdallo) \[44829cd7]
+* \[doc] Mention limitation on compile-time min-level \[b97ad982]
+
+---
+
 # `v6.6.1` (2024-10-30)
 
 - **Main dependency**: [on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.6.1)
