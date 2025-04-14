@@ -10,8 +10,8 @@
   :test-paths ["test" #_"src"]
 
   :dependencies
-  [[com.taoensso/encore  "3.128.0"]
-   [org.clj-commons/pretty "3.2.0"]]
+  [[com.taoensso/encore  "3.142.0"]
+   [org.clj-commons/pretty "3.3.2"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
@@ -20,7 +20,6 @@
    :c1.12    {:dependencies [[org.clojure/clojure       "1.12.0"]]}
    :c1.11    {:dependencies [[org.clojure/clojure       "1.11.4"]]}
    :c1.10    {:dependencies [[org.clojure/clojure       "1.10.3"]]}
-   :c1.9     {:dependencies [[org.clojure/clojure       "1.9.0"]]}
 
    :deploy
    {:source-paths [         "src"                 "deploy/src"]
@@ -42,11 +41,11 @@
       :exclusions [com.fasterxml.jackson.core/jackson-core]]
      [org.julienxx/clj-slack  "0.8.3"]
      [org.clojure/java.jdbc   "0.7.12"]
-     [com.mchange/c3p0        "0.10.1"]
+     [com.mchange/c3p0        "0.10.2"]
      [cheshire                "5.13.0"]
      [ymilky/franzy           "0.0.1"]
-     [com.newrelic.agent.java/newrelic-agent "8.15.0"]
-     [net.java.dev.jna/jna    "5.15.0"]
+     [com.newrelic.agent.java/newrelic-agent "8.19.0"]
+     [net.java.dev.jna/jna    "5.17.0"]
      [raven-clj               "1.7.0"]
      [congomongo              "2.6.0"]
      [server-socket           "1.0.0"]
@@ -66,9 +65,9 @@
     :dependencies
     [[org.clojure/test.check    "1.1.1"]
      [org.clojure/tools.logging "1.3.0"]
-     [org.slf4j/slf4j-api       "2.0.16"]
-     [com.taoensso/timbre-slf4j "6.6.0"]
-     [com.taoensso/nippy        "3.5.0-RC1"]
+     [org.slf4j/slf4j-api       "2.0.17"]
+     [com.taoensso/timbre-slf4j "6.6.1"]
+     [com.taoensso/nippy        "3.5.0"]
      [com.taoensso/carmine      "3.4.1" :exclusions [com.taoensso/timbre]]
      [com.draines/postal        "2.0.5"]]
 
@@ -105,6 +104,6 @@
    "deploy-lib"    ["with-profile" "+deploy" "do"
                     ["build-once"] ["deploy" "clojars"] ["install"]]
 
-   "test-clj"   ["with-profile" "+c1.12:+c1.11:+c1.10:+c1.9" "test"]
-   "test-cljs"  ["with-profile" "+c1.12" "cljsbuild"         "test"]
+   "test-clj"   ["with-profile" "+c1.12:+c1.11:+c1.10" "test"]
+   "test-cljs"  ["with-profile" "+c1.12" "cljsbuild"   "test"]
    "test-all"   ["do" ["clean"] ["test-clj"] ["test-cljs"]]})
