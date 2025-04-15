@@ -17,8 +17,8 @@ It **drops support for Clojure v1.9** but should otherwise be a safe update for 
 - **\[mod]** Drop official Clojure v1.9 support
 - **\[mod]** Now **throw** on invalid compile-time min-level \[a393582b]
 - \[new] Use [Truss exceptions](https://cljdoc.org/d/com.taoensso/truss/CURRENT/api/taoensso.truss#ex-info) on errors \[ad4a37c1]
-* \[fix] [#394] OTLP appender: fix reflection (@ericdallo) \[44829cd7]
-* \[doc] Mention limitation on compile-time min-level \[b97ad982]
+- \[fix] [#394] OTLP appender: fix reflection (@ericdallo) \[44829cd7]
+- \[doc] Mention limitation on compile-time min-level \[b97ad982]
 
 ---
 
