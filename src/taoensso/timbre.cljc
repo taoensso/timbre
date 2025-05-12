@@ -345,6 +345,8 @@
        ([color x y       ] (str (ansi-color color) x y                  ansi-reset))
        ([color x y & more] (str (ansi-color color) x y (apply str more) ansi-reset)))))
 
+#?(:clj (def default-out (java.io.OutputStreamWriter. System/out)))
+#?(:clj (def default-err (java.io.PrintWriter.        System/err)))
 #?(:clj
    (defmacro with-default-outs [& body]
      `(binding [*out* default-out, *err* default-err] ~@body)))
