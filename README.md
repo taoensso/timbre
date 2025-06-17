@@ -21,7 +21,7 @@ There's **zero pressure** for existing users of Timbre to migrate, though there 
 
 ## Latest release/s
 
-- `2025-04-15` `v6.7.0`: [release info](../../releases/tag/v6.7.0)
+- `2025-05-12` `v6.7.1`: [release info](../../releases/tag/v6.7.1)
 
 [![Main tests][Main tests SVG]][Main tests URL]
 [![Graal tests][Graal tests SVG]][Graal tests URL]

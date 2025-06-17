@@ -2,6 +2,22 @@ This project uses [**Break Versioning**](https://www.taoensso.com/break-versioni
 
 ---
 
+# `v6.7.1` (2025-05-12)
+
+This is a **hotfix release** for \[#396] `ClassCastException` when using a `println-appender` with `{:stream :std-out}`.
+
+**Main dependency** is [on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.7.1).
+
+---
+
+# `v6.6.2` (2025-05-12)
+
+This is a **hotfix release** for \[#396] `ClassCastException` when using a `println-appender` with `{:stream :std-out}`.
+
+**Main dependency** is [on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.6.2).
+
+---
+
 # `v6.7.0` (2025-04-15)
 
 - **Main dependency**: [on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.7.0)
