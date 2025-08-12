@@ -92,7 +92,8 @@
    (testing "Levels.appender/basic"
      [(is (map? (log-data "ns" :info {:min-level :info}   {:min-level :info}   [])) "call >= both global and appender")
       (is (nil? (log-data "ns" :info {:min-level :report} {:min-level :info}   [])) "call <  global")
-      (is (nil? (log-data "ns" :info {:min-level :info}   {:min-level :report} [])) "call <  appender")])
+      (is (nil? (log-data "ns" :info {:min-level :info}   {:min-level :report} [])) "call <  appender")
+      (is (nil? (log-data "ns" :warn {:min-level :info :middleware [(fn [_] {:level :info})]} {:min-level :warn}  [])) "call >= both global and appender but demoted to < appender by middleware")])
 
    (testing "Levels.appender/by-ns"
      [(is (map? (log-data "ns" :info {:min-level [["ns" :info]]}  {:min-level :info}          [])) "call >= both global and appender")

@@ -491,7 +491,7 @@
              (get config :middleware))]
 
        (when-let [data ?data] ; Not filtered by middleware
-         (let [{:keys [vargs]} data
+         (let [{:keys [level vargs]} data
                data
                (enc/assoc-nx data
                  :msg_ (delay ((protected-fn "Timbre error when calling (msg-fn <data>)"
