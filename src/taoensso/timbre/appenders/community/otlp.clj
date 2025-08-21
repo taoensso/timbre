@@ -65,6 +65,9 @@
         (doto (AutoConfiguredOpenTelemetrySdk/builder)
           (.setResultAsGlobal false)))
 
+  For trace correlation Timbre config should include
+    :middleware [... otlp/middleware ...].
+
   [1] Ref. <https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/CHANGELOG.md#version-200-2024-01-12>"
   [{:keys [^LoggerProvider logger-provider]}]
   {:enabled?   true
@@ -74,7 +77,7 @@
    :output-fn  :inherit
    :fn
    (fn [{:keys [^java.util.Date instant level ^String ?ns-str
-                ?file ?line ?err vargs msg_ context]}]
+                ?file ?line ?err vargs msg_ context] :as data}]
 
      (let [logger    (.get logger-provider ?ns-str)
            timestamp (.toInstant instant)
@@ -89,14 +92,26 @@
              :ex-data ?ex-data)
 
            event (merge (dissoc arg :msg) extra)
-           attributes (attr/->attributes event)]
+           attributes (attr/->attributes event)
+           lrb (.logRecordBuilder logger)]
+
+       ;; Ref. https://javadoc.io/doc/io.opentelemetry/opentelemetry-api-logs/latest/io/opentelemetry/api/logs/LogRecordBuilder.html
+
+       (when-let         [otel-context (get data :otel/context)]
+         (.setContext lrb otel-context))
 
        ;; TODO Use clj-otel once it supports the logs API,
        ;; Ref. <https://github.com/steffan-westcott/clj-otel/issues/8>
-       (.emit
-         (doto (.logRecordBuilder logger)
-           (.setAllAttributes attributes)
-           (.setTimestamp     timestamp)
-           (.setBody          message)
-           (.setSeverity                severity)
-           (.setSeverityText (.toString severity))))))})
+       (doto lrb
+         (.setAllAttributes attributes)
+         (.setTimestamp     timestamp)
+         (.setBody          message)
+         (.setSeverity                severity)
+         (.setSeverityText (.toString severity))
+         (.emit))))})
+
+(defn middleware
+  "Adds `:otel/context` to log data."
+  [data]
+  (assoc data :otel/context
+    (io.opentelemetry.context.Context/current)))
