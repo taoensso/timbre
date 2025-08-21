@@ -152,7 +152,7 @@
               (fn [level]
                 (or
                   (case level
-                    :trace  js/console.trace
+                    :trace  js/console.debug
                     :debug  js/console.debug
                     :info   js/console.info
                     :warn   js/console.warn
