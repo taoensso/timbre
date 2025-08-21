@@ -2,6 +2,23 @@ This project uses [**Break Versioning**](https://www.taoensso.com/break-versioni
 
 ---
 
+# `v6.8.0` (2025-08-21)
+
+- **Main dependency**: [on Clojars](https://clojars.org/com.taoensso/timbre/versions/6.8.0)
+- **SLF4J provider**: [on Clojars](https://clojars.org/com.taoensso/timbre-slf4j/versions/6.8.0)
+- **Versioning**: [Break Versioning](https://www.taoensso.com/break-versioning)
+
+This is a **feature release** that should be a non-breaking update.
+
+## Since `v6.7.1` (2025-05-12)
+
+- \[fix] `:trace` level JS console logging \[a193832d]
+- \[fix] [#398] Appenders should use post-middleware log level (@DerGuteMoritz) \[23f80297]
+- \[fix] [#396] Bring back accidentally removed sys out vars (@ferdinand-beyer) \[716b6042]
+- \[new] [#399] Add middleware to capture OpenTelemetry context (@devurandom) \[080acff2]
+
+---
+
 # `v6.7.1` (2025-05-12)
 
 This is a **hotfix release** for \[#396] `ClassCastException` when using a `println-appender` with `{:stream :std-out}`.
