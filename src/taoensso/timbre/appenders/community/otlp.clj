@@ -4,9 +4,13 @@
   {:author "Dennis Schridde (@devurandom)"}
   (:require
    [taoensso.encore :as enc]
-   [steffan-westcott.clj-otel.api.attributes :as attr])
+   [steffan-westcott.clj-otel.api.attributes :as attr]
+   [steffan-westcott.clj-otel.context :as context])
 
-  (:import [io.opentelemetry.api.logs LoggerProvider Severity]))
+  (:import
+   (io.opentelemetry.api.logs LoggerProvider Severity)
+   (io.opentelemetry.context Context)
+   (java.util Date)))
 
 (comment (set! *warn-on-reflection* true))
 
@@ -65,6 +69,9 @@
         (doto (AutoConfiguredOpenTelemetrySdk/builder)
           (.setResultAsGlobal false)))
 
+  For correlation with traces also configure Timbre to use the middleware-
+    :middleware [otlp/middleware]
+
   [1] Ref. <https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/CHANGELOG.md#version-200-2024-01-12>"
   [{:keys [^LoggerProvider logger-provider]}]
   {:enabled?   true
@@ -73,8 +80,9 @@
    :rate-limit nil
    :output-fn  :inherit
    :fn
-   (fn [{:keys [^java.util.Date instant level ^String ?ns-str
-                ?file ?line ?err vargs msg_ context]}]
+   (fn [{:keys [^Date instant level ^String ?ns-str
+                ?file ?line ?err vargs msg_ context]
+         ::keys [^Context otel-context]}]
 
      (let [logger    (.get logger-provider ?ns-str)
            timestamp (.toInstant instant)
@@ -95,8 +103,13 @@
        ;; Ref. <https://github.com/steffan-westcott/clj-otel/issues/8>
        (.emit
          (doto (.logRecordBuilder logger)
+           (.setContext       otel-context)
            (.setAllAttributes attributes)
            (.setTimestamp     timestamp)
            (.setBody          message)
            (.setSeverity                severity)
            (.setSeverityText (.toString severity))))))})
+
+(defn middleware
+  [data]
+  (assoc data ::otel-context (context/current)))
