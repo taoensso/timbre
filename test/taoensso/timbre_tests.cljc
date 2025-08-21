@@ -157,9 +157,9 @@
 ;;;; Interop
 
 (comment (def ^org.slf4j.Logger sl (org.slf4j.LoggerFactory/getLogger "my.class")))
-#?(:clj  (def dt-pred (enc/pred (fn [x] (instance? java.util.Date x)))))
+#?(:clj  (def dt-pred (fn [x] (instance? java.util.Date x))))
 (def ex1      (ex-info "Ex1" {}))
-(def ex1-pred (enc/pred (fn [x] (= (enc/ex-root x) ex1))))
+(def ex1-pred (fn [x] (= (truss/ex-root x) ex1)))
 
 #?(:clj
    (deftest _interop
