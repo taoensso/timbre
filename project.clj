@@ -10,14 +10,14 @@
   :test-paths ["test" #_"src"]
 
   :dependencies
-  [[com.taoensso/encore  "3.142.0"]
-   [org.clj-commons/pretty "3.3.2"]]
+  [[com.taoensso/encore  "3.153.1"]
+   [org.clj-commons/pretty "3.6.3"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
-   :provided {:dependencies [[org.clojure/clojurescript "1.11.132"]
+   :provided {:dependencies [[org.clojure/clojurescript "1.12.42"]
                              [org.clojure/clojure       "1.11.4"]]}
-   :c1.12    {:dependencies [[org.clojure/clojure       "1.12.0"]]}
+   :c1.12    {:dependencies [[org.clojure/clojure       "1.12.1"]]}
    :c1.11    {:dependencies [[org.clojure/clojure       "1.11.4"]]}
    :c1.10    {:dependencies [[org.clojure/clojure       "1.10.3"]]}
 
@@ -41,17 +41,17 @@
       :exclusions [com.fasterxml.jackson.core/jackson-core]]
      [org.julienxx/clj-slack  "0.8.3"]
      [org.clojure/java.jdbc   "0.7.12"]
-     [com.mchange/c3p0        "0.10.2"]
-     [cheshire                "5.13.0"]
+     [com.mchange/c3p0        "0.11.2"]
+     [cheshire                "6.0.0"]
      [ymilky/franzy           "0.0.1"]
-     [com.newrelic.agent.java/newrelic-agent "8.19.0"]
+     [com.newrelic.agent.java/newrelic-agent "8.23.0"]
      [net.java.dev.jna/jna    "5.17.0"]
      [raven-clj               "1.7.0"]
      [congomongo              "2.6.0"]
      [server-socket           "1.0.0"]
      [org.zeromq/cljzmq       "0.1.4"]
      [cljs-node-io            "1.1.2"] ; `node-spit` appender
-     [com.github.steffan-westcott/clj-otel-api "0.2.7"] ; `otlp` appender
+     [com.github.steffan-westcott/clj-otel-api "0.2.8"] ; `otlp` appender
      ]}
 
    :dev [:dev+ :community #_:deploy]
@@ -67,7 +67,7 @@
      [org.clojure/tools.logging "1.3.0"]
      [org.slf4j/slf4j-api       "2.0.17"]
      [com.taoensso/timbre-slf4j "6.7.0"]
-     [com.taoensso/nippy        "3.5.0"]
+     [com.taoensso/nippy        "3.6.0"]
      [com.taoensso/carmine      "3.4.1" :exclusions [com.taoensso/timbre]]
      [com.draines/postal        "2.0.5"]]
 
