@@ -1,5 +1,9 @@
 <a href="https://www.taoensso.com/clojure" title="More stuff by @ptaoussanis at www.taoensso.com"><img src="https://www.taoensso.com/open-source.png" alt="Taoensso open source" width="340"/></a>  
-[**API**][codox] | [**Wiki**][GitHub wiki] | [Latest releases](#latest-releases) | [Slack channel][]
+[**API**][codox] | [**Wiki**][GitHub wiki] | [Slack][] | Latest release: [v6.8.0](../../releases/tag/v6.8.0) (2025-08-21)
+
+[![Clj tests][Clj tests SVG]][Clj tests URL]
+[![Cljs tests][Cljs tests SVG]][Cljs tests URL]
+[![Graal tests][Graal tests SVG]][Graal tests URL]
 
 # Timbre
 
@@ -18,16 +22,6 @@ While I will continue to support Timbre as always, I'd recommend new users see [
 There's **zero pressure** for existing users of Timbre to migrate, though there are significant benefits - and migration is often [quick and easy](https://github.com/taoensso/telemere/wiki/5-Migrating#from-timbre). See [here](https://github.com/taoensso/telemere/wiki/6-FAQ#why-not-just-update-timbre) for why I made the decision to release a new library.
 
 \- Peter Taoussanis
-
-## Latest release/s
-
-- `2025-08-21` `v6.8.0`: [release info](../../releases/tag/v6.8.0)
-
-[![Clj tests][Clj tests SVG]][Clj tests URL]
-[![Cljs tests][Cljs tests SVG]][Cljs tests URL]
-[![Graal tests][Graal tests SVG]][Graal tests URL]
-
-See [here][GitHub releases] for earlier releases.
 
 ## Why Timbre?
 
@@ -48,7 +42,7 @@ See [here][GitHub releases] for earlier releases.
 
 ## Funding
 
-You can [help support][sponsor] continued work on this project, thank you!! 🙏
+You can [help support][sponsor] continued work on this project and [others][my work], thank you!! 🙏
 
 ## License
 
@@ -60,10 +54,11 @@ Licensed under [EPL 1.0](LICENSE.txt) (same as Clojure).
 [GitHub releases]: ../../releases
 [GitHub issues]:   ../../issues
 [GitHub wiki]:     ../../wiki
-[Slack channel]: https://www.taoensso.com/timbre/slack
+[Slack]: https://www.taoensso.com/timbre/slack
 
 [Peter Taoussanis]: https://www.taoensso.com
 [sponsor]:          https://www.taoensso.com/sponsor
+[my work]:          https://www.taoensso.com/clojure-libraries
 
 <!-- Project -->
 
